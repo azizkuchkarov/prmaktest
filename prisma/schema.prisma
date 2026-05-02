@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model News {
+  id        String   @id @default(cuid())
+  title     String
+  excerpt   String   @default("")
+  body      String   @default("")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TestChoice {
+  A
+  B
+  C
+  D
+}
+
+model Test {
+  id               String         @id @default(cuid())
+  title            String
+  subject          String         @default("")
+  description      String         @default("")
+  durationMinutes  Int            @default(90)
+  questionsCount   Int            @default(0)
+  isPublished      Boolean        @default(false)
+  /// Masalan: saralash — 1-bosqich
+  stage            String         @default("saralash")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  questions        Question[]
+  attempts         TestAttempt[]
+}
+
+model Question {
+  id            String     @id @default(cuid())
+  testId        String
+  test          Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  order         Int
+  text          String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer TestChoice
+  solution      String     @default("")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([testId, order])
+  @@index([testId])
+}
+
+/// O'quvchi (mobil raqam + parol + viloyat)
+model User {
+  id                  String         @id @default(cuid())
+  phone               String         @unique
+  passwordHash        String
+  viloyat             String
+  /// Reytingda chiqarish uchun (ism)
+  firstName           String         @default("")
+  /// Reytingda chiqarish uchun (familiya)
+  lastName            String         @default("")
+  /// Ota-ona monitoringi uchun (998XXXXXXXXX)
+  parentPhone         String         @default("")
+  telegramId          BigInt?        @unique
+  telegramUsername    String?
+  telegramLinkedAt    DateTime?
+  /// Botga /start TOKEN — bot serverdan tasdiqlash uchun
+  telegramLinkToken   String?        @unique
+  telegramLinkExpires DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  testAttempts        TestAttempt[]
+}
+
+model TestAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId      String
+  test        Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  score       Int
+  total       Int
+  secondsUsed Int?
+  /// Reyting: to‘g‘ri javoblar + tezlik bonusi (har urinishdan keyin yig‘iladi)
+  rankPoints  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([testId])
+}
