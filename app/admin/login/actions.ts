@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { sessionCookieSecure } from "@/lib/cookie-secure";
 import { ADMIN_SESSION_COOKIE, signAdminToken } from "@/lib/auth-session";
 
 function safeRedirectPath(from: unknown): string {
@@ -31,11 +32,12 @@ export async function adminLogin(
   }
 
   const cookieStore = await cookies();
+  const secure = await sessionCookieSecure();
   cookieStore.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 60 * 60 * 24,
   });
 

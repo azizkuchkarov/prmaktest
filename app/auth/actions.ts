@@ -10,6 +10,7 @@ import { normalizeUzbekPhone } from "@/lib/phone";
 import { isViloyat } from "@/lib/viloyats";
 import { STUDENT_SESSION_COOKIE, signStudentToken } from "@/lib/student-session";
 import { getStudentSessionUserId } from "@/lib/student-auth";
+import { sessionCookieSecure } from "@/lib/cookie-secure";
 import {
   isStudentProfileComplete,
   PROFILE_SETUP_PATH,
@@ -59,11 +60,12 @@ export async function registerStudent(
   }
 
   const jar = await cookies();
+  const secure = await sessionCookieSecure();
   jar.set(STUDENT_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 60 * 60 * 24 * 30,
   });
 
@@ -94,11 +96,12 @@ export async function loginStudent(
   }
 
   const jar = await cookies();
+  const secure = await sessionCookieSecure();
   jar.set(STUDENT_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 60 * 60 * 24 * 30,
   });
 
