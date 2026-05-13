@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -92,14 +92,26 @@ const fadeUp = {
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
 };
 
-function ChartSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn("animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/60", className)}
-      style={{ minHeight: 220 }}
-      aria-hidden
-    />
-  );
+function subscribeMqLg(cb: () => void) {
+  const mq = window.matchMedia("(min-width: 1024px)");
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function getMqLgSnapshot() {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
+/** lg+: chartlar; mobil va SSRda null (0×0 Recharts ogohlantirishlari yo‘q) */
+function KabinetRankingChartsDesktop(props: {
+  republicByViloyat: ViloyatTotalRow[];
+  userViloyat: string;
+  viloyatTop: LeaderboardRow[];
+  currentUserId: string;
+}) {
+  const lg = useSyncExternalStore(subscribeMqLg, getMqLgSnapshot, () => false);
+  if (!lg) return null;
+  return <KabinetRankingCharts {...props} />;
 }
 
 function ReadinessRing({ pct }: { pct: number }) {
@@ -204,11 +216,6 @@ function CompactRankingBar({
   republicByViloyat: ViloyatTotalRow[];
   userViloyat: string;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    startTransition(() => setMounted(true));
-  }, []);
-
   const repData = useMemo(
     () =>
       republicByViloyat.slice(0, 10).map((r) => ({
@@ -222,15 +229,16 @@ function CompactRankingBar({
   const barBlue = "#93c5fd";
   const barYou = "#2563EB";
 
-  if (!mounted) return <ChartSkeleton className="h-[200px] w-full" />;
-
   if (repData.length === 0) {
     return <p className="py-10 text-center text-sm text-slate-500">Hozircha viloyatlar bo‘yicha ma’lumot yo‘q.</p>;
   }
 
   return (
     <div className="w-full min-w-0 overflow-hidden">
-      <div className="h-[min(72vw,320px)] w-full min-w-0 sm:h-[320px]">
+      <div
+        className="w-full min-w-0 sm:h-[320px]"
+        style={{ height: "max(160px, min(72vw, 320px))", minHeight: 160 }}
+      >
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={160} debounce={50}>
           <BarChart data={repData} layout="vertical" margin={{ left: 2, right: 4, top: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
@@ -280,11 +288,6 @@ export function KabinetBentoContent({
   radar,
   readiness,
 }: Props) {
-  const [chartsReady, setChartsReady] = useState(false);
-  useEffect(() => {
-    startTransition(() => setChartsReady(true));
-  }, []);
-
   const firstName = displayName.split(" ").filter(Boolean)[0] || "do‘st";
   const nextTest = tests.find((t) => t.questionsCount > 0) ?? tests[0];
   const radarHasData = radar.some((d) => d.fullMark > 0);
@@ -464,14 +467,12 @@ export function KabinetBentoContent({
               <h3 className="text-sm font-bold text-slate-900">Fanlar bo‘yicha</h3>
               <p className="text-[11px] text-slate-600">Radar — o‘rtacha foiz (testlar bo‘yicha).</p>
               <div className="relative mt-3 w-full min-h-[240px]">
-                {!chartsReady ? (
-                  <ChartSkeleton className="h-[260px] w-full" />
-                ) : !radarHasData ? (
+                {!radarHasData ? (
                   <div className="flex h-[260px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center text-sm text-slate-500">
                     Hozircha fan bo‘yicha ma’lumot yo‘q. Test topshirgach diagramma paydo bo‘ladi.
                   </div>
                 ) : (
-                  <div className="h-[min(280px,55vw)] w-full min-w-0 sm:h-[280px]">
+                  <div className="box-border h-[240px] w-full min-w-0 sm:h-[280px]">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
                       <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radar}>
                         <PolarGrid stroke="#e2e8f0" />
@@ -507,11 +508,8 @@ export function KabinetBentoContent({
             <div className={cn("p-4 sm:p-5 lg:col-span-5", cardShell)}>
               <h3 className="text-sm font-bold text-slate-900">Tayyorgarlik ulushi</h3>
               <p className="text-[11px] text-slate-600">Donut — umumiy tayyorgarlik foizi.</p>
-              <div className="relative mx-auto mt-2 h-[220px] w-full max-w-[280px] min-w-0 sm:h-[240px]">
-                {!chartsReady ? (
-                  <ChartSkeleton className="h-full w-full" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
+              <div className="relative mx-auto mt-2 box-border h-[220px] w-full max-w-[280px] min-w-0 sm:h-[240px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
                     <PieChart>
                       <Pie
                         data={donutData}
@@ -533,38 +531,33 @@ export function KabinetBentoContent({
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                )}
               </div>
             </div>
 
             <div className={cn("p-4 sm:p-5 lg:col-span-12", cardShell)}>
               <h3 className="text-sm font-bold text-slate-900">Haftalik progress</h3>
               <p className="text-[11px] text-slate-600">So‘nggi haftalar — o‘rtacha test foizi.</p>
-              <div className="mt-3 h-[200px] w-full min-w-0 sm:h-[220px]">
-                {!chartsReady ? (
-                  <ChartSkeleton className="h-full w-full" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180} debounce={50}>
-                    <LineChart data={weekly} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: 12, fontSize: 12 }}
-                        labelFormatter={(l) => `Hafta: ${l}`}
-                        formatter={(v: number) => [`${v}%`, "O‘rtacha"]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#10B981"
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
+              <div className="mt-3 box-border h-[200px] w-full min-w-0 sm:h-[220px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180} debounce={50}>
+                  <LineChart data={weekly} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                      labelFormatter={(l) => `Hafta: ${l}`}
+                      formatter={(v: number) => [`${v}%`, "O‘rtacha"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#10B981"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
@@ -577,16 +570,12 @@ export function KabinetBentoContent({
                 <CompactRankingBar republicByViloyat={republicViloyatTotals} userViloyat={student.viloyat} />
               </div>
               <div className="hidden p-3 sm:p-4 lg:block">
-                {!chartsReady ? (
-                  <ChartSkeleton className="h-[280px]" />
-                ) : (
-                  <KabinetRankingCharts
-                    republicByViloyat={republicViloyatTotals}
-                    userViloyat={student.viloyat}
-                    viloyatTop={viloyatRows}
-                    currentUserId={student.id}
-                  />
-                )}
+                <KabinetRankingChartsDesktop
+                  republicByViloyat={republicViloyatTotals}
+                  userViloyat={student.viloyat}
+                  viloyatTop={viloyatRows}
+                  currentUserId={student.id}
+                />
               </div>
             </div>
           </div>

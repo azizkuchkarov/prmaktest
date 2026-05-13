@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { submitTestAttempt, type SubmitTestResult } from "@/app/testlar/[id]/boshlash/actions";
 
 export type RunnerQuestion = {
@@ -34,9 +34,9 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
    * Deadline faqat client `useEffect`da — SSR va birinchi client render bir xil
    * `totalSeconds` ko‘rsatadi (hydration buzilmasin); iOS’dagi “muskul” UI uchun muhim.
    */
-  const [clientDeadlineMs, setClientDeadlineMs] = useState<number | null>(null);
+  const deadlineMsRef = useRef(0);
+  const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
 
-  const [timerTick, setTimerTick] = useState(0);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<SubmitTestResult | null>(null);
@@ -50,16 +50,12 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
   const totalQ = questions.length;
   const current = questions[step];
 
-  const secondsLeft =
-    clientDeadlineMs === null
-      ? totalSeconds
-      : Math.max(0, Math.ceil((clientDeadlineMs - Date.now()) / 1000));
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const now = Date.now();
     startedAtMsRef.current = now;
-    setClientDeadlineMs(now + totalSeconds * 1000);
-    setTimerTick((t) => t + 1);
+    const end = now + totalSeconds * 1000;
+    deadlineMsRef.current = end;
+    setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
   }, [totalSeconds]);
 
   const runSubmit = useCallback(() => {
@@ -73,14 +69,21 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
   }, [testId]);
 
   useEffect(() => {
-    if (result || clientDeadlineMs === null) return;
-    const id = window.setInterval(() => setTimerTick((t) => t + 1), 1000);
+    if (result) return;
+    const id = window.setInterval(() => {
+      const end = deadlineMsRef.current;
+      if (!end) return;
+      setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
+    }, 250);
     return () => window.clearInterval(id);
-  }, [result, clientDeadlineMs]);
+  }, [result, totalSeconds]);
 
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === "visible") setTimerTick((t) => t + 1);
+      if (document.visibilityState !== "visible") return;
+      const end = deadlineMsRef.current;
+      if (!end) return;
+      setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
@@ -90,17 +93,19 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
     if (result || isSubmitting) return;
     if (secondsLeft > 0) return;
     runSubmit();
-  }, [timerTick, secondsLeft, result, isSubmitting, runSubmit]);
+  }, [secondsLeft, result, isSubmitting, runSubmit]);
 
   const pickAnswerSigRef = useRef<{ t: number; sig: string }>({ t: 0, sig: "" });
 
-  /** Mobil WebKit: click + touchend ikkalasi kelishi mumkin; bir xil tanlovni qisqa vaqt ichida ikki marta yozmaymiz */
+  /** pointer + click bir xil javobni ikki marta yozmaslik uchun */
   const pickAnswer = useCallback((questionId: string, letter: string) => {
     const id = String(questionId);
     const sig = `${id}:${letter}`;
     const now = Date.now();
     const prev = pickAnswerSigRef.current;
-    if (prev.sig === sig && now - prev.t < 450) return;
+    if (prev.sig === sig && now - prev.t < 200) {
+      return;
+    }
     pickAnswerSigRef.current = { t: now, sig };
     setAnswers((prev) => {
       const next = { ...prev, [id]: letter };
@@ -109,8 +114,6 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
     });
   }, []);
 
-  const optionTouchRef = useRef<{ ky: string; y: number } | null>(null);
-
   const goNext = useCallback(() => {
     if (result || isSubmitting) return;
     setStep((s) => {
@@ -118,7 +121,9 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
       if (!q) return s;
       const qid = String(q.id);
       const chosen = answersRef.current[qid];
-      if (!chosen) return s;
+      if (!chosen) {
+        return s;
+      }
       if (s < totalQ - 1) return s + 1;
       queueMicrotask(() => runSubmit());
       return s;
@@ -127,8 +132,8 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
 
   const goPrev = useCallback(() => {
     if (result || isSubmitting) return;
-    if (step > 0) setStep((s) => s - 1);
-  }, [result, isSubmitting, step]);
+    setStep((s) => (s > 0 ? s - 1 : s));
+  }, [result, isSubmitting]);
 
   if (result?.ok) {
     const pct = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
@@ -255,7 +260,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
   const prevLocked = step === 0 || isSubmitting;
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-900 [-webkit-tap-highlight-color:transparent]">
+    <div className="relative flex min-h-[100svh] w-full min-w-0 flex-col overflow-x-clip bg-gradient-to-b from-slate-50 via-white to-emerald-50/40 text-slate-900 supports-[height:100dvh]:min-h-[100dvh] [-webkit-tap-highlight-color:transparent]">
       <header className="relative z-20 shrink-0 border-b border-slate-200/90 bg-white pt-[max(0px,env(safe-area-inset-top))] shadow-sm">
         <div className="mx-auto max-w-lg px-4 py-3 sm:px-6">
           <div className="flex items-start justify-between gap-3">
@@ -300,7 +305,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
       </header>
 
       {/* fixed footer iOS’da ba’zan butun sahifa uchun hit-test buzadi — flex oqim + scroll */}
-      <main className="relative z-10 flex-1 px-4 pb-4 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
+      <main className="relative z-10 min-h-0 flex-1 px-4 pb-4 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
         <div className="mx-auto max-w-lg">
           <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-md shadow-slate-200/50 ring-1 ring-slate-100 sm:rounded-3xl sm:p-7">
             <div className="flex gap-3">
@@ -315,7 +320,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
             <div
               key={current.id}
               className="mt-5 space-y-3 sm:mt-6"
-              role="group"
+              role="radiogroup"
               aria-label="Javob variantlari"
             >
               {(
@@ -327,54 +332,38 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
                 ] as const
               ).map(([letter, label]) => {
                 const selected = chosenForCurrent === letter;
-                const optKy = `${String(current.id)}|${letter}`;
                 return (
                   <button
                     key={letter}
                     type="button"
+                    role="radio"
                     aria-checked={selected}
-                    aria-label={`Javob ${letter}: ${label}`}
                     onClick={() => pickAnswer(String(current.id), letter)}
-                    onTouchStart={(e) => {
-                      const y = e.touches[0]?.clientY;
-                      if (y === undefined) return;
-                      optionTouchRef.current = { ky: optKy, y };
-                    }}
-                    onTouchCancel={() => {
-                      const t = optionTouchRef.current;
-                      if (t?.ky === optKy) optionTouchRef.current = null;
-                    }}
-                    onTouchEnd={(e) => {
-                      const t = optionTouchRef.current;
-                      const y = e.changedTouches[0]?.clientY;
-                      optionTouchRef.current = null;
-                      if (!t || t.ky !== optKy || y === undefined) return;
-                      if (Math.abs(y - t.y) > 28) return;
+                    onPointerUp={(e) => {
+                      if (e.button !== 0 && e.pointerType === "mouse") return;
                       pickAnswer(String(current.id), letter);
                     }}
-                    className={`touch-manipulation flex min-h-[3.5rem] w-full cursor-pointer select-none items-center gap-3 rounded-2xl border-2 px-3 py-3 text-left text-sm font-medium transition-colors duration-150 sm:min-h-[3.25rem] sm:px-4 ${
+                    className={`flex min-h-[3.5rem] w-full cursor-pointer select-none items-center gap-3 rounded-2xl border-2 px-3 py-3 text-left text-sm font-medium transition-colors duration-150 [-webkit-tap-highlight-color:transparent] sm:min-h-[3.25rem] sm:px-4 ${
                       selected
                         ? "border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-400/60"
                         : "border-slate-200 bg-white text-slate-800 shadow-sm active:bg-slate-50"
                     }`}
                   >
                     <span
-                      className={`pointer-events-none flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${
                         selected ? "bg-white/95 ring-2 ring-white/70" : "bg-slate-100 ring-1 ring-slate-200/80"
                       }`}
                       aria-hidden
                     >
                       <span
-                        className={`pointer-events-none flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
                           selected ? "border-white bg-emerald-600" : "border-slate-400 bg-white"
                         }`}
                       >
                         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-white" /> : null}
                       </span>
                     </span>
-                    <span
-                      className={`pointer-events-none min-w-0 flex-1 leading-snug ${selected ? "text-white" : "text-slate-800"}`}
-                    >
+                    <span className={`min-w-0 flex-1 leading-snug ${selected ? "text-white" : "text-slate-800"}`}>
                       <span
                         className={`mr-2 inline-block font-black tabular-nums ${selected ? "text-emerald-100" : "text-emerald-700"}`}
                       >
@@ -384,7 +373,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
                     </span>
                     {selected ? (
                       <span
-                        className="pointer-events-none flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-lg font-bold text-white ring-1 ring-white/50"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-lg font-bold text-white ring-1 ring-white/50"
                         aria-hidden
                       >
                         ✓
@@ -403,10 +392,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
           <button
             type="button"
             aria-disabled={prevLocked}
-            onClick={() => {
-              if (prevLocked) return;
-              goPrev();
-            }}
+            onClick={goPrev}
             className={`touch-manipulation min-h-[3.25rem] min-w-[6.5rem] flex-1 rounded-2xl border-2 border-slate-200 bg-white text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 ${prevLocked ? "pointer-events-none cursor-not-allowed opacity-40" : "cursor-pointer active:bg-slate-100"}`}
           >
             Oldingi
@@ -414,10 +400,7 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
           <button
             type="button"
             aria-disabled={isSubmitting}
-            onClick={() => {
-              if (isSubmitting) return;
-              goNext();
-            }}
+            onClick={goNext}
             className={`touch-manipulation min-h-[3.25rem] min-w-[10rem] flex-1 rounded-2xl px-2 text-sm font-black text-white shadow-md shadow-emerald-600/20 transition sm:flex-[1.4] ${isSubmitting ? "pointer-events-none cursor-wait bg-emerald-800/60 opacity-80" : "cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-105 active:brightness-95 active:opacity-95"}`}
           >
             {step < totalQ - 1 ? "Keyingi savol" : isSubmitting ? "Hisoblanmoqda…" : "Natijani olish"}

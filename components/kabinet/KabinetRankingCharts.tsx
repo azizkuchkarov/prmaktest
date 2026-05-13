@@ -100,7 +100,7 @@ export function KabinetRankingCharts({ republicByViloyat, userViloyat, viloyatTo
           ) : (
             <div className="w-full min-w-0">
               <div className={chartInner} style={{ height: repHeight }}>
-                <ResponsiveContainer width="100%" height="100%" debounce={80}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={80}>
                   <BarChart data={repData} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
                     <XAxis type="number" tick={{ fontSize: narrow ? 9 : 11 }} tickLine={false} axisLine={false} />
@@ -139,7 +139,7 @@ export function KabinetRankingCharts({ republicByViloyat, userViloyat, viloyatTo
           ) : (
             <div className="w-full min-w-0">
               <div className={chartInner} style={{ height: vilHeight }}>
-                <ResponsiveContainer width="100%" height="100%" debounce={80}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={80}>
                   <BarChart data={vilData} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
                     <XAxis type="number" tick={{ fontSize: narrow ? 9 : 11 }} tickLine={false} axisLine={false} />
