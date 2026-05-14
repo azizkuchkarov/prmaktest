@@ -2,9 +2,24 @@
 
 import { useActionState } from "react";
 import { completeStudentProfile, type ProfileFormState } from "../actions";
+import { STUDENT_GRADES, isValidStudentGrade } from "@/lib/student-grade";
 
-export function ProfileSetupForm() {
+type Props = {
+  initialFirstName?: string;
+  initialLastName?: string;
+  initialParentPhone?: string;
+  initialGradeLevel?: number;
+};
+
+export function ProfileSetupForm({
+  initialFirstName = "",
+  initialLastName = "",
+  initialParentPhone = "",
+  initialGradeLevel = 0,
+}: Props) {
   const [state, formAction, pending] = useActionState(completeStudentProfile, undefined as ProfileFormState);
+
+  const gradeDefault = isValidStudentGrade(initialGradeLevel) ? String(initialGradeLevel) : "";
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
@@ -21,6 +36,7 @@ export function ProfileSetupForm() {
           maxLength={60}
           autoComplete="given-name"
           placeholder="Masalan: Ali"
+          defaultValue={initialFirstName}
           className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
@@ -37,8 +53,30 @@ export function ProfileSetupForm() {
           maxLength={60}
           autoComplete="family-name"
           placeholder="Masalan: Valiyev"
+          defaultValue={initialLastName}
           className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
+      </div>
+      <div>
+        <label htmlFor="gradeLevel" className="block text-sm font-medium text-slate-700">
+          Sinf <span className="text-red-600">*</span>
+        </label>
+        <select
+          id="gradeLevel"
+          name="gradeLevel"
+          required
+          defaultValue={gradeDefault || ""}
+          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+        >
+          <option value="" disabled>
+            3–9-sinfni tanlang…
+          </option>
+          {STUDENT_GRADES.map((g) => (
+            <option key={g} value={g}>
+              {g}-sinf
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label htmlFor="parentPhone" className="block text-sm font-medium text-slate-700">
@@ -51,6 +89,7 @@ export function ProfileSetupForm() {
           required
           autoComplete="tel"
           placeholder="+998 90 000 00 00"
+          defaultValue={initialParentPhone}
           className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
         <p className="mt-1 text-xs text-slate-500">
@@ -58,9 +97,7 @@ export function ProfileSetupForm() {
         </p>
       </div>
       {state?.error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
-          {state.error}
-        </p>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">{state.error}</p>
       ) : null}
       <button
         type="submit"

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Clock, FileText } from "lucide-react";
+import { Clock, FileText, Banknote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,12 @@ export default async function TestsPublicPage() {
                     <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-800">
                       {t._count.questions} savol
                     </span>
+                    {t.priceSum > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-900">
+                        <Banknote className="h-3.5 w-3.5" aria-hidden />
+                        {formatPriceSum(t.priceSum)}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-4 text-xs font-semibold text-blue-600">Batafsil →</p>
                 </Link>

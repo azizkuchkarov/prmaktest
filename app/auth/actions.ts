@@ -16,6 +16,7 @@ import {
   PROFILE_SETUP_PATH,
   type StudentProfileFields,
 } from "@/lib/student-profile";
+import { parseStudentGradeFromForm } from "@/lib/student-grade";
 
 export type AuthFormState = { error?: string } | undefined;
 
@@ -29,6 +30,7 @@ export async function registerStudent(
   const password = String(formData.get("password") ?? "");
   const password2 = String(formData.get("password2") ?? "");
   const viloyat = String(formData.get("viloyat") ?? "");
+  const grade = parseStudentGradeFromForm(formData.get("gradeLevel"));
 
   const phone = normalizeUzbekPhone(phoneRaw);
   if (!phone) return { error: "Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67" };
@@ -37,13 +39,14 @@ export async function registerStudent(
   }
   if (password !== password2) return { error: "Parollar mos kelmayapti." };
   if (!isViloyat(viloyat)) return { error: "Viloyatni ro'yxatdan tanlang." };
+  if (grade == null) return { error: "Sinfni tanlang (3–9)." };
 
   const passwordHash = await bcrypt.hash(password, 12);
 
   let user: { id: string };
   try {
     user = await prisma.user.create({
-      data: { phone, passwordHash, viloyat },
+      data: { phone, passwordHash, viloyat, gradeLevel: grade } as any,
       select: { id: true },
     });
   } catch (e: unknown) {
@@ -109,7 +112,7 @@ export async function loginStudent(
 
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { firstName: true, lastName: true, parentPhone: true } as any,
+    select: { firstName: true, lastName: true, parentPhone: true, gradeLevel: true } as any,
   });
   if (profile && !isStudentProfileComplete(profile as unknown as StudentProfileFields)) {
     redirect(PROFILE_SETUP_PATH);
@@ -141,12 +144,13 @@ export async function completeStudentProfile(
 
   const me = (await prisma.user.findUnique({
     where: { id: userId },
-    select: { phone: true, firstName: true, lastName: true, parentPhone: true } as any,
+    select: { phone: true, firstName: true, lastName: true, parentPhone: true, gradeLevel: true } as any,
   })) as {
     phone: string;
     firstName: string;
     lastName: string;
     parentPhone: string;
+    gradeLevel: number;
   } | null;
   if (!me) redirect("/auth/kirish");
   if (isStudentProfileComplete(me)) redirect("/kabinet");
@@ -159,6 +163,9 @@ export async function completeStudentProfile(
   if (lastName.length < NAME_MIN) return { error: `Familiya kamida ${NAME_MIN} belgi bo'lishi kerak.` };
 
   const parentPhone = normalizeUzbekPhone(parentRaw);
+  const grade = parseStudentGradeFromForm(formData.get("gradeLevel"));
+  if (grade == null) return { error: "Sinfni tanlang (3–9-sinf)." };
+
   if (!parentPhone) {
     return { error: "Ota-ona telefon raqami noto'g'ri. Masalan: +998 90 123 45 67" };
   }
@@ -168,7 +175,7 @@ export async function completeStudentProfile(
 
   await prisma.user.update({
     where: { id: userId },
-    data: { firstName, lastName, parentPhone } as any,
+    data: { firstName, lastName, parentPhone, gradeLevel: grade } as any,
   });
 
   revalidatePath("/kabinet");

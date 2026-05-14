@@ -10,24 +10,30 @@ export default async function AdminNewsListPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Yangiliklar</h1>
-          <p className="mt-1 text-slate-600">Saytda ko&apos;rinadigan yangiliklar ro&apos;yxati.</p>
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              Yangiliklar
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+              Saytda ko&apos;rinadigan yangiliklar ro&apos;yxati.
+            </p>
+          </div>
+          <Link
+            href="/admin/yangiliklar/yangi"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#2563EB]/20 transition hover:brightness-105"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Yangi yangilik
+          </Link>
         </div>
-        <Link
-          href="/admin/yangiliklar/yangi"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:brightness-105"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          Yangi yangilik
-        </Link>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-100 bg-slate-50/90 text-xs font-bold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Sarlavha</th>
               <th className="px-4 py-3">Holat</th>
               <th className="px-4 py-3">Yangilangan</th>
@@ -43,7 +49,10 @@ export default async function AdminNewsListPage() {
               </tr>
             ) : (
               items.map((n) => (
-                <tr key={n.id} className="border-b border-slate-50 last:border-0">
+                <tr
+                  key={n.id}
+                  className="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/70"
+                >
                   <td className="px-4 py-3 font-medium text-slate-900">{n.title}</td>
                   <td className="px-4 py-3">
                     <span

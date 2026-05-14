@@ -18,6 +18,8 @@ export type TestSavePayload = {
   subject: string;
   description: string;
   durationMinutes: number;
+  /** So'm (0 = bepul) */
+  priceSum: number;
   isPublished: boolean;
   stage: string;
   questions: QuestionDraft[];
@@ -55,6 +57,8 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
   const description = payload.description.trim();
   const dm = Math.round(Number(payload.durationMinutes));
   if (!Number.isFinite(dm) || dm < 1) return { error: "Vaqt (daqiqa) noto'g'ri." };
+  const priceSum = Math.round(Number(payload.priceSum));
+  if (!Number.isFinite(priceSum) || priceSum < 0) return { error: "Narx (so'm) noto'g'ri." };
 
   const err = validateTestQuestions(payload.questions, payload.isPublished);
   if (err) return { error: err };
@@ -75,6 +79,7 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
         subject,
         description,
         durationMinutes: dm,
+        priceSum,
         questionsCount: rows.length,
         isPublished: payload.isPublished,
         stage,
@@ -111,6 +116,8 @@ export async function updateTestFull(
   const description = payload.description.trim();
   const dm = Math.round(Number(payload.durationMinutes));
   if (!Number.isFinite(dm) || dm < 1) return { error: "Vaqt (daqiqa) noto'g'ri." };
+  const priceSum = Math.round(Number(payload.priceSum));
+  if (!Number.isFinite(priceSum) || priceSum < 0) return { error: "Narx (so'm) noto'g'ri." };
 
   const err = validateTestQuestions(payload.questions, payload.isPublished);
   if (err) return { error: err };
@@ -138,6 +145,7 @@ export async function updateTestFull(
         subject,
         description,
         durationMinutes: dm,
+        priceSum,
         questionsCount: rows.length,
         isPublished: payload.isPublished,
         stage,

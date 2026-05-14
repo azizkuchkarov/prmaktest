@@ -5,7 +5,9 @@ import { useId, useMemo, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
+  Banknote,
   BookOpen,
+  CheckCircle2,
   ChevronRight,
   Clock,
   MapPin,
@@ -39,6 +41,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
+import { isValidStudentGrade } from "@/lib/student-grade";
+import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
 
 export type KabinetBentoNews = {
   id: string;
@@ -53,9 +58,11 @@ export type KabinetBentoTest = {
   subject: string;
   description: string;
   durationMinutes: number;
+  priceSum: number;
   questionsCount: number;
   stage: string;
   updatedAt: string;
+  completed: boolean;
 };
 
 export type KabinetBentoStudent = {
@@ -65,6 +72,8 @@ export type KabinetBentoStudent = {
   firstName: string;
   lastName: string;
   parentPhone: string;
+  balanceSum: number;
+  gradeLevel: number;
 };
 
 type Props = {
@@ -73,6 +82,8 @@ type Props = {
   rank: StudentRankSummary;
   republicRows: LeaderboardRow[];
   viloyatRows: LeaderboardRow[];
+  gradeRepublicRows: LeaderboardRow[];
+  gradeViloyatRows: LeaderboardRow[];
   republicViloyatTotals: ViloyatTotalRow[];
   news: KabinetBentoNews[];
   tests: KabinetBentoTest[];
@@ -228,6 +239,7 @@ function CompactRankingBar({
 
   const barBlue = "#93c5fd";
   const barYou = "#2563EB";
+  const barH = 240;
 
   if (repData.length === 0) {
     return <p className="py-10 text-center text-sm text-slate-500">Hozircha viloyatlar bo‘yicha ma’lumot yo‘q.</p>;
@@ -235,11 +247,8 @@ function CompactRankingBar({
 
   return (
     <div className="w-full min-w-0 overflow-hidden">
-      <div
-        className="w-full min-w-0 sm:h-[320px]"
-        style={{ height: "max(160px, min(72vw, 320px))", minHeight: 160 }}
-      >
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={160} debounce={50}>
+      <div className="w-full min-w-0" style={{ height: barH }}>
+        <ResponsiveContainer width="100%" height={barH} minWidth={0} debounce={50}>
           <BarChart data={repData} layout="vertical" margin={{ left: 2, right: 4, top: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
             <XAxis type="number" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -257,7 +266,9 @@ function CompactRankingBar({
                 return (
                   <div className="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-xs shadow-lg">
                     <p className="font-bold text-slate-900">{label}</p>
-                    <p className="mt-0.5 font-semibold text-[#2563EB]">{payload[0]?.value?.toLocaleString("uz-UZ")} ball</p>
+                    <p className="mt-0.5 font-semibold text-[#2563EB]">
+                      {formatUzInteger(Number(payload[0]?.value))} ball
+                    </p>
                   </div>
                 );
               }}
@@ -281,6 +292,8 @@ export function KabinetBentoContent({
   rank,
   republicRows,
   viloyatRows,
+  gradeRepublicRows,
+  gradeViloyatRows,
   republicViloyatTotals,
   news,
   tests,
@@ -289,7 +302,11 @@ export function KabinetBentoContent({
   readiness,
 }: Props) {
   const firstName = displayName.split(" ").filter(Boolean)[0] || "do‘st";
-  const nextTest = tests.find((t) => t.questionsCount > 0) ?? tests[0];
+  const gradeOk = isValidStudentGrade(student.gradeLevel);
+  const nextTest =
+    tests.find((t) => t.questionsCount > 0 && !t.completed) ??
+    tests.find((t) => t.questionsCount > 0) ??
+    tests[0];
   const radarHasData = radar.some((d) => d.fullMark > 0);
 
   const donutData = useMemo(() => {
@@ -336,6 +353,19 @@ export function KabinetBentoContent({
                 <MapPin className="mr-1 h-3.5 w-3.5 text-[#2563EB]" />
                 {student.viloyat}
               </Badge>
+              {gradeOk ? (
+                <Badge
+                  variant="outline"
+                  className="rounded-xl border-violet-200 bg-violet-50 font-bold text-violet-900"
+                >
+                  {student.gradeLevel}-sinf
+                </Badge>
+              ) : null}
+              <Badge className="rounded-xl border-0 bg-amber-100/90 font-bold text-amber-950">
+                <Banknote className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Balans:{" "}
+                <span className="tabular-nums">{formatUzInteger(student.balanceSum)} so'm</span>
+              </Badge>
               <Badge className="rounded-xl border-0 bg-[#10B981]/15 font-bold text-[#059669]">Rank ball: {rank.totalPoints}</Badge>
             </div>
             {nextTest && nextTest.questionsCount > 0 ? (
@@ -359,6 +389,52 @@ export function KabinetBentoContent({
         </Card>
       </motion.section>
 
+      <motion.section {...fadeUp} id="yangiliklar" className="relative scroll-mt-20 lg:scroll-mt-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900 sm:text-2xl">
+              <Newspaper className="h-7 w-7 text-[#2563EB]" />
+              Yangiliklar
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">Platforma yangilanishlari.</p>
+          </div>
+          <Link href="/yangiliklar" className="shrink-0 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8]">
+            Barchasi →
+          </Link>
+        </div>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {news.length === 0 ? (
+            <li className={cn("col-span-full py-14 text-center text-sm text-slate-500", cardShell)}>
+              {"Hozircha yangiliklar yo'q."}
+            </li>
+          ) : (
+            news.map((n) => (
+              <li key={n.id}>
+                <Link
+                  href={`/yangiliklar/${n.id}`}
+                  className={cn(
+                    "group flex h-full flex-col p-5 transition hover:border-[#2563EB]/25 hover:shadow-lg",
+                    cardShell
+                  )}
+                >
+                  <h3 className="font-semibold leading-snug text-slate-900 group-hover:text-[#2563EB]">{n.title}</h3>
+                  {n.excerpt ? (
+                    <p className="mt-2 line-clamp-2 flex-1 text-xs text-slate-600">{n.excerpt}</p>
+                  ) : null}
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB]">
+                    O‘qish <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              </li>
+            ))
+          )}
+        </ul>
+      </motion.section>
+
+      <motion.div {...fadeUp}>
+        <KabinetRoadmap />
+      </motion.div>
+
       <div className="relative grid auto-rows-min gap-4 min-w-0 lg:grid-cols-12 lg:gap-5">
         <motion.section {...fadeUp} id="reyting" className="scroll-mt-24 lg:col-span-4 lg:scroll-mt-6">
           <div className={cn("p-5", cardShell)}>
@@ -367,7 +443,14 @@ export function KabinetBentoContent({
               <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Reyting</span>
             </div>
             <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
-              {rank.republicRank != null ? (
+              {gradeOk && rank.gradeRepublicRank != null ? (
+                <>
+                  {rank.gradeRepublicRank}
+                  <span className="ml-1 text-lg font-semibold text-slate-400">
+                    ({student.gradeLevel}-sinf, resp.)
+                  </span>
+                </>
+              ) : rank.republicRank != null ? (
                 <>
                   {rank.republicRank}
                   <span className="ml-1 text-lg font-semibold text-slate-400">respublika</span>
@@ -376,11 +459,28 @@ export function KabinetBentoContent({
                 <span className="text-xl text-slate-400">—</span>
               )}
             </p>
-            <p className="mt-1 text-xs text-slate-600">Butun mamlakat bo‘yicha o‘rin.</p>
+            <p className="mt-1 text-xs text-slate-600">
+              {gradeOk
+                ? "Sinfingizdagi o‘quvchilar orasida — respublika bo‘yicha."
+                : "Butun mamlakat bo‘yicha o‘rin (sinf tanlanmagan)."}
+            </p>
+            {gradeOk && rank.republicRank != null ? (
+              <p className="mt-1 text-[11px] text-slate-500">
+                Umumiy respublika: <span className="font-semibold text-slate-700">{rank.republicRank}</span>
+                -o‘rin
+              </p>
+            ) : null}
             <div className="mt-4 rounded-2xl bg-slate-50/90 p-3 ring-1 ring-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Viloyat</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                {gradeOk ? "Viloyat (shu sinf)" : "Viloyat"}
+              </p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
-                {rank.viloyatRank != null ? (
+                {gradeOk && rank.gradeViloyatRank != null ? (
+                  <>
+                    {rank.gradeViloyatRank}
+                    <span className="ml-1 text-base font-semibold text-slate-400">-o‘rin</span>
+                  </>
+                ) : rank.viloyatRank != null ? (
                   <>
                     {rank.viloyatRank}
                     <span className="ml-1 text-base font-semibold text-slate-400">-o‘rin</span>
@@ -390,6 +490,12 @@ export function KabinetBentoContent({
                 )}
               </p>
               <p className="text-xs text-slate-600">{student.viloyat}</p>
+              {gradeOk && rank.viloyatRank != null ? (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Umumiy viloyat: <span className="font-semibold text-slate-700">{rank.viloyatRank}</span>
+                  -o‘rin
+                </p>
+              ) : null}
             </div>
           </div>
         </motion.section>
@@ -466,14 +572,14 @@ export function KabinetBentoContent({
             <div className={cn("p-4 sm:p-5 lg:col-span-7", cardShell)}>
               <h3 className="text-sm font-bold text-slate-900">Fanlar bo‘yicha</h3>
               <p className="text-[11px] text-slate-600">Radar — o‘rtacha foiz (testlar bo‘yicha).</p>
-              <div className="relative mt-3 w-full min-h-[240px]">
+              <div className="relative mt-3 w-full min-h-[280px]">
                 {!radarHasData ? (
-                  <div className="flex h-[260px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center text-sm text-slate-500">
+                  <div className="flex h-[280px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center text-sm text-slate-500">
                     Hozircha fan bo‘yicha ma’lumot yo‘q. Test topshirgach diagramma paydo bo‘ladi.
                   </div>
                 ) : (
-                  <div className="box-border h-[240px] w-full min-w-0 sm:h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
+                  <div className="box-border w-full min-w-0" style={{ height: 280 }}>
+                    <ResponsiveContainer width="100%" height={280} minWidth={0} debounce={50}>
                       <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radar}>
                         <PolarGrid stroke="#e2e8f0" />
                         <PolarAngleAxis
@@ -508,8 +614,8 @@ export function KabinetBentoContent({
             <div className={cn("p-4 sm:p-5 lg:col-span-5", cardShell)}>
               <h3 className="text-sm font-bold text-slate-900">Tayyorgarlik ulushi</h3>
               <p className="text-[11px] text-slate-600">Donut — umumiy tayyorgarlik foizi.</p>
-              <div className="relative mx-auto mt-2 box-border h-[220px] w-full max-w-[280px] min-w-0 sm:h-[240px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
+              <div className="relative mx-auto mt-2 box-border w-full max-w-[280px] min-w-0" style={{ height: 220 }}>
+                <ResponsiveContainer width="100%" height={220} minWidth={0} debounce={50}>
                     <PieChart>
                       <Pie
                         data={donutData}
@@ -537,8 +643,8 @@ export function KabinetBentoContent({
             <div className={cn("p-4 sm:p-5 lg:col-span-12", cardShell)}>
               <h3 className="text-sm font-bold text-slate-900">Haftalik progress</h3>
               <p className="text-[11px] text-slate-600">So‘nggi haftalar — o‘rtacha test foizi.</p>
-              <div className="mt-3 box-border h-[200px] w-full min-w-0 sm:h-[220px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180} debounce={50}>
+              <div className="mt-3 box-border w-full min-w-0" style={{ height: 220 }}>
+                <ResponsiveContainer width="100%" height={220} minWidth={0} debounce={50}>
                   <LineChart data={weekly} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
@@ -602,8 +708,17 @@ export function KabinetBentoContent({
             ) : (
               tests.map((t) => (
                 <li key={t.id}>
-                  <div className={cn("flex h-full flex-col p-5", cardShell)}>
-                    <h3 className="font-semibold text-slate-900">{t.title}</h3>
+                  <div className={cn("relative flex h-full flex-col p-5", cardShell)}>
+                    {t.completed ? (
+                      <span
+                        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-2 ring-emerald-200/80"
+                        title="Yechib bo'lingan"
+                      >
+                        <CheckCircle2 className="h-5 w-5" aria-hidden />
+                        <span className="sr-only">Tugallangan</span>
+                      </span>
+                    ) : null}
+                    <h3 className="font-semibold text-slate-900 pr-11">{t.title}</h3>
                     {t.subject ? <p className="mt-1 text-xs font-semibold text-[#7C3AED]">{t.subject}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600">
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
@@ -613,15 +728,30 @@ export function KabinetBentoContent({
                       <span className="rounded-full bg-[#2563EB]/10 px-2 py-0.5 font-semibold text-[#1d4ed8]">
                         {t.questionsCount} savol
                       </span>
+                      {t.priceSum > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-900">
+                          <Banknote className="h-3 w-3" aria-hidden />
+                          {formatPriceSum(t.priceSum)}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
                       {t.questionsCount > 0 ? (
-                        <Link
-                          href={`/testlar/${t.id}/boshlash`}
-                          className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105"
-                        >
-                          Boshlash <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
+                        t.completed ? (
+                          <Link
+                            href={`/testlar/${t.id}/boshlash`}
+                            className="inline-flex min-h-11 items-center gap-1 rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-950 shadow-sm hover:bg-sky-100"
+                          >
+                            Qayta yechish
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/testlar/${t.id}/boshlash`}
+                            className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105"
+                          >
+                            Boshlash <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        )
                       ) : (
                         <span className="text-xs font-bold text-slate-400">{"Savollar yo'q"}</span>
                       )}
@@ -638,27 +768,63 @@ export function KabinetBentoContent({
 
         <motion.section {...fadeUp} id="liderlar" className="scroll-mt-24 lg:col-span-12 lg:scroll-mt-6">
           <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">Leaderboard</h2>
-          <Tabs defaultValue="republic" className="w-full min-w-0 gap-3">
+          <Tabs defaultValue={gradeOk ? "g-rep" : "republic"} className="w-full min-w-0 gap-3">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-slate-100/90 p-1">
+              {gradeOk ? (
+                <>
+                  <TabsTrigger
+                    value="g-rep"
+                    className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+                  >
+                    {student.gradeLevel}-sinf · Respublika
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="g-vil"
+                    className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+                  >
+                    {student.gradeLevel}-sinf · {shortViloyatLabel(student.viloyat)}
+                  </TabsTrigger>
+                </>
+              ) : null}
               <TabsTrigger
                 value="republic"
-                className="rounded-xl px-4 py-2 font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
               >
-                Respublika TOP
+                Barcha sinflar · Respublika
               </TabsTrigger>
               <TabsTrigger
                 value="viloyat"
-                className="rounded-xl px-4 py-2 font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
               >
-                {shortViloyatLabel(student.viloyat)}
+                Barcha · {shortViloyatLabel(student.viloyat)}
               </TabsTrigger>
             </TabsList>
+            {gradeOk ? (
+              <>
+                <TabsContent value="g-rep" className="mt-3 min-w-0">
+                  <BoardTableBento
+                    rows={gradeRepublicRows}
+                    currentUserId={student.id}
+                    title={`${student.gradeLevel}-sinf — respublika TOP 15`}
+                    subtitle="Faqat shu sinf o‘quchilari."
+                  />
+                </TabsContent>
+                <TabsContent value="g-vil" className="mt-3 min-w-0">
+                  <BoardTableBento
+                    rows={gradeViloyatRows}
+                    currentUserId={student.id}
+                    title={`${student.gradeLevel}-sinf — ${student.viloyat}`}
+                    subtitle="Viloyat ichida shu sinf."
+                  />
+                </TabsContent>
+              </>
+            ) : null}
             <TabsContent value="republic" className="mt-3 min-w-0">
               <BoardTableBento
                 rows={republicRows}
                 currentUserId={student.id}
                 title="Respublika TOP 15"
-                subtitle="Eng yuqori yig‘ma ball."
+                subtitle="Barcha sinflar — yig‘ma ball."
               />
             </TabsContent>
             <TabsContent value="viloyat" className="mt-3 min-w-0">
@@ -666,52 +832,10 @@ export function KabinetBentoContent({
                 rows={viloyatRows}
                 currentUserId={student.id}
                 title={`${student.viloyat} TOP`}
-                subtitle="Mahalliy jadval."
+                subtitle="Barcha sinflar — mahalliy jadval."
               />
             </TabsContent>
           </Tabs>
-        </motion.section>
-
-        <motion.section {...fadeUp} id="yangiliklar" className="scroll-mt-24 lg:col-span-12 lg:scroll-mt-6">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                <Newspaper className="h-7 w-7 text-[#2563EB]" />
-                Yangiliklar
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">Platforma yangilanishlari.</p>
-            </div>
-            <Link href="/yangiliklar" className="shrink-0 text-sm font-semibold text-[#2563EB]">
-              Barchasi →
-            </Link>
-          </div>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {news.length === 0 ? (
-              <li className={cn("col-span-full py-14 text-center text-sm text-slate-500", cardShell)}>
-                {"Hozircha yangiliklar yo'q."}
-              </li>
-            ) : (
-              news.map((n) => (
-                <li key={n.id}>
-                  <Link
-                    href={`/yangiliklar/${n.id}`}
-                    className={cn(
-                      "group flex h-full flex-col p-5 transition hover:border-[#2563EB]/25 hover:shadow-lg",
-                      cardShell
-                    )}
-                  >
-                    <h3 className="font-semibold leading-snug text-slate-900 group-hover:text-[#2563EB]">{n.title}</h3>
-                    {n.excerpt ? (
-                      <p className="mt-2 line-clamp-2 flex-1 text-xs text-slate-600">{n.excerpt}</p>
-                    ) : null}
-                    <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB]">
-                      O‘qish <ChevronRight className="h-3.5 w-3.5" />
-                    </span>
-                  </Link>
-                </li>
-              ))
-            )}
-          </ul>
         </motion.section>
 
         <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-24 p-6 lg:col-span-12 lg:scroll-mt-6", cardShell)}>
@@ -720,6 +844,12 @@ export function KabinetBentoContent({
             <div>
               <dt className="text-xs font-medium text-slate-500">Ism familiya</dt>
               <dd className="mt-0.5 font-semibold text-slate-900">{displayName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-500">Sinf</dt>
+              <dd className="mt-0.5 font-semibold text-slate-900">
+                {gradeOk ? `${student.gradeLevel}-sinf` : "—"}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-slate-500">Viloyat</dt>

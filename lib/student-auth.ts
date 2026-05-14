@@ -20,6 +20,8 @@ export type CurrentStudent = {
   telegramUsername: string | null;
   telegramLinkedAt: Date | null;
   createdAt: Date;
+  balanceSum: number;
+  gradeLevel: number;
 };
 
 export async function getCurrentStudent(): Promise<CurrentStudent | null> {
@@ -38,6 +40,8 @@ export async function getCurrentStudent(): Promise<CurrentStudent | null> {
       telegramUsername: true,
       telegramLinkedAt: true,
       createdAt: true,
+      balanceSum: true,
+      gradeLevel: true,
     } as any,
   });
   return row as CurrentStudent | null;

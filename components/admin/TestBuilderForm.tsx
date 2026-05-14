@@ -12,18 +12,21 @@ import { createTestFull, updateTestFull, type TestSavePayload } from "@/app/admi
 import { parseCompactBulkTest } from "@/lib/bulk-test-parser";
 import { Plus, Trash2, Wand2, FileDown } from "lucide-react";
 
-const BULK_EXAMPLE = `1. 2 + 2 nechaga teng?
-A 2 B 3 C 4 D 5
-@C
-# 2+2=4, shuning uchun C varianti to'g'ri.
+const BULK_EXAMPLE = `1. 5+ 6 nechchi bo'ladi?
+A. 11
+B. 12
+C. 13
+D. 14
+@A
+Tushuntirish: Demak 5 va 6 ni qo'shsak 11 chiqadi, shuning uchun A varianti to'g'ri.
 
 2. 3 × 3 = ?
-A 6
-B 8
-C 9
-D 12
-*C
-# 3×3=9, C to'g'ri javob.`;
+A. 6
+B. 8
+C. 9
+D. 12
+@C
+Tushuntirish: 3×3=9, ya'ni C javobi to'g'ri.`;
 
 function emptyRow(order: number): QuestionDraft {
   return {
@@ -80,6 +83,9 @@ export function TestBuilderForm(props: Props) {
   );
   const [durationMinutes, setDurationMinutes] = useState(
     props.mode === "edit" ? props.test.durationMinutes : 90,
+  );
+  const [priceSum, setPriceSum] = useState(
+    props.mode === "edit" ? props.test.priceSum : 0,
   );
   const [isPublished, setIsPublished] = useState(
     props.mode === "edit" ? props.test.isPublished : false,
@@ -153,6 +159,7 @@ export function TestBuilderForm(props: Props) {
       subject,
       description,
       durationMinutes,
+      priceSum,
       isPublished,
       stage,
       questions: rows.map((r, i) => ({ ...r, order: i + 1 })),
@@ -219,6 +226,21 @@ export function TestBuilderForm(props: Props) {
             />
           </div>
           <div className="sm:col-span-2">
+            <label className={label}>Test narxi (so&apos;m)</label>
+            <input
+              className={field}
+              type="number"
+              min={0}
+              step={1}
+              value={Number.isFinite(priceSum) ? priceSum : 0}
+              onChange={(e) => setPriceSum(Math.max(0, Math.round(Number(e.target.value))))}
+              placeholder="0 = bepul"
+            />
+            <p className="mt-1 text-[11px] text-slate-500">
+              Masalan 5000. Nol bo&apos;lsa o&apos;quvchiga bepul / katalogda narx ko&apos;rsatilmaydi.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
             <label className={label}>Tavsif</label>
             <textarea
               className={`${field} min-h-[90px] resize-y`}
@@ -243,34 +265,42 @@ export function TestBuilderForm(props: Props) {
       <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 text-sm text-blue-950">
         <p className="font-semibold">1-bosqich (saralash) — talablar</p>
         <ul className="mt-2 list-inside list-disc space-y-1 text-xs leading-relaxed">
-          <li>Har bir savolda variantlar: A, B, C, D</li>
-          <li>To&apos;g&apos;ri javobni tanlang</li>
-          <li>Har bir savol uchun to&apos;liq yechim / tushuntirish yozing</li>
+          <li>Har bir savolda A, B, C, D va to&apos;g&apos;ri javob tanlovi</li>
+          <li>Har bir savol uchun tushuntirish (Wordda: Tushuntirish: yoki # bilan)</li>
+          <li>
+            <strong>30 ta savol</strong> ni Word dan nusxa olib, quyidagi &quot;Matndan yuklash&quot;
+            maydoniga joylang
+          </li>
           <li>Nashr uchun kamida {MIN_QUESTIONS_FOR_PUBLISH} ta to&apos;liq savol</li>
           <li>Maksimal {MAX_QUESTIONS} ta savol</li>
         </ul>
       </div>
 
-      <details className="group rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 text-sm text-indigo-950 open:ring-2 open:ring-indigo-200/60">
-        <summary className="cursor-pointer list-none font-semibold text-indigo-950 marker:content-none [&::-webkit-details-marker]:hidden">
+      <details
+        open
+        className="group rounded-2xl border border-indigo-200/80 bg-gradient-to-b from-indigo-50/90 to-white p-4 text-sm text-indigo-950 shadow-md shadow-indigo-500/5 open:ring-2 open:ring-indigo-200/50"
+      >
+        <summary className="cursor-pointer list-none text-base font-bold text-indigo-950 marker:content-none [&::-webkit-details-marker]:hidden">
           <span className="inline-flex items-center gap-2">
-            <FileDown className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-            Matndan tez kiritish (ixcham format, masalan 30 ta savol)
+            <FileDown className="h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
+            Word dan bir martada yuklash (30 savol va boshqalar)
           </span>
         </summary>
-        <div className="mt-4 space-y-3 border-t border-indigo-200/60 pt-4 text-xs leading-relaxed">
+        <div className="mt-4 space-y-3 border-t border-indigo-200/50 pt-4 text-xs leading-relaxed">
           <p>
-            Har bir savol <strong>raqam.</strong> bilan boshlanadi. Keyin savol matni (bir nechta
-            qator bo&apos;lishi mumkin). Keyin variantlar: <strong>bitta qatorda</strong>{" "}
-            <code className="rounded bg-white/80 px-1">A 5 B. 6 C 7 D 8</code> yoki{" "}
-            <strong>alohida 4 qator</strong> <code className="rounded bg-white/80 px-1">A) …</code>
-            . To&apos;g&apos;ri javob alohida qatorda: <code className="rounded bg-white/80 px-1">@B</code>{" "}
-            yoki <code className="rounded bg-white/80 px-1">*B</code>. Yechim{" "}
-            <code className="rounded bg-white/80 px-1">#</code> bilan boshlangan qator(lar).
+            Har bir savol <strong>1.</strong> <strong>2.</strong> kabi raqam bilan boshlanadi. Keyin
+            savol matni (bir nechta qator bo&apos;lishi mumkin). Variantlar alohida qatorlarda:{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm">A. 11</code> …{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm">D. 14</code>. Keyin to&apos;g&apos;ri
+            javob alohida qatorda: <code className="rounded bg-white px-1 font-mono shadow-sm">@A</code>{" "}
+            yoki <code className="rounded bg-white px-1 font-mono shadow-sm">*B</code>. Oxirida
+            tushuntirish:{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm">Tushuntirish: ...</code> yoki
+            eski usul <code className="rounded bg-white px-1 font-mono shadow-sm"># ...</code>.
           </p>
-          <p className="text-indigo-900/90">
-            Keyingi savol yangi qatorda <code className="rounded bg-white/80 px-1">2.</code> dan
-            boshlanadi.
+          <p className="font-medium text-indigo-900">
+            Word dan hammasini tanlab nusxa oling — maxsus belgilar va bo&apos;sh qatorlar avtomatik
+            tozalanadi.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -291,9 +321,18 @@ export function TestBuilderForm(props: Props) {
           <textarea
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
-            rows={12}
-            className="w-full rounded-xl border border-indigo-200 bg-white p-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-inner outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/25"
-            placeholder="1. Savolingiz matni&#10;A 1 B 2 C 3 D 4&#10;@B&#10;# Yechim..."
+            rows={18}
+            spellCheck={false}
+            className="w-full rounded-xl border border-indigo-200 bg-white p-3 font-mono text-[12px] leading-relaxed text-slate-900 shadow-inner outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/25"
+            placeholder={`1. Savol matni
+A. …
+B. …
+C. …
+D. …
+@A
+Tushuntirish: …
+
+2. Keyingi savol…`}
           />
           {bulkMsg ? (
             <p className="rounded-lg bg-emerald-100/80 px-3 py-2 text-xs font-medium text-emerald-900 ring-1 ring-emerald-200/80">
@@ -421,7 +460,7 @@ export function TestBuilderForm(props: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-sm font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60 sm:w-auto sm:px-10"
+        className="w-full rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] py-3 text-sm font-bold text-white shadow-md shadow-[#2563EB]/20 hover:brightness-105 disabled:opacity-60 sm:w-auto sm:px-10"
       >
         {pending ? "Saqlanmoqda…" : props.mode === "create" ? "Testni yaratish" : "O&apos;zgarishlarni saqlash"}
       </button>

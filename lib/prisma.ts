@@ -13,13 +13,18 @@ function hasTestAttemptDelegate(c: PrismaClient): boolean {
   return typeof (c as unknown as { testAttempt?: { create?: unknown } }).testAttempt?.create === "function";
 }
 
-function resolvePrisma(): PrismaClient {
-  if (process.env.NODE_ENV === "production") {
-    return globalForPrisma.prisma ?? createPrismaClient();
-  }
+function hasTestProgressDelegate(c: PrismaClient): boolean {
+  return typeof (c as unknown as { testProgress?: { findUnique?: unknown } }).testProgress?.findUnique ===
+    "function";
+}
 
+function isPrismaClientFresh(c: PrismaClient): boolean {
+  return hasTestAttemptDelegate(c) && hasTestProgressDelegate(c);
+}
+
+function resolvePrisma(): PrismaClient {
   const g = globalForPrisma.prisma;
-  if (g && hasTestAttemptDelegate(g)) return g;
+  if (g && isPrismaClientFresh(g)) return g;
 
   if (g) void g.$disconnect().catch(() => {});
   const next = createPrismaClient();

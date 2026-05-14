@@ -48,17 +48,17 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Userlar</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:p-6">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Userlar</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">
           Ro&apos;yxatdan o&apos;tgan o&apos;quvchilar. Bu yerda siz ularning{" "}
-          <span className="font-medium text-slate-800">Telegram ID</span> sini qo&apos;lda
+          <span className="font-semibold text-slate-800">Telegram ID</span> sini qo&apos;lda
           kiritishingiz yoki tahrirlashingiz mumkin — yangilik va test xabarlarini bot orqali
           yuborish uchun kerak bo&apos;ladi.{" "}
-          <span className="font-medium text-slate-800">
+          <span className="font-semibold text-slate-800">
             Telegram ID bo&apos;lmagan foydalanuvchilar yuqorida
           </span>{" "}
-          (1-turdagi kabi) ko&apos;rsatiladi.
+          ko&apos;rsatiladi.
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-md shadow-slate-200/40 backdrop-blur-sm">
         <form method="get" className="flex flex-wrap items-end gap-3">
           <div>
             <label htmlFor="viloyat" className="block text-xs font-medium text-slate-500">
@@ -106,7 +106,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           </div>
           <button
             type="submit"
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            className="rounded-xl bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:brightness-110"
           >
             Filtrlash
           </button>
@@ -114,14 +114,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         {validViloyat ? (
           <Link
             href="/admin/userlar"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-semibold text-[#2563EB] hover:text-violet-700"
           >
             Filtrni tozalash
           </Link>
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
         <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
           <Users className="h-5 w-5 text-slate-500" aria-hidden />
           <span className="text-sm font-semibold text-slate-800">
@@ -159,7 +159,10 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                         ? "bg-sky-50/40"
                         : "";
                   return (
-                    <tr key={u.id} className={`border-b border-slate-50 last:border-0 ${rowHighlight}`}>
+                    <tr
+                      key={u.id}
+                      className={`border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/50 ${rowHighlight}`}
+                    >
                       <td className="px-4 py-3 font-medium text-slate-500">{idx + 1}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">
                         {formatPhoneDisplay(u.phone)}

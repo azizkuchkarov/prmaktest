@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import type { LeaderboardRow, ViloyatTotalRow } from "@/lib/student-ranking";
+import { formatUzInteger } from "@/lib/format-uzs";
 
 type Props = {
   republicByViloyat: ViloyatTotalRow[];
@@ -52,7 +53,7 @@ function ChartTooltip({
   return (
     <div className="rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-md">
       <p className="font-bold text-slate-900">{label}</p>
-      <p className="mt-0.5 tabular-nums font-semibold text-teal-700">{payload[0]?.value?.toLocaleString("uz-UZ")} ball</p>
+      <p className="mt-0.5 tabular-nums font-semibold text-teal-700">{formatUzInteger(Number(payload[0]?.value))} ball</p>
     </div>
   );
 }
@@ -100,7 +101,7 @@ export function KabinetRankingCharts({ republicByViloyat, userViloyat, viloyatTo
           ) : (
             <div className="w-full min-w-0">
               <div className={chartInner} style={{ height: repHeight }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={80}>
+                <ResponsiveContainer width="100%" height={repHeight} minWidth={0} debounce={80}>
                   <BarChart data={repData} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
                     <XAxis type="number" tick={{ fontSize: narrow ? 9 : 11 }} tickLine={false} axisLine={false} />
@@ -139,7 +140,7 @@ export function KabinetRankingCharts({ republicByViloyat, userViloyat, viloyatTo
           ) : (
             <div className="w-full min-w-0">
               <div className={chartInner} style={{ height: vilHeight }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={80}>
+                <ResponsiveContainer width="100%" height={vilHeight} minWidth={0} debounce={80}>
                   <BarChart data={vilData} layout="vertical" margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
                     <XAxis type="number" tick={{ fontSize: narrow ? 9 : 11 }} tickLine={false} axisLine={false} />
@@ -159,7 +160,7 @@ export function KabinetRankingCharts({ republicByViloyat, userViloyat, viloyatTo
                           <div className="rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-md">
                             <p className="font-bold text-slate-900">{row.full}</p>
                             <p className="mt-0.5 tabular-nums font-semibold text-indigo-700">
-                              {row.ball?.toLocaleString("uz-UZ")} ball
+                              {formatUzInteger(Number(row.ball))} ball
                             </p>
                           </div>
                         );

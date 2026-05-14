@@ -1,13 +1,21 @@
 import { redirect } from "next/navigation";
 import { KabinetDashboard } from "@/components/kabinet/KabinetDashboard";
 import { getCurrentStudent } from "@/lib/student-auth";
-import { getStudentRankSummary, getRepublicLeaderboard, getViloyatLeaderboard, getRepublicViloyatTotals } from "@/lib/student-ranking";
+import {
+  getStudentRankSummary,
+  getRepublicLeaderboard,
+  getViloyatLeaderboard,
+  getGradeRepublicLeaderboard,
+  getGradeViloyatLeaderboard,
+  getRepublicViloyatTotals,
+} from "@/lib/student-ranking";
 import {
   getStudentReadiness,
   getStudentSubjectRadar,
   getStudentWeeklyProgress,
 } from "@/lib/kabinet-analytics";
 import { isStudentProfileComplete, PROFILE_SETUP_PATH, studentDisplayName } from "@/lib/student-profile";
+import { isValidStudentGrade } from "@/lib/student-grade";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -18,13 +26,20 @@ export default async function KabinetPage() {
   if (!isStudentProfileComplete(student)) redirect(PROFILE_SETUP_PATH);
 
   const displayName = studentDisplayName(student);
+  const gradeOk = isValidStudentGrade(student.gradeLevel);
 
-  const [rank, republicRows, viloyatRows, republicViloyatTotals, news, tests, weekly, radar, readiness] =
+  const [rank, republicRows, viloyatRows, gradeRepublicRows, gradeViloyatRows, republicViloyatTotals, completedAttempts, news, tests, weekly, radar, readiness] =
     await Promise.all([
-      getStudentRankSummary(student.id, student.viloyat),
+      getStudentRankSummary(student.id, student.viloyat, gradeOk ? student.gradeLevel : null),
       getRepublicLeaderboard(15),
       getViloyatLeaderboard(student.viloyat, 15),
+      gradeOk ? getGradeRepublicLeaderboard(student.gradeLevel, 15) : Promise.resolve([]),
+      gradeOk ? getGradeViloyatLeaderboard(student.viloyat, student.gradeLevel, 15) : Promise.resolve([]),
       getRepublicViloyatTotals(),
+      prisma.testAttempt.findMany({
+        where: { userId: student.id },
+        select: { testId: true },
+      }),
       prisma.news.findMany({
         where: { published: true },
         orderBy: { updatedAt: "desc" },
@@ -40,6 +55,7 @@ export default async function KabinetPage() {
           subject: true,
           description: true,
           durationMinutes: true,
+          priceSum: true,
           questionsCount: true,
           stage: true,
           updatedAt: true,
@@ -50,6 +66,8 @@ export default async function KabinetPage() {
       getStudentReadiness(student.id),
     ]);
 
+  const completedTestIds = new Set(completedAttempts.map((a) => a.testId));
+
   return (
     <KabinetDashboard
       student={student}
@@ -57,9 +75,11 @@ export default async function KabinetPage() {
       rank={rank}
       republicRows={republicRows}
       viloyatRows={viloyatRows}
+      gradeRepublicRows={gradeRepublicRows}
+      gradeViloyatRows={gradeViloyatRows}
       republicViloyatTotals={republicViloyatTotals}
       news={news}
-      tests={tests}
+      tests={tests.map((t) => ({ ...t, completed: completedTestIds.has(t.id) }))}
       weekly={weekly}
       radar={radar}
       readiness={readiness}

@@ -7,6 +7,7 @@ import {
   Award,
   BarChart3,
   BookOpen,
+  GitBranch,
   Home,
   LayoutDashboard,
   LogOut,
@@ -28,6 +29,7 @@ const nav = [
   { href: "#testlar", label: "Testlar", icon: BookOpen },
   { href: "#liderlar", label: "Liderlar", icon: Award },
   { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
+  { href: "#roadmap", label: "Roadmap", icon: GitBranch },
   { href: "#profil", label: "Profil", icon: User },
 ] as const;
 

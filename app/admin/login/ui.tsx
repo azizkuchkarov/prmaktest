@@ -23,7 +23,7 @@ export function LoginForm({ redirectFrom }: Props) {
           type="password"
           required
           autoComplete="current-password"
-          className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-900 shadow-sm outline-none ring-blue-500/30 transition focus:border-blue-500 focus:ring-4"
+          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-slate-900 shadow-inner shadow-slate-200/40 outline-none transition focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#2563EB]/25"
         />
       </div>
       {state?.error ? (
@@ -34,7 +34,7 @@ export function LoginForm({ redirectFrom }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-105 disabled:opacity-60"
+        className="w-full rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] py-3 text-sm font-bold text-white shadow-lg shadow-[#2563EB]/25 transition hover:brightness-105 active:brightness-95 disabled:opacity-60"
       >
         {pending ? "Kirilmoqda…" : "Kirish"}
       </button>

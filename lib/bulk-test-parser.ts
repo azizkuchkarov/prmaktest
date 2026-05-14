@@ -1,24 +1,41 @@
 import type { QuestionDraft } from "@/lib/test-builder-rules";
 
 /**
- * Ixcham matn formati (bir nechta savol ketma-ket):
+ * Word / editor dan kiritilgan matn:
  *
  * 1. Savol matni (bir yoki bir nechta qator)
- * A 5 B. 6 C 7 D 8
- * @B
- * # Yechim matni bir yoki bir nechta qator
+ * A. 11
+ * B. 12
+ * C. 13
+ * D. 14
+ * @A
+ * Tushuntirish: ...
  *
- * 2. Keyingi savol...
- *
- * Qoidalar:
- * - Har savol `raqam.` bilan boshlanadi (1. 2. 10. …)
- * - Variantlar: bitta qatorda `A … B … C … D …` yoki alohida 4 qator: `A) …` / `A. …`
- * - To'g'ri javob: `@A` yoki `*B` (alohida qator, faqat harf)
- * - Yechim: `#` bilan boshlangan qator(lar) — savol oxirigacha
+ * - Savol `1.` `2.` bilan boshlanadi
+ * - Variantlar: bitta qatorda yoki alohida `A.` / `A)` qatorlar
+ * - To'g'ri javob: `@A` yoki `*B`
+ * - Tushuntirish: `#` bilan yoki `Tushuntirish:` prefiksi bilan
  */
 
 const CORRECT_LINE = /^\s*[*@]\s*([ABCD])\s*$/i;
 const QUESTION_HEAD = /^\s*(\d+)\.\s*(.*)$/;
+const TUSHUNTIRISH_HEAD = /^tushuntirish\s*:\s*(.*)$/i;
+
+/** Word dan: NBSP, BOM */
+export function normalizeBulkPastedText(raw: string): string {
+  return raw
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .replace(/\u2028|\u2029/g, "\n");
+}
+
+function skipBlankLines(lines: string[], start: number): number {
+  let i = start;
+  while (i < lines.length && lines[i].trim() === "") i += 1;
+  return i;
+}
 
 function parseInlineOptions(line: string): Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null {
   const s = line.trim();
@@ -47,6 +64,9 @@ function parseStackOptions(lines: string[]): Pick<QuestionDraft, "optionA" | "op
   return { optionA: map.A, optionB: map.B, optionC: map.C, optionD: map.D };
 }
 
+/** Alohida qatorda A. B. C. D. — Word ba'zan oraliqda bo'sh qator qoldiradi */
+const STACK_OPTION_LINE = /^[ABCD](?:[\.\):]\s*|\s+).+/i;
+
 function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraft; error?: string } {
   const block = rawBlock.trim();
   if (!block) return { error: `Blok ${blockIndex}: bo'sh.` };
@@ -64,10 +84,15 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
 
   let i = 1;
   while (i < lines.length) {
-    const ln = lines[i].trim();
-    if (CORRECT_LINE.test(ln) || ln.startsWith("#")) break;
+    const raw = lines[i];
+    const ln = raw.trim();
+    if (ln === "") {
+      i += 1;
+      continue;
+    }
+    if (CORRECT_LINE.test(ln) || ln.startsWith("#") || TUSHUNTIRISH_HEAD.test(ln)) break;
     if (/\b[ABCD][\.\):]?\s+.+\b[ABCD][\.\):]?\s+/i.test(ln)) break;
-    if (/^[ABCD][\.\):]?\s+/i.test(ln)) break;
+    if (STACK_OPTION_LINE.test(ln)) break;
     stemLines.push(ln);
     i += 1;
   }
@@ -75,6 +100,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
   const text = stemLines.join("\n").trim();
   if (!text) return { error: `Blok ${blockIndex}: savol matni bo'sh.` };
 
+  i = skipBlankLines(lines, i);
   if (i >= lines.length) {
     return { error: `Blok ${blockIndex}: A–D variantlari topilmadi.` };
   }
@@ -87,10 +113,12 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
     i += 1;
   } else {
     const stack: string[] = [];
-    while (i < lines.length && /^[ABCD][\.\):]\s+/i.test(lines[i].trim())) {
-      stack.push(lines[i].trim());
-      i += 1;
+    let j = i;
+    while (j < lines.length && STACK_OPTION_LINE.test(lines[j].trim())) {
+      stack.push(lines[j].trim());
+      j += 1;
     }
+    i = j;
     if (stack.length === 4) options = parseStackOptions(stack);
     else if (stack.length === 1) options = parseInlineOptions(stack[0]);
     else {
@@ -104,6 +132,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
     return { error: `Blok ${blockIndex}: A, B, C, D variantlari to'liq emas.` };
   }
 
+  i = skipBlankLines(lines, i);
   if (i >= lines.length) {
     return { error: `Blok ${blockIndex}: to'g'ri javob (@A yoki *B) qatori yo'q.` };
   }
@@ -118,14 +147,33 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
   const correctAnswer = cm[1].toUpperCase() as QuestionDraft["correctAnswer"];
   i += 1;
 
-  if (i >= lines.length || !lines[i].trim().startsWith("#")) {
-    return { error: `Blok ${blockIndex}: yechim # bilan boshlangan qator bilan boshlanishi kerak.` };
+  i = skipBlankLines(lines, i);
+  if (i >= lines.length) {
+    return {
+      error: `Blok ${blockIndex}: tushuntirish # yoki "Tushuntirish:" bilan boshlangan qator kerak.`,
+    };
   }
 
-  const firstSol = lines[i].trim().replace(/^#+\s*/, "");
-  const restSol = lines.slice(i + 1).map((l) => l.trimEnd());
-  const solution = [firstSol, ...restSol].join("\n").trim();
-  if (!solution) return { error: `Blok ${blockIndex}: yechim matni bo'sh.` };
+  const solLine = lines[i].trim();
+  let solution: string;
+
+  if (solLine.startsWith("#")) {
+    const firstSol = solLine.replace(/^#+\s*/, "");
+    const restSol = lines.slice(i + 1).map((l) => l.trimEnd());
+    solution = [firstSol, ...restSol].join("\n").trim();
+  } else {
+    const tm = solLine.match(TUSHUNTIRISH_HEAD);
+    if (!tm) {
+      return {
+        error: `Blok ${blockIndex}: yechim "# matn" yoki "Tushuntirish: matn" bilan boshlanishi kerak.`,
+      };
+    }
+    const firstBody = (tm[1] ?? "").trim();
+    const restSol = lines.slice(i + 1).map((l) => l.trimEnd());
+    solution = [firstBody, ...restSol].join("\n").trim();
+  }
+
+  if (!solution) return { error: `Blok ${blockIndex}: tushuntirish matni bo'sh.` };
 
   return {
     q: {
@@ -140,10 +188,13 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
 
 export function parseCompactBulkTest(text: string): { questions: QuestionDraft[]; errors: string[] } {
   const errors: string[] = [];
-  const t = text.replace(/\r\n/g, "\n").trim();
+  const t = normalizeBulkPastedText(text).trim();
   if (!t) return { questions: [], errors: ["Matn bo'sh."] };
 
-  const blocks = t.split(/\n(?=\s*\d+\.\s+)/).map((b) => b.trim()).filter(Boolean);
+  const blocks = t
+    .split(/\n(?=\s*\d+\.\s+)/)
+    .map((b) => b.trim())
+    .filter(Boolean);
 
   const questions: QuestionDraft[] = [];
   let idx = 1;

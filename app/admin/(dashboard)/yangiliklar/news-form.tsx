@@ -105,7 +105,7 @@ function NewsFields({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-2.5 text-sm font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60 sm:w-auto sm:px-8"
+        className="w-full rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] py-2.5 text-sm font-bold text-white shadow-md shadow-[#2563EB]/20 hover:brightness-105 disabled:opacity-60 sm:w-auto sm:px-8"
       >
         {pending ? "Saqlanmoqda…" : "Saqlash"}
       </button>

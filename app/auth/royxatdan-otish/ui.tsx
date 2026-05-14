@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { registerStudent, type AuthFormState } from "../actions";
 import { VILOYATLAR } from "@/lib/viloyats";
+import { STUDENT_GRADES } from "@/lib/student-grade";
 
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerStudent, undefined as AuthFormState);
@@ -40,6 +41,27 @@ export function RegisterForm() {
           {VILOYATLAR.map((v) => (
             <option key={v} value={v}>
               {v}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="gradeLevel" className="block text-sm font-medium text-slate-700">
+          Sinf
+        </label>
+        <select
+          id="gradeLevel"
+          name="gradeLevel"
+          required
+          defaultValue=""
+          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+        >
+          <option value="" disabled>
+            3–9-sinfni tanlang…
+          </option>
+          {STUDENT_GRADES.map((g) => (
+            <option key={g} value={g}>
+              {g}-sinf
             </option>
           ))}
         </select>

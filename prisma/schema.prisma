@@ -30,6 +30,8 @@ model Test {
   subject          String         @default("")
   description      String         @default("")
   durationMinutes  Int            @default(90)
+  /// Narxi (so'm), 0 = bepul / ko'rsatilmaydi
+  priceSum         Int            @default(0)
   questionsCount   Int            @default(0)
   isPublished      Boolean        @default(false)
   /// Masalan: saralash — 1-bosqich
@@ -38,6 +40,7 @@ model Test {
   updatedAt        DateTime       @updatedAt
   questions        Question[]
   attempts         TestAttempt[]
+  progresses       TestProgress[]
 }
 
 model Question {
@@ -71,6 +74,8 @@ model User {
   lastName            String         @default("")
   /// Ota-ona monitoringi uchun (998XXXXXXXXX)
   parentPhone         String         @default("")
+  /// Sinf (3–9). 0 = eski yozuvlar / hali tanlanmagan
+  gradeLevel          Int            @default(0)
   telegramId          BigInt?        @unique
   telegramUsername    String?
   telegramLinkedAt    DateTime?
@@ -80,6 +85,30 @@ model User {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   testAttempts        TestAttempt[]
+  testProgresses      TestProgress[]
+  /// Balans (so'm). Yangi foydalanuvchi: 100_000. Click orqali to'ldirish — keyingi bosqich.
+  balanceSum          Int            @default(100000)
+
+  @@index([gradeLevel])
+}
+
+/// Yechilayotgan test sessiyasi (yangilaganda davom etish + to'lovni bir marta yechish)
+model TestProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId      String
+  test        Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answersJson String   @default("{}")
+  currentStep Int      @default(0)
+  endsAt      DateTime
+  chargedSum  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, testId])
+  @@index([userId])
+  @@index([testId])
 }
 
 model TestAttempt {
@@ -95,6 +124,7 @@ model TestAttempt {
   rankPoints  Int      @default(0)
   createdAt   DateTime @default(now())
 
+  @@unique([userId, testId])
   @@index([userId])
   @@index([testId])
 }

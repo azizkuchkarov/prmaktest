@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { submitTestAttempt, type SubmitTestResult } from "@/app/testlar/[id]/boshlash/actions";
+import { submitTestAttempt, saveTestProgress, type SubmitTestResult } from "@/app/testlar/[id]/boshlash/actions";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export type RunnerQuestion = {
   id: string;
@@ -14,11 +15,21 @@ export type RunnerQuestion = {
   optionD: string;
 };
 
+export type TestRunnerInitialSession = {
+  endsAtMs: number;
+  currentStep: number;
+  answers: Record<string, string>;
+};
+
 type Props = {
   testId: string;
   title: string;
   durationMinutes: number;
   questions: RunnerQuestion[];
+  balanceSum: number;
+  priceSum: number;
+  isRetake: boolean;
+  initialSession: TestRunnerInitialSession;
 };
 
 function formatMmSs(totalSeconds: number) {
@@ -28,8 +39,21 @@ function formatMmSs(totalSeconds: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-function TestRunner({ testId, title, durationMinutes, questions }: Props) {
+function TestRunner({
+  testId,
+  title,
+  durationMinutes,
+  questions,
+  balanceSum,
+  priceSum,
+  isRetake,
+  initialSession,
+}: Props) {
   const totalSeconds = Math.max(durationMinutes, 1) * 60;
+  const safeStepInit = Math.max(
+    0,
+    Math.min(initialSession.currentStep, Math.max(0, questions.length - 1)),
+  );
   /**
    * Deadline faqat client `useEffect`da — SSR va birinchi client render bir xil
    * `totalSeconds` ko‘rsatadi (hydration buzilmasin); iOS’dagi “muskul” UI uchun muhim.
@@ -37,26 +61,37 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
   const deadlineMsRef = useRef(0);
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
 
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [step, setStep] = useState(safeStepInit);
+  const [answers, setAnswers] = useState<Record<string, string>>(() => ({ ...initialSession.answers }));
   const [result, setResult] = useState<SubmitTestResult | null>(null);
   const [wrongStep, setWrongStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const startedAtMsRef = useRef(0);
   const finishedRef = useRef(false);
   /** Faqat `pickAnswer` yangilaydi — `= answers` har renderda refni buzmasin */
-  const answersRef = useRef<Record<string, string>>({});
+  const answersRef = useRef<Record<string, string>>({ ...initialSession.answers });
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  const resultRef = useRef(result);
+  resultRef.current = result;
+  const isSubmittingRef = useRef(isSubmitting);
+  isSubmittingRef.current = isSubmitting;
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushProgress = useCallback(() => {
+    if (finishedRef.current || resultRef.current || isSubmittingRef.current) return;
+    void saveTestProgress(testId, stepRef.current, answersRef.current);
+  }, [testId]);
 
   const totalQ = questions.length;
   const current = questions[step];
 
   useLayoutEffect(() => {
-    const now = Date.now();
-    startedAtMsRef.current = now;
-    const end = now + totalSeconds * 1000;
+    const end = initialSession.endsAtMs;
     deadlineMsRef.current = end;
+    startedAtMsRef.current = end - totalSeconds * 1000;
     setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
-  }, [totalSeconds]);
+  }, [totalSeconds, initialSession.endsAtMs]);
 
   const runSubmit = useCallback(() => {
     if (finishedRef.current) return;
@@ -79,15 +114,59 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
   }, [result, totalSeconds]);
 
   useEffect(() => {
+    if (result || isSubmitting) return;
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    saveDebounceRef.current = setTimeout(() => {
+      saveDebounceRef.current = null;
+      flushProgress();
+    }, 600);
+    return () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = null;
+      }
+    };
+  }, [testId, step, answers, result, isSubmitting, flushProgress]);
+
+  useEffect(() => {
     const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        if (saveDebounceRef.current) {
+          clearTimeout(saveDebounceRef.current);
+          saveDebounceRef.current = null;
+        }
+        flushProgress();
+        return;
+      }
       if (document.visibilityState !== "visible") return;
       const end = deadlineMsRef.current;
       if (!end) return;
       setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
     };
+    const onPageHide = () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = null;
+      }
+      flushProgress();
+    };
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [flushProgress]);
+
+  useEffect(() => {
+    return () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = null;
+      }
+      flushProgress();
+    };
+  }, [flushProgress]);
 
   useEffect(() => {
     if (result || isSubmitting) return;
@@ -144,7 +223,9 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
       <div className="min-h-[100dvh] bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-slate-900 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-lg">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60 sm:rounded-3xl sm:p-8">
-            <p className="text-center text-xs font-bold uppercase tracking-wider text-emerald-700">Natija</p>
+            <p className="text-center text-xs font-bold uppercase tracking-wider text-emerald-700">
+              {result.isRetake ? "Qayta yechish (mashq)" : "Natija"}
+            </p>
             <h1 className="mt-2 text-center text-lg font-bold leading-snug text-slate-900 sm:text-2xl">{title}</h1>
             <div className="mt-6 grid grid-cols-3 gap-2 text-center sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
               <div className="min-w-0 rounded-xl bg-slate-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
@@ -161,9 +242,17 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
               <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
               <div className="min-w-0 rounded-xl bg-amber-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
                 <p className="text-xl font-bold tabular-nums text-amber-600 sm:text-4xl">+{result.rankPoints}</p>
-                <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">Ball</p>
+                <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">
+                  {result.isRetake ? "Reyting balli" : "Ball"}
+                </p>
               </div>
             </div>
+            {result.isRetake ? (
+              <p className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-center text-xs leading-relaxed text-sky-900 ring-1 ring-sky-200/80">
+                Bu urinish <strong>faqat mashq</strong>: reyting o‘zgarmaydi, balansdan pul yechilmaydi. Rasmiy ball
+                kabinetdagi birinchi topshiruv bo‘yicha qoladi.
+              </p>
+            ) : null}
             <p className="mt-4 text-center text-sm text-slate-600">
               Sarflangan vaqt: <span className="font-semibold text-slate-900">{formatMmSs(result.secondsUsed)}</span>
             </p>
@@ -265,7 +354,9 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
         <div className="mx-auto max-w-lg px-4 py-3 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Aktiv test</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-800">
+                {isRetake ? "Qayta yechish" : "Aktiv test"}
+              </p>
               <p className="mt-0.5 line-clamp-2 text-sm font-bold leading-snug text-slate-900">{title}</p>
             </div>
             <div
@@ -278,6 +369,16 @@ function TestRunner({ testId, title, durationMinutes, questions }: Props) {
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Qoldi</p>
               <p className="text-base font-black tabular-nums leading-none">{formatMmSs(secondsLeft)}</p>
             </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-600">
+            <span className="tabular-nums">
+              Balans: {formatPriceSum(balanceSum) || "0 so'm"}
+              {priceSum > 0 ? (
+                <span className="font-normal text-slate-500">
+                  {isRetake ? " · qayta yechish bepul" : ` · test narxi ${formatPriceSum(priceSum)}`}
+                </span>
+              ) : null}
+            </span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-semibold">
             <Link href={`/testlar/${testId}`} className="truncate text-emerald-800 hover:underline">

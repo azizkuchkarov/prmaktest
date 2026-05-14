@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Banknote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { deleteTest } from "./actions";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export default async function AdminTestsListPage() {
   const items = await prisma.test.findMany({
@@ -11,28 +12,31 @@ export default async function AdminTestsListPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Testlar</h1>
-          <p className="mt-1 text-slate-600">
-            Saralash testlari: savollar, variantlar va yechimlar admin orqali to&apos;ldiriladi.
-          </p>
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Testlar</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+              Saralash testlari: savollar, variantlar va yechimlar admin orqali to&apos;ldiriladi.
+            </p>
+          </div>
+          <Link
+            href="/admin/testlar/yangi"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#2563EB]/20 transition hover:brightness-105"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Yangi test
+          </Link>
         </div>
-        <Link
-          href="/admin/testlar/yangi"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:brightness-105"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          Yangi test
-        </Link>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[720px] text-left text-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-100 bg-slate-50/90 text-xs font-bold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Nomi</th>
               <th className="px-4 py-3">Fan</th>
+              <th className="px-4 py-3">Narx</th>
               <th className="px-4 py-3">Vaqt</th>
               <th className="px-4 py-3">Savollar</th>
               <th className="px-4 py-3">Holat</th>
@@ -42,15 +46,28 @@ export default async function AdminTestsListPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                   Hozircha test yo&apos;q. Birinchi testni qo&apos;shing.
                 </td>
               </tr>
             ) : (
               items.map((t) => (
-                <tr key={t.id} className="border-b border-slate-50 last:border-0">
+                <tr
+                  key={t.id}
+                  className="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/70"
+                >
                   <td className="px-4 py-3 font-medium text-slate-900">{t.title}</td>
                   <td className="px-4 py-3 text-slate-600">{t.subject || "—"}</td>
+                  <td className="px-4 py-3">
+                    {t.priceSum > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-900">
+                        <Banknote className="h-3 w-3" aria-hidden />
+                        {formatPriceSum(t.priceSum)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">Bepul</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-600">{t.durationMinutes} daq.</td>
                   <td className="px-4 py-3 text-slate-700">{t._count.questions}</td>
                   <td className="px-4 py-3">

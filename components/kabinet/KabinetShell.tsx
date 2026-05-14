@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   BookOpen,
+  GitBranch,
   Home,
   LayoutDashboard,
   LogOut,
@@ -24,6 +25,7 @@ type Props = {
 const nav = [
   { href: "#bosh", label: "Boshqaruv", icon: LayoutDashboard },
   { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
+  { href: "#roadmap", label: "Roadmap", icon: GitBranch },
   { href: "#reyting", label: "Reyting", icon: Trophy },
   { href: "#testlar", label: "Testlar", icon: BookOpen },
   { href: "#profil", label: "Profil", icon: User },

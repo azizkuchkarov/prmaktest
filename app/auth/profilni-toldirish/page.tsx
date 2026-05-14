@@ -15,11 +15,16 @@ export default async function ProfileSetupPage() {
     <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
       <h1 className="text-center text-xl font-bold text-slate-900">{"Profilni to'ldiring"}</h1>
       <p className="mt-3 text-center text-sm leading-relaxed text-slate-600">
-        <strong>Ism va familiyangiz</strong> respublika va viloyat reytinglarida chiqariladi.{" "}
+        <strong>Ism, familiya va sinf</strong> reytingda (shu jumladan sinf bo‘yicha) ko‘rinadi.{" "}
         <strong>Ota-onangiz telefoni</strong> monitoring va hisobotlar uchun ishlatiladi (SMS hozircha
         ixtiyoriy rejimda saqlanadi).
       </p>
-      <ProfileSetupForm />
+      <ProfileSetupForm
+        initialFirstName={student.firstName}
+        initialLastName={student.lastName}
+        initialParentPhone={student.parentPhone}
+        initialGradeLevel={student.gradeLevel}
+      />
       <p className="mt-6 text-center text-xs text-slate-500">
         {"Ma'lumotlarni keyinroq o'zgartirish keyingi versiyada qo'shiladi."}
       </p>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Newspaper, FileText, ArrowRight, Users } from "lucide-react";
+import { ArrowRight, FileText, Newspaper, Sparkles, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminHomePage() {
@@ -13,58 +13,74 @@ export default async function AdminHomePage() {
       prisma.user.count({ where: { telegramId: null } }),
     ]);
 
+  const cards = [
+    {
+      href: "/admin/userlar",
+      label: "Userlar",
+      value: userCount,
+      hint: `Telegram yo'q: ${usersNoTelegram}`,
+      icon: Users,
+      accent: "from-sky-500 to-blue-600",
+    },
+    {
+      href: "/admin/yangiliklar",
+      label: "Yangiliklar",
+      value: newsCount,
+      hint: `Nashr etilgan: ${publishedNews}`,
+      icon: Newspaper,
+      accent: "from-violet-500 to-purple-600",
+    },
+    {
+      href: "/admin/testlar",
+      label: "Testlar",
+      value: testCount,
+      hint: `Nashr etilgan: ${publishedTests}`,
+      icon: FileText,
+      accent: "from-emerald-500 to-teal-600",
+    },
+  ] as const;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Boshqaruv paneli</h1>
-        <p className="mt-1 text-slate-600">
-          Yangiliklar va testlarni qo&apos;shish yoki tahrirlash.
-        </p>
+    <div className="mx-auto max-w-5xl space-y-10">
+      <div className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-lg shadow-slate-200/50 backdrop-blur-sm sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-violet-600">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Boshqaruv
+            </p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Boshqaruv paneli
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+              Yangiliklar, testlar va foydalanuvchilarni bir joydan boshqaring. Quyidagi kartochkalardan
+              tez oʻting.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Users className="h-5 w-5" aria-hidden />
-            <span className="text-sm font-medium">Userlar</span>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{userCount}</p>
-          <p className="text-xs text-slate-500">Telegram yo&apos;q: {usersNoTelegram}</p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map(({ href, label, value, hint, icon: Icon, accent }) => (
           <Link
-            href="/admin/userlar"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
+            key={href}
+            href={href}
+            className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-md shadow-slate-200/40 transition hover:border-violet-200/80 hover:shadow-lg hover:shadow-violet-500/10"
           >
-            Ro&apos;yxat <ArrowRight className="h-4 w-4" aria-hidden />
+            <div
+              className={`mb-4 inline-flex rounded-xl bg-gradient-to-br ${accent} p-2.5 text-white shadow-md`}
+            >
+              <Icon className="h-5 w-5" aria-hidden />
+            </div>
+            <p className="text-sm font-semibold text-slate-500">{label}</p>
+            <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">{value}</p>
+            <p className="mt-2 text-xs text-slate-500">{hint}</p>
+            <span className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#2563EB] transition group-hover:gap-2">
+              Boshqarish
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </span>
           </Link>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Newspaper className="h-5 w-5" aria-hidden />
-            <span className="text-sm font-medium">Yangiliklar</span>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{newsCount}</p>
-          <p className="text-xs text-slate-500">Nashr etilgan: {publishedNews}</p>
-          <Link
-            href="/admin/yangiliklar"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Boshqarish <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500">
-            <FileText className="h-5 w-5" aria-hidden />
-            <span className="text-sm font-medium">Testlar</span>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900">{testCount}</p>
-          <p className="text-xs text-slate-500">Nashr etilgan: {publishedTests}</p>
-          <Link
-            href="/admin/testlar"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Boshqarish <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </div>
+        ))}
       </div>
     </div>
   );
