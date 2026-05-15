@@ -11,6 +11,10 @@ const devExtraOrigins = (process.env.NEXT_DEV_EXTRA_ORIGINS ?? "")
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  /** Brauzer `/uploads/...` ni saqlaydi; ichki qidiruv API route orqali diskdan beradi. */
+  async rewrites() {
+    return [{ source: "/uploads/questions/:name", destination: "/api/uploads/questions/:name" }];
+  },
   /** Docker / minimal VPS: NEXT_STANDALONE=1 npm run build → .next/standalone */
   ...(process.env.NEXT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Turbopack Prisma clientni noto‘g‘ri bundle qilganda ba’zi delegate’lar (masalan testAttempt) yo‘qolishi mumkin.
