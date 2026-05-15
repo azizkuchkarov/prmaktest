@@ -41,7 +41,9 @@ export type KabinetTestItem = {
   durationMinutes: number;
   priceSum: number;
   questionsCount: number;
+  catalogCategory: string;
   stage: string;
+  createdAt: Date;
   updatedAt: Date;
   completed: boolean;
 };
@@ -90,6 +92,8 @@ export function KabinetDashboard({
     parentPhone: student.parentPhone,
     balanceSum: student.balanceSum,
     gradeLevel: student.gradeLevel,
+    telegramLinked: student.telegramId != null,
+    telegramUsername: student.telegramUsername,
   };
 
   const newsSer: KabinetBentoNews[] = news.map((n) => ({
@@ -98,6 +102,7 @@ export function KabinetDashboard({
   }));
   const testsSer: KabinetBentoTest[] = tests.map((t) => ({
     ...t,
+    createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     completed: t.completed,
   }));

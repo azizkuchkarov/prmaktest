@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { TestChoice, type Prisma } from "@prisma/client";
+import { TestChoice, type Prisma, type TestCatalogCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizeTestCatalogCategory } from "@/lib/test-catalog";
 import {
   isQuestionComplete,
   validateTestQuestions,
@@ -20,6 +21,8 @@ export type TestSavePayload = {
   durationMinutes: number;
   /** So'm (0 = bepul) */
   priceSum: number;
+  /** Kabinetda qaysi katalog blokida */
+  catalogCategory: TestCatalogCategory;
   isPublished: boolean;
   stage: string;
   questions: QuestionDraft[];
@@ -40,6 +43,7 @@ function buildQuestionRows(payload: TestSavePayload): QuestionRowInsert[] {
     return {
       order: idx + 1,
       text: q.text.trim(),
+      imageUrl: q.imageUrl?.trim() ? q.imageUrl.trim() : null,
       optionA: q.optionA.trim(),
       optionB: q.optionB.trim(),
       optionC: q.optionC.trim(),
@@ -60,7 +64,7 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
   const priceSum = Math.round(Number(payload.priceSum));
   if (!Number.isFinite(priceSum) || priceSum < 0) return { error: "Narx (so'm) noto'g'ri." };
 
-  const err = validateTestQuestions(payload.questions, payload.isPublished);
+  const err = validateTestQuestions(payload.questions);
   if (err) return { error: err };
 
   let rows: QuestionRowInsert[];
@@ -71,6 +75,7 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
   }
 
   const stage = payload.stage.trim() || "saralash";
+  const catalogCategory = normalizeTestCatalogCategory(String(payload.catalogCategory));
 
   const created = await prisma.$transaction(async (tx) => {
     const test = await tx.test.create({
@@ -81,6 +86,7 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
         durationMinutes: dm,
         priceSum,
         questionsCount: rows.length,
+        catalogCategory,
         isPublished: payload.isPublished,
         stage,
       },
@@ -119,7 +125,7 @@ export async function updateTestFull(
   const priceSum = Math.round(Number(payload.priceSum));
   if (!Number.isFinite(priceSum) || priceSum < 0) return { error: "Narx (so'm) noto'g'ri." };
 
-  const err = validateTestQuestions(payload.questions, payload.isPublished);
+  const err = validateTestQuestions(payload.questions);
   if (err) return { error: err };
 
   let rows: QuestionRowInsert[];
@@ -130,6 +136,7 @@ export async function updateTestFull(
   }
 
   const stage = payload.stage.trim() || "saralash";
+  const catalogCategory = normalizeTestCatalogCategory(String(payload.catalogCategory));
 
   const prev = await prisma.test.findUnique({
     where: { id: testId },
@@ -147,6 +154,7 @@ export async function updateTestFull(
         durationMinutes: dm,
         priceSum,
         questionsCount: rows.length,
+        catalogCategory,
         isPublished: payload.isPublished,
         stage,
       },
@@ -178,6 +186,7 @@ export async function updateTestFull(
 export async function deleteTest(id: string) {
   await prisma.test.delete({ where: { id } });
   revalidatePath("/testlar");
+  revalidatePath("/kabinet");
   revalidatePath("/admin/testlar");
   redirect("/admin/testlar");
 }

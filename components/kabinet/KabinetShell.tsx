@@ -27,7 +27,7 @@ const nav = [
   { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "#roadmap", label: "Roadmap", icon: GitBranch },
   { href: "#reyting", label: "Reyting", icon: Trophy },
-  { href: "#testlar", label: "Testlar", icon: BookOpen },
+  { href: "#testlar", label: "Katalog", icon: BookOpen },
   { href: "#profil", label: "Profil", icon: User },
 ] as const;
 

@@ -1,12 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { loginStudent, type AuthFormState } from "../actions";
 
 type Props = { redirectFrom?: string };
 
+const PHONE_PREFIX = "+998 ";
+
+function buildPhoneDisplay(raw: string): string {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("998")) d = d.slice(3);
+  const body = d.slice(0, 9);
+  return PHONE_PREFIX + body;
+}
+
 export function LoginForm({ redirectFrom }: Props) {
   const [state, formAction, pending] = useActionState(loginStudent, undefined as AuthFormState);
+  const [phone, setPhone] = useState(PHONE_PREFIX);
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
@@ -21,9 +31,14 @@ export function LoginForm({ redirectFrom }: Props) {
           id="phone"
           name="phone"
           type="tel"
+          inputMode="numeric"
           required
           autoComplete="tel"
           placeholder="+998 90 123 45 67"
+          minLength={14}
+          title="To‘liq raqam: +998 va 9 ta raqam"
+          value={phone}
+          onChange={(e) => setPhone(buildPhoneDisplay(e.target.value))}
           className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>

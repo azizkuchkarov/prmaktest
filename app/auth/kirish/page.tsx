@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
+import { TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from "@/lib/telegram-public";
 import { LoginForm } from "./ui";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,32 @@ export default async function KirishPage({ searchParams }: Props) {
         </p>
       ) : null}
       <LoginForm redirectFrom={from} />
+
+      <div className="mt-6 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50/90 to-white p-4 ring-1 ring-sky-100/80">
+        <div className="flex gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 ring-1 ring-sky-200/60">
+            <MessageCircle className="h-5 w-5" strokeWidth={2} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">Telegram bot</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Yangiliklar va muhim eslatmalar uchun{" "}
+              <span className="font-mono font-semibold text-slate-800">@{TELEGRAM_BOT_USERNAME}</span>{" "}
+              orqali obuna bo&apos;lishingiz mumkin — <strong className="font-medium">ixtiyoriy</strong>, kirish
+              uchun shart emas.
+            </p>
+            <a
+              href={TELEGRAM_BOT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+            >
+              Botga o&apos;tish
+            </a>
+          </div>
+        </div>
+      </div>
+
       <p className="mt-6 text-center text-sm text-slate-600">
         {"Hisobingiz yo'qmi?"}{" "}
         <Link href="/auth/royxatdan-otish" className="font-semibold text-blue-600 hover:text-blue-700">

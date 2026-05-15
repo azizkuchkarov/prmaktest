@@ -2,9 +2,17 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+/** Masalan: NEXT_DEV_EXTRA_ORIGINS=192.168.1.5,10.0.0.2 */
+const devExtraOrigins = (process.env.NEXT_DEV_EXTRA_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  /** Docker / minimal VPS: NEXT_STANDALONE=1 npm run build → .next/standalone */
+  ...(process.env.NEXT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Turbopack Prisma clientni noto‘g‘ri bundle qilganda ba’zi delegate’lar (masalan testAttempt) yo‘qolishi mumkin.
   serverExternalPackages: ["@prisma/client", "prisma"],
   compiler: {
@@ -12,14 +20,11 @@ const nextConfig: NextConfig = {
   },
   /** Barrel importlardan faqat ishlatilgan modullarni yuklash (bundle kichrayadi) */
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+    optimizePackageImports: ["lucide-react", "recharts", "framer-motion", "@base-ui/react"],
   },
-  /** Telefon IP dan dev ochishda webpack HMR uchun (faqat dev) */
-  ...(isProd
+  ...(isProd || devExtraOrigins.length === 0
     ? {}
-    : {
-        allowedDevOrigins: ["192.168.97.238"],
-      }),
+    : { allowedDevOrigins: devExtraOrigins }),
 };
 
 export default nextConfig;

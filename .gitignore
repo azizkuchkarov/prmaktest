@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# admin: savol rasmlari (migratsiya papkasi .gitkeep bilan)
+/public/uploads/questions/*
+!/public/uploads/questions/.gitkeep

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Banknote,
+  BarChart3,
   BookOpen,
   CheckCircle2,
   ChevronRight,
@@ -16,6 +17,8 @@ import {
   Trophy,
 } from "lucide-react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -25,8 +28,6 @@ import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   Tooltip,
@@ -37,6 +38,7 @@ import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/
 import { formatPhoneDisplay } from "@/lib/phone";
 import type { RadarSubjectPoint, ReadinessStats, WeekProgressPoint } from "@/lib/kabinet-analytics";
 import { KabinetRankingCharts } from "@/components/kabinet/KabinetRankingCharts";
+import { KabinetBalanceClick } from "@/components/kabinet/KabinetBalanceClick";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,6 +46,16 @@ import { cn } from "@/lib/utils";
 import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
+import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
+import {
+  CATALOG_MENU_MAX,
+  CATALOG_PANEL_PREMIUM,
+  CATALOG_SECTION_META,
+  TEST_CATALOG_ORDER,
+  normalizeTestCatalogCategory,
+  pickLatestTestsForCatalogMenu,
+} from "@/lib/test-catalog";
+import type { TestCatalogCategory } from "@prisma/client";
 
 export type KabinetBentoNews = {
   id: string;
@@ -62,7 +74,9 @@ export type KabinetBentoTest = {
   questionsCount: number;
   stage: string;
   updatedAt: string;
+  createdAt: string;
   completed: boolean;
+  catalogCategory: string;
 };
 
 export type KabinetBentoStudent = {
@@ -74,6 +88,9 @@ export type KabinetBentoStudent = {
   parentPhone: string;
   balanceSum: number;
   gradeLevel: number;
+  /** Telegram bildirishnomalari — `null` bo‘lsa ulanmagan */
+  telegramLinked: boolean;
+  telegramUsername: string | null;
 };
 
 type Props = {
@@ -112,6 +129,19 @@ function subscribeMqLg(cb: () => void) {
 function getMqLgSnapshot() {
   return window.matchMedia("(min-width: 1024px)").matches;
 }
+
+function subscribeMqSm(cb: () => void) {
+  const mq = window.matchMedia("(max-width: 639px)");
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function getMqSmSnapshot() {
+  return window.matchMedia("(max-width: 639px)").matches;
+}
+
+const premiumChartCard =
+  "relative min-w-0 overflow-hidden rounded-[1.35rem] border border-slate-200/55 bg-gradient-to-br from-white via-white to-slate-50/[0.85] shadow-[0_22px_56px_-28px_rgba(15,23,42,0.22)] ring-1 ring-white/90";
 
 /** lg+: chartlar; mobil va SSRda null (0×0 Recharts ogohlantirishlari yo‘q) */
 function KabinetRankingChartsDesktop(props: {
@@ -286,6 +316,87 @@ function CompactRankingBar({
   );
 }
 
+function KabinetCatalogTestRow({ test: t, category }: { test: KabinetBentoTest; category: TestCatalogCategory }) {
+  const accent = CATALOG_PANEL_PREMIUM[category];
+  return (
+    <li
+      className={cn(
+        "group/card relative box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200/60 bg-white py-3.5 pl-3 pr-3 shadow-sm transition duration-200 sm:pl-4 sm:pr-4",
+        "hover:border-slate-300/80 hover:shadow-md",
+        accent.cardBar,
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full opacity-[0.07] blur-2xl transition-opacity group-hover/card:opacity-[0.12]",
+          accent.orb,
+        )}
+      />
+      <div className="relative z-[1] flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <h3 className="break-words text-[13px] font-semibold leading-snug tracking-tight text-slate-900 sm:text-sm">
+            {t.title}
+          </h3>
+          {t.subject ? (
+            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.subject}</p>
+          ) : null}
+        </div>
+        {t.completed ? (
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
+            title="Yechib bo'lingan"
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden strokeWidth={2.5} />
+            <span className="sr-only">Tugallangan</span>
+          </span>
+        ) : null}
+      </div>
+      <div className="relative z-[1] mt-3 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+          <Clock className="h-3.5 w-3.5 text-slate-400" />
+          {t.durationMinutes} daq
+        </span>
+        <span className={cn("rounded-lg border px-2.5 py-1 text-[11px] font-semibold", accent.chipBorder)}>
+          {t.questionsCount} savol
+        </span>
+        {t.priceSum > 0 ? (
+          <span className="inline-flex items-center gap-0.5 rounded-lg border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+            <Banknote className="h-3.5 w-3.5" aria-hidden />
+            {formatPriceSum(t.priceSum)}
+          </span>
+        ) : null}
+      </div>
+      <div className="relative z-[1] mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-between">
+        {t.questionsCount > 0 ? (
+          t.completed ? (
+            <Link
+              href={`/testlar/${t.id}/boshlash`}
+              className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/90 px-3 py-2 text-[11px] font-semibold text-sky-900 transition hover:bg-sky-100 min-[400px]:w-auto"
+            >
+              Qayta yechish
+            </Link>
+          ) : (
+            <Link
+              href={`/testlar/${t.id}/boshlash`}
+              className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#6366f1] px-3.5 py-2 text-[11px] font-semibold text-white shadow-md shadow-blue-500/20 transition hover:brightness-105 min-[400px]:w-auto"
+            >
+              Boshlash <ArrowRight className="h-3.5 w-3.5 opacity-90" />
+            </Link>
+          )
+        ) : (
+          <span className="text-[11px] font-semibold text-slate-400">{"Savollar yo'q"}</span>
+        )}
+        <Link
+          href={`/testlar/${t.id}`}
+          className="self-start text-[11px] font-semibold text-slate-600 underline-offset-4 transition hover:text-blue-700 hover:underline min-[400px]:self-center"
+        >
+          Batafsil
+        </Link>
+      </div>
+    </li>
+  );
+}
+
 export function KabinetBentoContent({
   student,
   displayName,
@@ -301,6 +412,8 @@ export function KabinetBentoContent({
   radar,
   readiness,
 }: Props) {
+  const chartUid = useId().replace(/:/g, "");
+  const chartNarrow = useSyncExternalStore(subscribeMqSm, getMqSmSnapshot, () => true);
   const firstName = displayName.split(" ").filter(Boolean)[0] || "do‘st";
   const gradeOk = isValidStudentGrade(student.gradeLevel);
   const nextTest =
@@ -308,6 +421,13 @@ export function KabinetBentoContent({
     tests.find((t) => t.questionsCount > 0) ??
     tests[0];
   const radarHasData = radar.some((d) => d.fullMark > 0);
+
+  const radarChartH = chartNarrow ? 252 : 312;
+  const donutChartH = chartNarrow ? 232 : 272;
+  const weeklyChartH = chartNarrow ? 240 : 296;
+  const radarOuterPct = chartNarrow ? "56%" : "68%";
+  const axisTick = chartNarrow ? 10 : 12;
+  const radarTick = chartNarrow ? 9 : 11;
 
   const donutData = useMemo(() => {
     const p = Math.max(0, Math.min(100, readiness.pct));
@@ -317,10 +437,30 @@ export function KabinetBentoContent({
     ];
   }, [readiness.pct]);
 
+  const { testsByCategory, catalogTotals } = useMemo(() => {
+    const buckets: Record<string, KabinetBentoTest[]> = {
+      MOCK: [],
+      MATHEMATICS: [],
+      CRITICAL_LOGIC: [],
+      ENGLISH: [],
+    };
+    for (const t of tests) {
+      const c = normalizeTestCatalogCategory(t.catalogCategory);
+      buckets[c].push(t);
+    }
+    const totals: Record<string, number> = {};
+    for (const cat of TEST_CATALOG_ORDER) {
+      const full = buckets[cat] ?? [];
+      totals[cat] = full.length;
+      buckets[cat] = pickLatestTestsForCatalogMenu(full, CATALOG_MENU_MAX);
+    }
+    return { testsByCategory: buckets, catalogTotals: totals };
+  }, [tests]);
+
   return (
-    <div className="relative mx-auto w-full max-w-6xl min-w-0 space-y-4 overflow-x-clip py-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:space-y-5 sm:px-6 sm:py-7 lg:space-y-6 lg:py-9">
+    <div className="relative box-border mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip py-5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:space-y-5 sm:px-6 sm:py-7 lg:space-y-6 lg:py-9">
       <div
-        className="pointer-events-none fixed left-1/2 top-0 z-0 h-[min(42vh,320px)] w-[min(100vw,520px)] max-w-[100vw] -translate-x-1/2 opacity-90"
+        className="pointer-events-none fixed left-1/2 top-0 z-0 h-[min(42vh,320px)] w-[min(100dvw,calc(100vw-2px),520px)] max-w-[100dvw] -translate-x-1/2 opacity-90"
         aria-hidden
       >
         <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,rgba(124,58,237,0.18),transparent_58%)] blur-2xl" />
@@ -364,7 +504,7 @@ export function KabinetBentoContent({
               <Badge className="rounded-xl border-0 bg-amber-100/90 font-bold text-amber-950">
                 <Banknote className="mr-1 h-3.5 w-3.5" aria-hidden />
                 Balans:{" "}
-                <span className="tabular-nums">{formatUzInteger(student.balanceSum)} so'm</span>
+                <span className="tabular-nums">{formatUzInteger(student.balanceSum)} so&apos;m</span>
               </Badge>
               <Badge className="rounded-xl border-0 bg-[#10B981]/15 font-bold text-[#059669]">Rank ball: {rank.totalPoints}</Badge>
             </div>
@@ -386,6 +526,9 @@ export function KabinetBentoContent({
               </Link>
             )}
           </CardContent>
+          <div className="relative z-10 border-t border-slate-100/90 px-6 pb-6 pt-4 sm:px-8">
+            <KabinetBalanceClick />
+          </div>
         </Card>
       </motion.section>
 
@@ -402,14 +545,14 @@ export function KabinetBentoContent({
             Barchasi →
           </Link>
         </div>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {news.length === 0 ? (
             <li className={cn("col-span-full py-14 text-center text-sm text-slate-500", cardShell)}>
               {"Hozircha yangiliklar yo'q."}
             </li>
           ) : (
             news.map((n) => (
-              <li key={n.id}>
+              <li key={n.id} className="min-w-0">
                 <Link
                   href={`/yangiliklar/${n.id}`}
                   className={cn(
@@ -430,10 +573,6 @@ export function KabinetBentoContent({
           )}
         </ul>
       </motion.section>
-
-      <motion.div {...fadeUp}>
-        <KabinetRoadmap />
-      </motion.div>
 
       <div className="relative grid auto-rows-min gap-4 min-w-0 lg:grid-cols-12 lg:gap-5">
         <motion.section {...fadeUp} id="reyting" className="scroll-mt-24 lg:col-span-4 lg:scroll-mt-6">
@@ -559,47 +698,78 @@ export function KabinetBentoContent({
         <motion.section
           {...fadeUp}
           id="diagrammalar"
-          className="scroll-mt-24 space-y-4 lg:col-span-12 lg:scroll-mt-6"
+          className="scroll-mt-24 space-y-5 sm:space-y-6 lg:col-span-12 lg:scroll-mt-6"
         >
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Diagrammalar</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-600">
-              Fanlar bo‘yicha kuchli tomonlar, haftalik progress va tayyorgarlik taqsimoti.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB]/15 to-violet-500/15 text-[#2563EB] shadow-inner ring-1 ring-slate-200/50">
+                  <BarChart3 className="h-4 w-4" aria-hidden />
+                </span>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-blue-600">
+                  Analitika
+                </p>
+              </div>
+              <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-[1.65rem]">
+                Diagrammalar
+              </h2>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
+                Fanlar bo‘yicha profil, tayyorgarlik ulushi va haftalik dinamika — barchasi mobil uchun moslashtirilgan.
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
-            <div className={cn("p-4 sm:p-5 lg:col-span-7", cardShell)}>
-              <h3 className="text-sm font-bold text-slate-900">Fanlar bo‘yicha</h3>
-              <p className="text-[11px] text-slate-600">Radar — o‘rtacha foiz (testlar bo‘yicha).</p>
-              <div className="relative mt-3 w-full min-h-[280px]">
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 lg:gap-6">
+            {/* Radar */}
+            <div className={cn("p-0 lg:col-span-7", premiumChartCard)}>
+              <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-blue-500/[0.09] blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-violet-500/[0.07] blur-3xl" />
+              <div className="relative border-b border-slate-100/90 px-4 py-3.5 sm:px-6 sm:py-4">
+                <h3 className="text-sm font-bold text-slate-900 sm:text-base">Fanlar bo‘yicha</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
+                  Radar — katalog bo‘limlari bo‘yicha o‘rtacha foiz: Mock Test, Matematikadan, tanqidiy-mantiqiy, Ingliz tili.
+                </p>
+              </div>
+              <div className="relative px-2 pb-4 pt-1 sm:px-4 sm:pb-5 sm:pt-2">
                 {!radarHasData ? (
-                  <div className="flex h-[280px] flex-col items-center justify-center rounded-2xl bg-slate-50 text-center text-sm text-slate-500">
-                    Hozircha fan bo‘yicha ma’lumot yo‘q. Test topshirgach diagramma paydo bo‘ladi.
+                  <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 px-4 py-14 text-center sm:min-h-[260px]">
+                    <p className="max-w-xs text-sm font-medium text-slate-600">
+                      Hozircha fan bo‘yicha ma’lumot yo‘q.
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">Test topshirgach diagramma paydo bo‘ladi.</p>
                   </div>
                 ) : (
-                  <div className="box-border w-full min-w-0" style={{ height: 280 }}>
-                    <ResponsiveContainer width="100%" height={280} minWidth={0} debounce={50}>
-                      <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radar}>
-                        <PolarGrid stroke="#e2e8f0" />
+                  <div className="box-border w-full min-w-0" style={{ height: radarChartH }}>
+                    <ResponsiveContainer width="100%" height={radarChartH} minWidth={0} debounce={50}>
+                      <RadarChart cx="50%" cy="50%" outerRadius={radarOuterPct} data={radar}>
+                        <defs>
+                          <linearGradient id={`radar-grad-${chartUid}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#2563EB" />
+                            <stop offset="55%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#7C3AED" />
+                          </linearGradient>
+                        </defs>
+                        <PolarGrid stroke="#cbd5e1" strokeOpacity={0.45} />
                         <PolarAngleAxis
                           dataKey="subject"
-                          tick={{ fill: "#64748b", fontSize: 10 }}
+                          tick={{ fill: "#475569", fontSize: radarTick, fontWeight: 600 }}
                           tickLine={false}
                         />
                         <Radar
                           name="Foiz"
                           dataKey="fullMark"
-                          stroke="#2563EB"
-                          fill="#2563EB"
-                          fillOpacity={0.35}
+                          stroke={`url(#radar-grad-${chartUid})`}
+                          strokeWidth={2.25}
+                          fill={`url(#radar-grad-${chartUid})`}
+                          fillOpacity={0.32}
                         />
                         <Tooltip
+                          cursor={{ strokeDasharray: "4 4", stroke: "#94a3b8", strokeOpacity: 0.7 }}
                           content={({ payload }) =>
                             payload?.[0] ? (
-                              <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs shadow-md">
-                                <span className="font-semibold text-slate-900">{String(payload[0].payload?.subject)}</span>
-                                <span className="ml-2 text-[#2563EB]">{payload[0].value}%</span>
+                              <div className="rounded-2xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs shadow-[0_12px_40px_-12px_rgba(15,23,42,0.2)] backdrop-blur-md">
+                                <p className="font-bold text-slate-900">{String(payload[0].payload?.subject)}</p>
+                                <p className="mt-1 tabular-nums font-semibold text-[#2563EB]">{payload[0].value}%</p>
                               </div>
                             ) : null
                           }
@@ -611,59 +781,171 @@ export function KabinetBentoContent({
               </div>
             </div>
 
-            <div className={cn("p-4 sm:p-5 lg:col-span-5", cardShell)}>
-              <h3 className="text-sm font-bold text-slate-900">Tayyorgarlik ulushi</h3>
-              <p className="text-[11px] text-slate-600">Donut — umumiy tayyorgarlik foizi.</p>
-              <div className="relative mx-auto mt-2 box-border w-full max-w-[280px] min-w-0" style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height={220} minWidth={0} debounce={50}>
+            {/* Donut */}
+            <div className={cn("p-0 lg:col-span-5", premiumChartCard)}>
+              <div className="pointer-events-none absolute -left-10 top-1/2 h-36 w-36 -translate-y-1/2 rounded-full bg-emerald-400/[0.06] blur-3xl" />
+              <div className="relative border-b border-slate-100/90 px-4 py-3.5 sm:px-6 sm:py-4">
+                <h3 className="text-sm font-bold text-slate-900 sm:text-base">Tayyorgarlik ulushi</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
+                  Donut — umumiy tayyorgarlik; markazda foiz.
+                </p>
+              </div>
+              <div className="relative flex min-h-0 flex-col items-center px-2 pb-5 pt-2 sm:px-4 sm:pb-6">
+                <div
+                  className="relative mx-auto w-full min-w-0 max-w-[min(100%,20rem)]"
+                  style={{ height: donutChartH }}
+                >
+                  <ResponsiveContainer width="100%" height={donutChartH} minWidth={0} debounce={50}>
                     <PieChart>
+                      <defs>
+                        <linearGradient id={`donut-ready-${chartUid}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#2563EB" />
+                          <stop offset="100%" stopColor="#7C3AED" />
+                        </linearGradient>
+                        <linearGradient id={`donut-rest-${chartUid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#e2e8f0" />
+                          <stop offset="100%" stopColor="#f1f5f9" />
+                        </linearGradient>
+                      </defs>
                       <Pie
                         data={donutData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius="55%"
-                        outerRadius="85%"
-                        paddingAngle={2}
-                        cornerRadius={6}
+                        innerRadius={chartNarrow ? "58%" : "56%"}
+                        outerRadius={chartNarrow ? "88%" : "86%"}
+                        paddingAngle={2.5}
+                        cornerRadius={8}
+                        stroke="rgba(255,255,255,0.85)"
+                        strokeWidth={2}
                       >
-                        <Cell fill="#2563EB" />
-                        <Cell fill="#e2e8f0" />
+                        <Cell fill={`url(#donut-ready-${chartUid})`} />
+                        <Cell fill={`url(#donut-rest-${chartUid})`} />
                       </Pie>
                       <Tooltip
-                        formatter={(v: number, name) => [`${Math.round(Number(v))}%`, name]}
-                        contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const name = String(payload[0].name);
+                          const v = Math.round(Number(payload[0].value));
+                          return (
+                            <div className="rounded-2xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs shadow-[0_12px_40px_-12px_rgba(15,23,42,0.2)] backdrop-blur-md">
+                              <p className="font-bold text-slate-900">{name}</p>
+                              <p className="mt-1 tabular-nums font-semibold text-violet-700">{v}%</p>
+                            </div>
+                          );
+                        }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  <div
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center pb-1"
+                    aria-hidden
+                  >
+                    <div className="text-center">
+                      <p className="bg-gradient-to-br from-blue-600 to-violet-600 bg-clip-text text-2xl font-bold tabular-nums text-transparent sm:text-3xl">
+                        {Math.round(readiness.pct)}%
+                      </p>
+                      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                        tayyorlik
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-600 sm:mt-4">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600" />
+                    Tayyor
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-slate-300" />
+                    Qolgan
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className={cn("p-4 sm:p-5 lg:col-span-12", cardShell)}>
-              <h3 className="text-sm font-bold text-slate-900">Haftalik progress</h3>
-              <p className="text-[11px] text-slate-600">So‘nggi haftalar — o‘rtacha test foizi.</p>
-              <div className="mt-3 box-border w-full min-w-0" style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height={220} minWidth={0} debounce={50}>
-                  <LineChart data={weekly} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 12, fontSize: 12 }}
-                      labelFormatter={(l) => `Hafta: ${l}`}
-                      formatter={(v: number) => [`${v}%`, "O‘rtacha"]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#10B981"
-                      strokeWidth={3}
-                      dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+            {/* Weekly Area */}
+            <div className={cn("p-0 lg:col-span-12", premiumChartCard)}>
+              <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-emerald-400/[0.07] blur-3xl" />
+              <div className="relative border-b border-slate-100/90 px-4 py-3.5 sm:px-6 sm:py-4">
+                <h3 className="text-sm font-bold text-slate-900 sm:text-base">Haftalik progress</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-600 sm:text-xs">
+                  So‘nggi haftalar — o‘rtacha test foizi (gradient ostida).
+                </p>
+              </div>
+              <div className="relative px-1 pb-4 pt-1 sm:px-3 sm:pb-5 sm:pt-2">
+                <div className="box-border w-full min-w-0" style={{ height: weeklyChartH }}>
+                  <ResponsiveContainer width="100%" height={weeklyChartH} minWidth={0} debounce={50}>
+                    <AreaChart
+                      data={weekly}
+                      margin={{
+                        left: chartNarrow ? -18 : -8,
+                        right: chartNarrow ? 4 : 8,
+                        top: 16,
+                        bottom: chartNarrow ? 4 : 8,
+                      }}
+                    >
+                      <defs>
+                        <linearGradient id={`weekly-fill-${chartUid}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
+                          <stop offset="55%" stopColor="#34d399" stopOpacity={0.12} />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id={`weekly-stroke-${chartUid}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#059669" />
+                          <stop offset="100%" stopColor="#10b981" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 6" vertical={false} stroke="#e2e8f0" strokeOpacity={0.9} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: axisTick, fill: "#64748b", fontWeight: 500 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickMargin={8}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        width={chartNarrow ? 26 : 32}
+                        tick={{ fontSize: axisTick - 1, fill: "#94a3b8" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${v}`}
+                      />
+                      <Tooltip
+                        content={({ active, label, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const v = payload[0]?.value;
+                          return (
+                            <div className="rounded-2xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs shadow-[0_12px_40px_-12px_rgba(15,23,42,0.2)] backdrop-blur-md">
+                              <p className="font-bold text-slate-900">Hafta: {label}</p>
+                              <p className="mt-1 tabular-nums font-semibold text-emerald-700">{v}% o‘rtacha</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={`url(#weekly-stroke-${chartUid})`}
+                        strokeWidth={2.75}
+                        fill={`url(#weekly-fill-${chartUid})`}
+                        activeDot={{
+                          r: chartNarrow ? 5 : 6,
+                          fill: "#059669",
+                          stroke: "#fff",
+                          strokeWidth: 2,
+                        }}
+                        dot={{
+                          r: chartNarrow ? 3 : 4,
+                          fill: "#10b981",
+                          strokeWidth: 0,
+                        }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
@@ -687,83 +969,111 @@ export function KabinetBentoContent({
           </div>
         </motion.section>
 
-        <motion.section {...fadeUp} id="testlar" className="scroll-mt-24 lg:col-span-12 lg:scroll-mt-6">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                <BookOpen className="h-7 w-7 text-[#2563EB]" />
-                Testlar
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">Nashr etilgan testlardan boshlang.</p>
-            </div>
-            <Link href="/testlar" className="text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8]">
-              Katalog →
-            </Link>
-          </div>
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {tests.length === 0 ? (
-              <li className={cn("col-span-full py-14 text-center text-sm text-slate-500", cardShell)}>
-                {"Hozircha testlar yo'q."}
-              </li>
-            ) : (
-              tests.map((t) => (
-                <li key={t.id}>
-                  <div className={cn("relative flex h-full flex-col p-5", cardShell)}>
-                    {t.completed ? (
-                      <span
-                        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-2 ring-emerald-200/80"
-                        title="Yechib bo'lingan"
-                      >
-                        <CheckCircle2 className="h-5 w-5" aria-hidden />
-                        <span className="sr-only">Tugallangan</span>
-                      </span>
-                    ) : null}
-                    <h3 className="font-semibold text-slate-900 pr-11">{t.title}</h3>
-                    {t.subject ? <p className="mt-1 text-xs font-semibold text-[#7C3AED]">{t.subject}</p> : null}
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
-                        <Clock className="h-3 w-3" />
-                        {t.durationMinutes} daq
-                      </span>
-                      <span className="rounded-full bg-[#2563EB]/10 px-2 py-0.5 font-semibold text-[#1d4ed8]">
-                        {t.questionsCount} savol
-                      </span>
-                      {t.priceSum > 0 ? (
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-900">
-                          <Banknote className="h-3 w-3" aria-hidden />
-                          {formatPriceSum(t.priceSum)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
-                      {t.questionsCount > 0 ? (
-                        t.completed ? (
-                          <Link
-                            href={`/testlar/${t.id}/boshlash`}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-950 shadow-sm hover:bg-sky-100"
-                          >
-                            Qayta yechish
-                          </Link>
-                        ) : (
-                          <Link
-                            href={`/testlar/${t.id}/boshlash`}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:brightness-105"
-                          >
-                            Boshlash <ArrowRight className="h-3.5 w-3.5" />
-                          </Link>
-                        )
-                      ) : (
-                        <span className="text-xs font-bold text-slate-400">{"Savollar yo'q"}</span>
-                      )}
-                      <Link href={`/testlar/${t.id}`} className="text-xs font-semibold text-[#2563EB]">
-                        Batafsil
-                      </Link>
-                    </div>
+        <motion.section
+          {...fadeUp}
+          id="testlar"
+          className="min-w-0 scroll-mt-24 lg:col-span-12 lg:scroll-mt-6"
+        >
+          <div className="relative min-w-0 overflow-hidden rounded-[1.75rem] border border-white/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/40 p-px shadow-[0_28px_90px_-32px_rgba(15,23,42,0.35)] ring-1 ring-slate-200/25">
+            <div className="relative min-w-0 overflow-x-clip overflow-y-visible rounded-[1.7rem] bg-gradient-to-b from-white/95 to-slate-50/40 px-3 py-5 backdrop-blur-xl sm:px-7 sm:py-8">
+              <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-gradient-to-br from-blue-500/[0.12] via-violet-500/[0.08] to-transparent blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-gradient-to-tr from-cyan-400/[0.1] to-transparent blur-3xl" />
+
+              <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-5">
+                <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-xl shadow-blue-500/30 ring-4 ring-white/80 sm:h-14 sm:w-14">
+                    <BookOpen className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2} aria-hidden />
                   </div>
-                </li>
-              ))
-            )}
-          </ul>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-blue-600">
+                      Premium katalog
+                    </p>
+                    <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                      Testlar katalogi
+                    </h2>
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                      To&apos;rt xil yo&apos;nalish — har biri alohida rangda.{" "}
+                      <span className="font-medium text-slate-700">Eng yangi testlar ro&apos;yxat boshida.</span>
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/testlar"
+                  className="group relative inline-flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/90 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-md shadow-slate-900/5 backdrop-blur-sm transition hover:border-blue-200/90 hover:text-blue-700 hover:shadow-lg hover:shadow-blue-500/10 sm:w-auto sm:justify-start"
+                >
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue-500/10 to-transparent transition duration-500 group-hover:translate-x-full" />
+                  <span className="relative">Barcha testlar</span>
+                  <ChevronRight className="relative h-4 w-4 opacity-60 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                </Link>
+              </div>
+
+              {tests.length === 0 ? (
+                <div className="relative mt-8 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/40 py-16 text-center shadow-inner">
+                  <p className="text-sm font-medium text-slate-500">{"Hozircha testlar yo'q."}</p>
+                </div>
+              ) : (
+                <div className="relative mt-8 grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6">
+                  {TEST_CATALOG_ORDER.map((cat) => {
+                    const meta = CATALOG_SECTION_META[cat];
+                    const accent = CATALOG_PANEL_PREMIUM[cat];
+                    const list = testsByCategory[cat] ?? [];
+                    return (
+                      <div
+                        key={cat}
+                        className="group/panel relative flex min-h-[220px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 shadow-sm ring-1 ring-slate-100 transition duration-200 hover:border-slate-200 hover:shadow-md"
+                      >
+                        <div
+                          className={cn(
+                            "relative overflow-x-clip overflow-y-visible border-b border-white/50 px-3 py-4 sm:px-5",
+                            accent.header,
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "pointer-events-none absolute -right-8 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full blur-2xl",
+                              accent.orb,
+                            )}
+                          />
+                          <h3 className="relative text-[15px] font-bold tracking-tight text-slate-900 sm:text-base">
+                            {meta.heading}
+                          </h3>
+                          <p className="relative mt-1.5 text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
+                            {meta.subtitle}
+                          </p>
+                        </div>
+                        <div className="relative flex min-w-0 flex-1 flex-col bg-white/60 p-3 sm:p-5">
+                          {list.length === 0 ? (
+                            <p className="flex flex-1 items-center py-6 text-center text-xs font-medium text-slate-400">
+                              Bu bo&apos;limda hozircha test yo&apos;q.
+                            </p>
+                          ) : (
+                            <>
+                              <ul className="min-w-0 space-y-3">
+                                {list.map((t) => (
+                                  <KabinetCatalogTestRow key={t.id} test={t} category={cat} />
+                                ))}
+                              </ul>
+                              {(catalogTotals[cat] ?? 0) > CATALOG_MENU_MAX ? (
+                                <Link
+                                  href="/testlar"
+                                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 py-2.5 text-[11px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-200/80 hover:bg-white hover:text-blue-700"
+                                >
+                                  <span>
+                                    Yana {(catalogTotals[cat] ?? 0) - CATALOG_MENU_MAX} ta — barchasi
+                                  </span>
+                                  <ArrowRight className="h-3.5 w-3.5 opacity-70" />
+                                </Link>
+                              ) : null}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </motion.section>
 
         <motion.section {...fadeUp} id="liderlar" className="scroll-mt-24 lg:col-span-12 lg:scroll-mt-6">
@@ -838,6 +1148,10 @@ export function KabinetBentoContent({
           </Tabs>
         </motion.section>
 
+        <motion.div {...fadeUp} className="min-w-0 lg:col-span-12">
+          <KabinetRoadmap />
+        </motion.div>
+
         <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-24 p-6 lg:col-span-12 lg:scroll-mt-6", cardShell)}>
           <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Profil</h2>
           <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
@@ -862,6 +1176,27 @@ export function KabinetBentoContent({
             <div>
               <dt className="text-xs font-medium text-slate-500">Ota-ona</dt>
               <dd className="mt-0.5 font-mono text-xs text-slate-800">{formatPhoneDisplay(student.parentPhone)}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-medium text-slate-500">Telegram bildirishnomalari</dt>
+              <dd className="mt-2 space-y-2">
+                {student.telegramLinked ? (
+                  <p className="text-sm font-medium text-emerald-800">
+                    ✓ Ulangan
+                    {student.telegramUsername ? (
+                      <span className="ml-1 font-mono text-emerald-900">@{student.telegramUsername}</span>
+                    ) : null}
+                    . Test natijalari va yangiliklar shu yerga ham keladi.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-slate-600">
+                      Hozircha bot bilan bog‘lanmagansiz — shu sababli test tugagach Telegramga xabar ketmaydi.
+                    </p>
+                    <TelegramDeepLink variant="compact" />
+                  </>
+                )}
+              </dd>
             </div>
           </dl>
         </motion.section>

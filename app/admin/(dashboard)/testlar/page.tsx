@@ -3,6 +3,7 @@ import { Plus, Pencil, Banknote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { deleteTest } from "./actions";
 import { formatPriceSum } from "@/lib/format-uzs";
+import { CATALOG_LABEL_ADMIN } from "@/lib/test-catalog";
 
 export default async function AdminTestsListPage() {
   const items = await prisma.test.findMany({
@@ -31,10 +32,11 @@ export default async function AdminTestsListPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/90 text-xs font-bold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Nomi</th>
+              <th className="px-4 py-3">Katalog</th>
               <th className="px-4 py-3">Fan</th>
               <th className="px-4 py-3">Narx</th>
               <th className="px-4 py-3">Vaqt</th>
@@ -46,7 +48,7 @@ export default async function AdminTestsListPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
                   Hozircha test yo&apos;q. Birinchi testni qo&apos;shing.
                 </td>
               </tr>
@@ -57,6 +59,7 @@ export default async function AdminTestsListPage() {
                   className="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/70"
                 >
                   <td className="px-4 py-3 font-medium text-slate-900">{t.title}</td>
+                  <td className="px-4 py-3 text-slate-700">{CATALOG_LABEL_ADMIN[t.catalogCategory]}</td>
                   <td className="px-4 py-3 text-slate-600">{t.subject || "—"}</td>
                   <td className="px-4 py-3">
                     {t.priceSum > 0 ? (

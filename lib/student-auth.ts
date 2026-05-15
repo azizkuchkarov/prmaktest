@@ -42,7 +42,8 @@ export async function getCurrentStudent(): Promise<CurrentStudent | null> {
       createdAt: true,
       balanceSum: true,
       gradeLevel: true,
-    } as any,
+    },
   });
-  return row as CurrentStudent | null;
+  if (!row) return null;
+  return row;
 }

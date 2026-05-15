@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { RADAR_AXIS_LABELS, TEST_CATALOG_ORDER, normalizeTestCatalogCategory } from "@/lib/test-catalog";
 
 export type WeekProgressPoint = {
   label: string;
@@ -17,8 +18,6 @@ export type ReadinessStats = {
   testsAttempted: number;
   avgScorePct: number;
 };
-
-const DEFAULT_SUBJECTS = ["Matematika", "Mantiq", "Ingliz tili", "Fanlar", "Umumiy"];
 
 function startOfWeekUtc(d: Date): Date {
   const x = new Date(d);
@@ -75,42 +74,37 @@ export async function getStudentWeeklyProgress(userId: string): Promise<WeekProg
   });
 }
 
-/** Fanlar bo‘yicha o‘rtacha foiz — radar uchun */
+/** Katalog bo‘limlari bo‘yicha o‘rtacha foiz — radar (har doim 4 o‘q: Mock, Matematika, Mantiqiy, Ingliz) */
 export async function getStudentSubjectRadar(userId: string): Promise<RadarSubjectPoint[]> {
   const attempts = await prisma.testAttempt.findMany({
     where: { userId, total: { gt: 0 } },
     select: {
       score: true,
       total: true,
-      test: { select: { subject: true } },
+      test: { select: { catalogCategory: true } },
     },
   });
 
-  const map = new Map<string, number[]>();
+  const byCat = new Map<string, number[]>();
+  for (const cat of TEST_CATALOG_ORDER) {
+    byCat.set(cat, []);
+  }
+
   for (const a of attempts) {
-    const raw = a.test.subject?.trim();
-    const subj = raw && raw.length > 0 ? raw : "Umumiy";
+    const cat = normalizeTestCatalogCategory(String(a.test.catalogCategory));
     const pct = (a.score / a.total) * 100;
-    const arr = map.get(subj) ?? [];
+    const arr = byCat.get(cat)!;
     arr.push(pct);
-    map.set(subj, arr);
   }
 
-  const out: RadarSubjectPoint[] = [...map.entries()].map(([subject, arr]) => ({
-    subject: subject.length > 12 ? subject.slice(0, 11) + "…" : subject,
-    fullMark: Math.round(arr.reduce((s, x) => s + x, 0) / arr.length),
-  }));
-
-  if (out.length === 0) {
-    return DEFAULT_SUBJECTS.map((subject) => ({ subject, fullMark: 0 }));
-  }
-
-  for (const pad of DEFAULT_SUBJECTS) {
-    if (out.length >= 6) break;
-    if (!out.some((o) => o.subject === pad)) out.push({ subject: pad, fullMark: 0 });
-  }
-
-  return out.slice(0, 6);
+  return TEST_CATALOG_ORDER.map((cat) => {
+    const arr = byCat.get(cat)!;
+    const fullMark = arr.length === 0 ? 0 : Math.round(arr.reduce((s, x) => s + x, 0) / arr.length);
+    return {
+      subject: RADAR_AXIS_LABELS[cat],
+      fullMark,
+    };
+  });
 }
 
 export async function getStudentReadiness(userId: string): Promise<ReadinessStats> {

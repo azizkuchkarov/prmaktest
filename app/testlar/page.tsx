@@ -2,6 +2,11 @@ import Link from "next/link";
 import { Clock, FileText, Banknote } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPriceSum } from "@/lib/format-uzs";
+import {
+  CATALOG_SECTION_META,
+  TEST_CATALOG_ORDER,
+  normalizeTestCatalogCategory,
+} from "@/lib/test-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +21,17 @@ export default async function TestsPublicPage() {
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { questions: true } } },
   });
+
+  const buckets: Record<string, typeof items> = {
+    MOCK: [],
+    MATHEMATICS: [],
+    CRITICAL_LOGIC: [],
+    ENGLISH: [],
+  };
+  for (const t of items) {
+    const c = normalizeTestCatalogCategory(t.catalogCategory);
+    buckets[c].push(t);
+  }
 
   return (
     <div className="min-h-[100dvh] w-full min-w-0 overflow-x-hidden bg-gradient-to-b from-sky-50/80 via-white to-teal-50/20">
@@ -51,46 +67,66 @@ export default async function TestsPublicPage() {
           </Link>{" "}
           orqali ham kuzatadi.
         </p>
-        <ul className="mt-10 grid gap-5 sm:grid-cols-2">
-          {items.length === 0 ? (
-            <li className="col-span-full rounded-2xl border border-slate-100 bg-white p-8 text-center text-slate-500 shadow-sm">
-              Hozircha nashr etilgan testlar yo&apos;q.
-            </li>
-          ) : (
-            items.map((t) => (
-              <li key={t.id}>
-                <Link
-                  href={`/testlar/${t.id}`}
-                  className="block h-full rounded-2xl border border-slate-100 bg-white p-5 shadow-md shadow-slate-200/40 transition hover:border-blue-200 hover:shadow-lg"
-                >
-                  <h2 className="text-lg font-semibold text-slate-900">{t.title}</h2>
-                  {t.subject ? (
-                    <p className="mt-1 text-sm font-medium text-teal-700">{t.subject}</p>
-                  ) : null}
-                  {t.description ? (
-                    <p className="mt-3 line-clamp-3 text-sm text-slate-600">{t.description}</p>
-                  ) : null}
-                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 font-medium text-slate-700">
-                      <Clock className="h-3.5 w-3.5" aria-hidden />
-                      {t.durationMinutes} daqiqa
-                    </span>
-                    <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-800">
-                      {t._count.questions} savol
-                    </span>
-                    {t.priceSum > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-900">
-                        <Banknote className="h-3.5 w-3.5" aria-hidden />
-                        {formatPriceSum(t.priceSum)}
-                      </span>
-                    ) : null}
+        {items.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-slate-100 bg-white p-8 text-center text-slate-500 shadow-sm">
+            Hozircha nashr etilgan testlar yo&apos;q.
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-10 sm:gap-12">
+            {TEST_CATALOG_ORDER.map((cat) => {
+              const meta = CATALOG_SECTION_META[cat];
+              const list = buckets[cat] ?? [];
+              return (
+                <section key={cat} aria-labelledby={`cat-${cat}`} className="min-w-0">
+                  <div className="border-b border-slate-200/80 pb-3">
+                    <h2 id={`cat-${cat}`} className="text-lg font-bold text-slate-900 sm:text-xl">
+                      {meta.heading}
+                    </h2>
+                    <p className="mt-1 max-w-3xl text-sm text-slate-600">{meta.subtitle}</p>
                   </div>
-                  <p className="mt-4 text-xs font-semibold text-blue-600">Batafsil →</p>
-                </Link>
-              </li>
-            ))
-          )}
-        </ul>
+                  {list.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-500">Bu bo&apos;limda hozircha test yo&apos;q.</p>
+                  ) : (
+                    <ul className="mt-5 grid gap-5 sm:grid-cols-2">
+                      {list.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            href={`/testlar/${t.id}`}
+                            className="block h-full rounded-2xl border border-slate-100 bg-white p-5 shadow-md shadow-slate-200/40 transition hover:border-blue-200 hover:shadow-lg"
+                          >
+                            <h3 className="text-lg font-semibold text-slate-900">{t.title}</h3>
+                            {t.subject ? (
+                              <p className="mt-1 text-sm font-medium text-teal-700">{t.subject}</p>
+                            ) : null}
+                            {t.description ? (
+                              <p className="mt-3 line-clamp-3 text-sm text-slate-600">{t.description}</p>
+                            ) : null}
+                            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 font-medium text-slate-700">
+                                <Clock className="h-3.5 w-3.5" aria-hidden />
+                                {t.durationMinutes} daqiqa
+                              </span>
+                              <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-800">
+                                {t._count.questions} savol
+                              </span>
+                              {t.priceSum > 0 ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-900">
+                                  <Banknote className="h-3.5 w-3.5" aria-hidden />
+                                  {formatPriceSum(t.priceSum)}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-4 text-xs font-semibold text-blue-600">Batafsil →</p>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Question, Test } from "@prisma/client";
+import type { Question, Test, TestCatalogCategory } from "@prisma/client";
 import {
   DEFAULT_NEW_QUESTION_ROWS,
   MAX_QUESTIONS,
-  MIN_QUESTIONS_FOR_PUBLISH,
   type QuestionDraft,
 } from "@/lib/test-builder-rules";
 import { createTestFull, updateTestFull, type TestSavePayload } from "@/app/admin/(dashboard)/testlar/actions";
-import { parseCompactBulkTest } from "@/lib/bulk-test-parser";
-import { Plus, Trash2, Wand2, FileDown } from "lucide-react";
+import { normalizeBulkPastedText, parseCompactBulkTest } from "@/lib/bulk-test-parser";
+import { CATALOG_LABEL_ADMIN, TEST_CATALOG_ORDER } from "@/lib/test-catalog";
+import { Plus, Trash2, Wand2, FileDown, ImagePlus, Loader2 } from "lucide-react";
 
 const BULK_EXAMPLE = `1. 5+ 6 nechchi bo'ladi?
 A. 11
@@ -32,6 +32,7 @@ function emptyRow(order: number): QuestionDraft {
   return {
     order,
     text: "",
+    imageUrl: "",
     optionA: "",
     optionB: "",
     optionC: "",
@@ -48,6 +49,7 @@ function fromPrisma(q: Question): QuestionDraft {
   return {
     order: q.order,
     text: q.text,
+    imageUrl: q.imageUrl ?? "",
     optionA: q.optionA,
     optionB: q.optionB,
     optionC: q.optionC,
@@ -90,15 +92,45 @@ export function TestBuilderForm(props: Props) {
   const [isPublished, setIsPublished] = useState(
     props.mode === "edit" ? props.test.isPublished : false,
   );
+  const [catalogCategory, setCatalogCategory] = useState<TestCatalogCategory>(
+    props.mode === "edit" ? props.test.catalogCategory : "MATHEMATICS",
+  );
   const [stage] = useState(props.mode === "edit" ? props.test.stage : "saralash");
   const [err, setErr] = useState<string | null>(null);
   const [bulkText, setBulkText] = useState("");
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [imageUploadIndex, setImageUploadIndex] = useState<number | null>(null);
+  const [imageErr, setImageErr] = useState<string | null>(null);
+
+  async function uploadQuestionImage(file: File, rowIndex: number) {
+    setImageErr(null);
+    setImageUploadIndex(rowIndex);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/question-images", {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok) {
+        setImageErr(data.error ?? "Yuklash muvaffaqiyatsiz.");
+        return;
+      }
+      if (data.url) updateRow(rowIndex, { imageUrl: data.url });
+    } catch {
+      setImageErr("Tarmoq xatosi. Qayta urinib ko‘ring.");
+    } finally {
+      setImageUploadIndex(null);
+    }
+  }
 
   function applySaralashTemplate() {
     setTitle("1-bosqich (saralash) — Matematika");
     setSubject("Matematika");
+    setCatalogCategory("MATHEMATICS");
     setDescription(
       "Matematika bo'yicha saralash testi. Taxminan 30 ta test savoli, ~90 daqiqa vaqt.",
     );
@@ -134,7 +166,8 @@ export function TestBuilderForm(props: Props) {
   function applyBulkFromText() {
     setErr(null);
     setBulkMsg(null);
-    const { questions, errors } = parseCompactBulkTest(bulkText);
+    const normalized = normalizeBulkPastedText(bulkText);
+    const { questions, errors } = parseCompactBulkTest(normalized);
     if (errors.length > 0) {
       setErr(errors.join("\n"));
       return;
@@ -148,6 +181,7 @@ export function TestBuilderForm(props: Props) {
       next = [...next, emptyRow(next.length + 1)];
     }
     setRows(next);
+    setBulkText(normalized.trim());
     setBulkMsg(`${questions.length} ta savol jadvalga yuklandi. Quyida tekshirib, saqlang.`);
   }
 
@@ -160,6 +194,7 @@ export function TestBuilderForm(props: Props) {
       description,
       durationMinutes,
       priceSum,
+      catalogCategory,
       isPublished,
       stage,
       questions: rows.map((r, i) => ({ ...r, order: i + 1 })),
@@ -215,6 +250,24 @@ export function TestBuilderForm(props: Props) {
             />
           </div>
           <div>
+            <label className={label}>Katalog bo&apos;limi</label>
+            <select
+              className={field}
+              value={catalogCategory}
+              onChange={(e) => setCatalogCategory(e.target.value as TestCatalogCategory)}
+              aria-label="Test katalog boʻlimi"
+            >
+              {TEST_CATALOG_ORDER.map((c) => (
+                <option key={c} value={c}>
+                  {CATALOG_LABEL_ADMIN[c]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              O&apos;quvchi kabinetida tanlangan bo&apos;lim ostida ko&apos;rinadi.
+            </p>
+          </div>
+          <div>
             <label className={label}>Vaqt (daqiqa)</label>
             <input
               className={field}
@@ -258,7 +311,7 @@ export function TestBuilderForm(props: Props) {
             onChange={(e) => setIsPublished(e.target.checked)}
             className="h-4 w-4 rounded border-slate-300 text-blue-600"
           />
-          Nashr etish (kamida {MIN_QUESTIONS_FOR_PUBLISH} ta to&apos;liq savol talab qilinadi)
+          Nashr etish (katalogda o&apos;quvchilar ko&apos;radi)
         </label>
       </div>
 
@@ -266,12 +319,19 @@ export function TestBuilderForm(props: Props) {
         <p className="font-semibold">1-bosqich (saralash) — talablar</p>
         <ul className="mt-2 list-inside list-disc space-y-1 text-xs leading-relaxed">
           <li>Har bir savolda A, B, C, D va to&apos;g&apos;ri javob tanlovi</li>
+          <li>
+            Word dan ko&apos;p qatorli savol (kasr, amallar) va variantlarni{" "}
+            <strong>&quot;Matndan yuklash&quot;</strong> orqali qabul qilamiz —{" "}
+            <code className="rounded bg-white/60 px-1">1.</code> yoki{" "}
+            <code className="rounded bg-white/60 px-1">1)</code>,{" "}
+            <code className="rounded bg-white/60 px-1">A.</code> /{" "}
+            <code className="rounded bg-white/60 px-1">A)</code>
+          </li>
           <li>Har bir savol uchun tushuntirish (Wordda: Tushuntirish: yoki # bilan)</li>
           <li>
-            <strong>30 ta savol</strong> ni Word dan nusxa olib, quyidagi &quot;Matndan yuklash&quot;
-            maydoniga joylang
+            <strong>30 ta savol</strong> ni Word dan nusxa olib, quyidagi maydonga joylang; kerak bo&apos;lsa
+            avval <strong>Matnni tozalash (Word)</strong>
           </li>
-          <li>Nashr uchun kamida {MIN_QUESTIONS_FOR_PUBLISH} ta to&apos;liq savol</li>
           <li>Maksimal {MAX_QUESTIONS} ta savol</li>
         </ul>
       </div>
@@ -288,19 +348,34 @@ export function TestBuilderForm(props: Props) {
         </summary>
         <div className="mt-4 space-y-3 border-t border-indigo-200/50 pt-4 text-xs leading-relaxed">
           <p>
-            Har bir savol <strong>1.</strong> <strong>2.</strong> kabi raqam bilan boshlanadi. Keyin
-            savol matni (bir nechta qator bo&apos;lishi mumkin). Variantlar alohida qatorlarda:{" "}
-            <code className="rounded bg-white px-1 font-mono shadow-sm">A. 11</code> …{" "}
-            <code className="rounded bg-white px-1 font-mono shadow-sm">D. 14</code>. Keyin to&apos;g&apos;ri
-            javob alohida qatorda: <code className="rounded bg-white px-1 font-mono shadow-sm">@A</code>{" "}
-            yoki <code className="rounded bg-white px-1 font-mono shadow-sm">*B</code>. Oxirida
-            tushuntirish:{" "}
-            <code className="rounded bg-white px-1 font-mono shadow-sm">Tushuntirish: ...</code> yoki
-            eski usul <code className="rounded bg-white px-1 font-mono shadow-sm"># ...</code>.
+            Har bir savol <strong>1.</strong> yoki Word ro&apos;yxatidan <strong>1)</strong> bilan
+            boshlanishi mumkin. Savol matni bir nechta qatorda bo&apos;lishi mumkin (kasr, formula
+            qatori). Variantlar: <code className="rounded bg-white px-1 font-mono shadow-sm">A. 11</code>,{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm">A) 11</code> yoki tab bilan. Keyin
+            to&apos;g&apos;ri javob: <code className="rounded bg-white px-1 font-mono shadow-sm">@A</code>{" "}
+            yoki <code className="rounded bg-white px-1 font-mono shadow-sm">*B</code>. Oxirida{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm">Tushuntirish: …</code> yoki{" "}
+            <code className="rounded bg-white px-1 font-mono shadow-sm"># …</code>.
           </p>
+          <ul className="list-inside list-disc space-y-1 text-indigo-950/90">
+            <li>
+              <strong>Matematika:</strong> kasr va amallar uchun{" "}
+              <code className="rounded bg-white/90 px-1 font-mono">1/2</code>, Unicode{" "}
+              <code className="rounded bg-white/90 px-1 font-mono">½ × ÷ ≤ ≥</code> ishlatishingiz mumkin
+              (Word dan nusxa ko&apos;chirganda saqlanadi).
+            </li>
+            <li>
+              <strong>Geometriya:</strong> Word dagi chizma matn sifatida ko&apos;rinmasa, shaklni
+              matn yoki Unicode belgilar bilan yozing yoki savolni bir nechta qatorga bo&apos;ling.
+            </li>
+            <li>
+              <strong>Maxsus tire/tirnoq</strong> (Word auto-format) yuklashdan oldin &quot;Matnni
+              tozalash&quot; tugmasini bosing.
+            </li>
+          </ul>
           <p className="font-medium text-indigo-900">
-            Word dan hammasini tanlab nusxa oling — maxsus belgilar va bo&apos;sh qatorlar avtomatik
-            tozalanadi.
+            Word dan to&apos;liq tanlab nusxa oling — bo&apos;shliqlar, tire va raqamlar parser tomonidan
+            yengillashtiriladi.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -309,6 +384,13 @@ export function TestBuilderForm(props: Props) {
               className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-900 hover:bg-indigo-50"
             >
               Namuna matn
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkText((prev) => normalizeBulkPastedText(prev))}
+              className="rounded-lg border border-indigo-300 bg-indigo-100/50 px-3 py-1.5 text-xs font-semibold text-indigo-950 hover:bg-indigo-100"
+            >
+              Matnni tozalash (Word)
             </button>
             <button
               type="button"
@@ -378,43 +460,92 @@ Tushuntirish: …
               <div className="mb-3">
                 <label className={label}>Savol matni</label>
                 <textarea
-                  className={`${field} min-h-[72px] resize-y`}
+                  className={`${field} min-h-[72px] resize-y whitespace-pre-wrap font-sans`}
                   value={row.text}
                   onChange={(e) => updateRow(i, { text: e.target.value })}
-                  rows={2}
+                  rows={3}
+                  spellCheck={false}
                 />
+              </div>
+              <div className="mb-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-3">
+                <label className={label}>Savol rasmi (ixtiyoriy)</label>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  JPEG, PNG, WebP yoki GIF, 2.5 MB gacha — geometriya, grafika, screenshot.
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+                    {imageUploadIndex === i ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />
+                    ) : (
+                      <ImagePlus className="h-4 w-4 text-blue-600" aria-hidden />
+                    )}
+                    Rasm yuklash
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="sr-only"
+                      disabled={imageUploadIndex !== null}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (f) void uploadQuestionImage(f, i);
+                      }}
+                    />
+                  </label>
+                  {row.imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => updateRow(i, { imageUrl: "" })}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100"
+                    >
+                      Rasmni olib tashlash
+                    </button>
+                  ) : null}
+                </div>
+                {row.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- dynamic admin uploads path
+                  <img
+                    src={row.imageUrl}
+                    alt=""
+                    className="mt-3 max-h-64 w-full rounded-lg border border-slate-200 bg-white object-contain shadow-sm"
+                  />
+                ) : null}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className={label}>A variant</label>
                   <input
-                    className={field}
+                    className={`${field} whitespace-pre-wrap font-sans`}
                     value={row.optionA}
                     onChange={(e) => updateRow(i, { optionA: e.target.value })}
+                    spellCheck={false}
                   />
                 </div>
                 <div>
                   <label className={label}>B variant</label>
                   <input
-                    className={field}
+                    className={`${field} font-sans`}
                     value={row.optionB}
                     onChange={(e) => updateRow(i, { optionB: e.target.value })}
+                    spellCheck={false}
                   />
                 </div>
                 <div>
                   <label className={label}>C variant</label>
                   <input
-                    className={field}
+                    className={`${field} font-sans`}
                     value={row.optionC}
                     onChange={(e) => updateRow(i, { optionC: e.target.value })}
+                    spellCheck={false}
                   />
                 </div>
                 <div>
                   <label className={label}>D variant</label>
                   <input
-                    className={field}
+                    className={`${field} font-sans`}
                     value={row.optionD}
                     onChange={(e) => updateRow(i, { optionD: e.target.value })}
+                    spellCheck={false}
                   />
                 </div>
               </div>
@@ -440,10 +571,11 @@ Tushuntirish: …
               <div className="mt-3">
                 <label className={label}>To&apos;g&apos;ri yechim / tushuntirish</label>
                 <textarea
-                  className={`${field} min-h-[88px] resize-y`}
+                  className={`${field} min-h-[88px] resize-y whitespace-pre-wrap font-sans`}
                   value={row.solution}
                   onChange={(e) => updateRow(i, { solution: e.target.value })}
                   rows={3}
+                  spellCheck={false}
                 />
               </div>
             </div>
@@ -454,6 +586,11 @@ Tushuntirish: …
       {err ? (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
           {err}
+        </p>
+      ) : null}
+      {imageErr ? (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+          {imageErr}
         </p>
       ) : null}
 

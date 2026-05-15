@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeRankPoints } from "@/lib/rank-points";
 import { getStudentSessionUserId } from "@/lib/student-auth";
+import { notifyOfficialTestCompletionTelegram } from "@/lib/telegram-broadcast";
 import { formatUzInteger } from "@/lib/format-uzs";
 
 const CHOICES: TestChoice[] = ["A", "B", "C", "D"];
@@ -15,6 +16,7 @@ const SUBMIT_GRACE_MS = 120_000;
 export type WrongDetail = {
   order: number;
   text: string;
+  imageUrl?: string | null;
   correct: TestChoice;
   chosen: TestChoice | null;
   solution: string;
@@ -183,11 +185,7 @@ export async function prepareTestSession(testId: string): Promise<PrepareTestSes
       { maxWait: 10_000, timeout: 20_000 },
     );
 
-    try {
-      revalidatePath("/kabinet");
-    } catch (rev) {
-      console.warn("[prepareTestSession] revalidatePath", rev);
-    }
+    /** RSC render ichida `revalidatePath` taqiq; /kabinet `force-dynamic`. */
     return { ok: true, ...result };
   } catch (e: unknown) {
     if (e && typeof e === "object" && "balanceSum" in e && "priceSum" in e) {
@@ -274,6 +272,7 @@ export async function submitTestAttempt(
   const test = await prisma.test.findFirst({
     where: { id: testId, isPublished: true },
     select: {
+      title: true,
       durationMinutes: true,
       questions: {
         orderBy: { order: "asc" },
@@ -281,6 +280,7 @@ export async function submitTestAttempt(
           id: true,
           order: true,
           text: true,
+          imageUrl: true,
           correctAnswer: true,
           solution: true,
         },
@@ -344,6 +344,7 @@ export async function submitTestAttempt(
           wrong.push({
             order: q.order,
             text: q.text,
+            imageUrl: q.imageUrl,
             correct: q.correctAnswer,
             chosen,
             solution: q.solution,
@@ -380,6 +381,22 @@ export async function submitTestAttempt(
 
     revalidatePath("/kabinet");
     revalidatePath(`/testlar/${testId}`);
+
+    if (outcome.isRetake === false) {
+      try {
+        await notifyOfficialTestCompletionTelegram({
+          userId,
+          testId,
+          testTitle: test.title,
+          score: outcome.score,
+          total: outcome.total,
+          secondsUsed: outcome.secondsUsed,
+          rankPoints: outcome.rankPoints,
+        });
+      } catch (e) {
+        console.error("[telegram-test-complete] Ichki xato:", e);
+      }
+    }
 
     return {
       ok: true,

@@ -36,6 +36,7 @@ export default async function TestStartPage({ params }: Props) {
           id: true,
           order: true,
           text: true,
+          imageUrl: true,
           optionA: true,
           optionB: true,
           optionC: true,
@@ -81,7 +82,7 @@ export default async function TestStartPage({ params }: Props) {
               .
             </p>
             <p className="mt-3 text-xs text-slate-500">
-              Tez orada Click orqali balansni to&apos;ldirish mumkin bo&apos;ladi.
+              Kabinetda «Balans to‘ldirish (CLICK)» bo‘limidan hisobingizni to‘ldirishingiz mumkin.
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
               <Link

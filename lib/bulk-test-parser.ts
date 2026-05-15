@@ -3,32 +3,37 @@ import type { QuestionDraft } from "@/lib/test-builder-rules";
 /**
  * Word / editor dan kiritilgan matn:
  *
- * 1. Savol matni (bir yoki bir nechta qator)
+ * 1. yoki 1) Savol matni (bir yoki bir nechta qator)
  * A. 11
- * B. 12
- * C. 13
- * D. 14
- * @A
- * Tushuntirish: ...
+ * …
  *
- * - Savol `1.` `2.` bilan boshlanadi
- * - Variantlar: bitta qatorda yoki alohida `A.` / `A)` qatorlar
+ * - Savol `1.` `2.` yoki `1)` `2)` bilan boshlanishi mumkin (Word ro‘yxati)
+ * - Variantlar: `A.` / `A)` / tab bilan
  * - To'g'ri javob: `@A` yoki `*B`
- * - Tushuntirish: `#` bilan yoki `Tushuntirish:` prefiksi bilan
+ * - Tushuntirish: `#` yoki `Tushuntirish:`
  */
 
 const CORRECT_LINE = /^\s*[*@]\s*([ABCD])\s*$/i;
-const QUESTION_HEAD = /^\s*(\d+)\.\s*(.*)$/;
+/** Word: 1. 1) 1: (to'liq belgi va raqamlar) */
+const QUESTION_HEAD = /^\s*(\d+)\s*[.):：]\s*(.*)$/;
 const TUSHUNTIRISH_HEAD = /^tushuntirish\s*:\s*(.*)$/i;
 
-/** Word dan: NBSP, BOM */
+/** Word / Google Docs: maxsus bo'shliq, tire, tirnoq, to'liq kenglik belgilari */
 export function normalizeBulkPastedText(raw: string): string {
-  return raw
-    .replace(/^\uFEFF/, "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\u00a0/g, " ")
-    .replace(/\u2028|\u2029/g, "\n");
+  let s = raw.replace(/^\uFEFF/, "");
+  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  s = s.replace(/\u2028|\u2029/g, "\n");
+  s = s.replace(/[\u200B-\u200D\uFEFF]/g, "");
+  s = s.replace(/[\u00A0\u202F\u2007\u3000]/g, " ");
+  s = s.replace(/[\uFF10-\uFF19]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xff10 + 0x30));
+  s = s.replace(/\uFF0E/g, ".").replace(/\uFF09/g, ")").replace(/\uFF08/g, "(");
+  s = s.replace(/[\u2212\u2013\u2014\u2015]/g, "-");
+  s = s.replace(/[\u2018\u2019\u201B\u0060\u00B4]/g, "'");
+  s = s.replace(/[\u201C\u201D\u2033\u00AB\u00BB]/g, '"');
+  s = s.replace(/\u2026/g, "...");
+  s = s.replace(/[\u00AD\u034F]/g, "");
+  s = s.replace(/[^\S\n]+/g, " ");
+  return s.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function skipBlankLines(lines: string[], start: number): number {
@@ -39,7 +44,7 @@ function skipBlankLines(lines: string[], start: number): number {
 
 function parseInlineOptions(line: string): Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null {
   const s = line.trim();
-  const re = /([ABCD])[\.\):]?\s*([\s\S]+?)(?=\s+[ABCD][\.\):]?\s+|$)/gi;
+  const re = /([ABCD])[\.\):\-–]?\s*([\s\S]+?)(?=\s+[ABCD][\.\):\-–]?\s+|$)/gi;
   const out: Partial<Record<"A" | "B" | "C" | "D", string>> = {};
   let m: RegExpExecArray | null;
   while ((m = re.exec(s)) !== null) {
@@ -52,7 +57,7 @@ function parseInlineOptions(line: string): Pick<QuestionDraft, "optionA" | "opti
 }
 
 function parseStackOptions(lines: string[]): Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null {
-  const row = /^([ABCD])(?:[\.\):]\s*|\s+)(.+)$/i;
+  const row = /^([ABCD])(?:[\.\):\-–]\s*|\s+|\t+)(.+)$/i;
   const map: Partial<Record<"A" | "B" | "C" | "D", string>> = {};
   for (const ln of lines) {
     const m = ln.trim().match(row);
@@ -64,8 +69,8 @@ function parseStackOptions(lines: string[]): Pick<QuestionDraft, "optionA" | "op
   return { optionA: map.A, optionB: map.B, optionC: map.C, optionD: map.D };
 }
 
-/** Alohida qatorda A. B. C. D. — Word ba'zan oraliqda bo'sh qator qoldiradi */
-const STACK_OPTION_LINE = /^[ABCD](?:[\.\):]\s*|\s+).+/i;
+/** Alohida qatorda A. B. C. D. — Word ba'zan tab yoki tire ishlatadi */
+const STACK_OPTION_LINE = /^[ABCD](?:[\.\):\-–]\s*|\s+|\t+).+/i;
 
 function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraft; error?: string } {
   const block = rawBlock.trim();
@@ -75,7 +80,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
   const head = lines[0].match(QUESTION_HEAD);
   if (!head) {
     return {
-      error: `Blok ${blockIndex}: birinchi qator "raqam." bilan boshlanishi kerak (masalan: 1. Savol matni).`,
+      error: `Blok ${blockIndex}: birinchi qator savol raqami bilan boshlanishi kerak (masalan: 1. yoki 1) Matn).`,
     };
   }
 
@@ -91,7 +96,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
       continue;
     }
     if (CORRECT_LINE.test(ln) || ln.startsWith("#") || TUSHUNTIRISH_HEAD.test(ln)) break;
-    if (/\b[ABCD][\.\):]?\s+.+\b[ABCD][\.\):]?\s+/i.test(ln)) break;
+    if (/\b[ABCD][\.\):\-–]?\s+.+\b[ABCD][\.\):\-–]?\s+/i.test(ln)) break;
     if (STACK_OPTION_LINE.test(ln)) break;
     stemLines.push(ln);
     i += 1;
@@ -108,7 +113,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
   let options: Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null = null;
   const optLine = lines[i].trim();
 
-  if (/\b[ABCD][\.\):]?\s+.+\b[ABCD][\.\):]?\s+/i.test(optLine)) {
+  if (/\b[ABCD][\.\):\-–]?\s+.+\b[ABCD][\.\):\-–]?\s+/i.test(optLine)) {
     options = parseInlineOptions(optLine);
     i += 1;
   } else {
@@ -179,6 +184,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
     q: {
       order: blockIndex,
       text,
+      imageUrl: "",
       ...options,
       correctAnswer,
       solution,
@@ -192,7 +198,7 @@ export function parseCompactBulkTest(text: string): { questions: QuestionDraft[]
   if (!t) return { questions: [], errors: ["Matn bo'sh."] };
 
   const blocks = t
-    .split(/\n(?=\s*\d+\.\s+)/)
+    .split(/\n(?=\s*\d+\s*[.):：]\s*)/)
     .map((b) => b.trim())
     .filter(Boolean);
 

@@ -24,6 +24,14 @@ enum TestChoice {
   D
 }
 
+/// O'quvchi kabinetidagi katalog bo'limi (admin tanlaydi)
+enum TestCatalogCategory {
+  MOCK
+  MATHEMATICS
+  CRITICAL_LOGIC
+  ENGLISH
+}
+
 model Test {
   id               String         @id @default(cuid())
   title            String
@@ -33,6 +41,8 @@ model Test {
   /// Narxi (so'm), 0 = bepul / ko'rsatilmaydi
   priceSum         Int            @default(0)
   questionsCount   Int            @default(0)
+  /// Kabinet / katalogda qaysi blokda ko'rsatilish
+  catalogCategory  TestCatalogCategory @default(MATHEMATICS)
   isPublished      Boolean        @default(false)
   /// Masalan: saralash — 1-bosqich
   stage            String         @default("saralash")
@@ -49,6 +59,8 @@ model Question {
   test          Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
   order         Int
   text          String
+  /// Savolga biriktirilgan rasm (masalan `/uploads/questions/....jpg`), ixtiyoriy
+  imageUrl      String?
   optionA       String
   optionB       String
   optionC       String
@@ -86,10 +98,34 @@ model User {
   updatedAt           DateTime       @updatedAt
   testAttempts        TestAttempt[]
   testProgresses      TestProgress[]
-  /// Balans (so'm). Yangi foydalanuvchi: 100_000. Click orqali to'ldirish — keyingi bosqich.
-  balanceSum          Int            @default(100000)
+  balanceDeposits     BalanceDeposit[]
+  /// Balans (so'm). Click orqali to'ldiriladi.
+  balanceSum          Int            @default(0)
 
   @@index([gradeLevel])
+}
+
+enum DepositStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+/// CLICK orqali balans to'ldirish — Prepare/Complete callbacklar bilan.
+model BalanceDeposit {
+  id           String        @id @default(cuid())
+  /// Prepare javobidagi merchant_prepare_id (Click: int)
+  prepareSeq   Int           @unique @default(autoincrement())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountSum    Int
+  status       DepositStatus @default(PENDING)
+  clickTransId String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  completedAt  DateTime?
+
+  @@index([userId])
 }
 
 /// Yechilayotgan test sessiyasi (yangilaganda davom etish + to'lovni bir marta yechish)

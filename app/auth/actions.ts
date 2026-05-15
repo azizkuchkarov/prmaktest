@@ -14,7 +14,6 @@ import { sessionCookieSecure } from "@/lib/cookie-secure";
 import {
   isStudentProfileComplete,
   PROFILE_SETUP_PATH,
-  type StudentProfileFields,
 } from "@/lib/student-profile";
 import { parseStudentGradeFromForm } from "@/lib/student-grade";
 
@@ -46,7 +45,7 @@ export async function registerStudent(
   let user: { id: string };
   try {
     user = await prisma.user.create({
-      data: { phone, passwordHash, viloyat, gradeLevel: grade } as any,
+      data: { phone, passwordHash, viloyat, gradeLevel: grade },
       select: { id: true },
     });
   } catch (e: unknown) {
@@ -112,9 +111,9 @@ export async function loginStudent(
 
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { firstName: true, lastName: true, parentPhone: true, gradeLevel: true } as any,
+    select: { firstName: true, lastName: true, parentPhone: true, gradeLevel: true },
   });
-  if (profile && !isStudentProfileComplete(profile as unknown as StudentProfileFields)) {
+  if (profile && !isStudentProfileComplete(profile)) {
     redirect(PROFILE_SETUP_PATH);
   }
 
@@ -142,16 +141,10 @@ export async function completeStudentProfile(
   const userId = await getStudentSessionUserId();
   if (!userId) redirect("/auth/kirish");
 
-  const me = (await prisma.user.findUnique({
+  const me = await prisma.user.findUnique({
     where: { id: userId },
-    select: { phone: true, firstName: true, lastName: true, parentPhone: true, gradeLevel: true } as any,
-  })) as {
-    phone: string;
-    firstName: string;
-    lastName: string;
-    parentPhone: string;
-    gradeLevel: number;
-  } | null;
+    select: { phone: true, firstName: true, lastName: true, parentPhone: true, gradeLevel: true },
+  });
   if (!me) redirect("/auth/kirish");
   if (isStudentProfileComplete(me)) redirect("/kabinet");
 
@@ -175,7 +168,7 @@ export async function completeStudentProfile(
 
   await prisma.user.update({
     where: { id: userId },
-    data: { firstName, lastName, parentPhone, gradeLevel: grade } as any,
+    data: { firstName, lastName, parentPhone, gradeLevel: grade },
   });
 
   revalidatePath("/kabinet");

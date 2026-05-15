@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Sparkles, Trophy } from "lucide-react";
 import { submitTestAttempt, saveTestProgress, type SubmitTestResult } from "@/app/testlar/[id]/boshlash/actions";
+import { TestCompletionCelebration } from "@/components/test/TestCompletionCelebration";
 import { formatPriceSum } from "@/lib/format-uzs";
+import { cn } from "@/lib/utils";
 
 export type RunnerQuestion = {
   id: string;
   order: number;
   text: string;
+  imageUrl?: string | null;
   optionA: string;
   optionB: string;
   optionC: string;
@@ -71,12 +76,16 @@ function TestRunner({
   /** Faqat `pickAnswer` yangilaydi — `= answers` har renderda refni buzmasin */
   const answersRef = useRef<Record<string, string>>({ ...initialSession.answers });
   const stepRef = useRef(step);
-  stepRef.current = step;
   const resultRef = useRef(result);
-  resultRef.current = result;
   const isSubmittingRef = useRef(isSubmitting);
-  isSubmittingRef.current = isSubmitting;
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    stepRef.current = step;
+    resultRef.current = result;
+    isSubmittingRef.current = isSubmitting;
+  }, [step, result, isSubmitting]);
 
   const flushProgress = useCallback(() => {
     if (finishedRef.current || resultRef.current || isSubmittingRef.current) return;
@@ -90,7 +99,10 @@ function TestRunner({
     const end = initialSession.endsAtMs;
     deadlineMsRef.current = end;
     startedAtMsRef.current = end - totalSeconds * 1000;
-    setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
+    const next = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    queueMicrotask(() => {
+      setSecondsLeft(next);
+    });
   }, [totalSeconds, initialSession.endsAtMs]);
 
   const runSubmit = useCallback(() => {
@@ -220,43 +232,125 @@ function TestRunner({
     const w = wrong[wrongStep];
 
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-slate-900 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-lg">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60 sm:rounded-3xl sm:p-8">
-            <p className="text-center text-xs font-bold uppercase tracking-wider text-emerald-700">
-              {result.isRetake ? "Qayta yechish (mashq)" : "Natija"}
-            </p>
-            <h1 className="mt-2 text-center text-lg font-bold leading-snug text-slate-900 sm:text-2xl">{title}</h1>
-            <div className="mt-6 grid grid-cols-3 gap-2 text-center sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
-              <div className="min-w-0 rounded-xl bg-slate-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
-                <p className="text-xl font-bold tabular-nums text-slate-900 sm:text-4xl">
-                  {result.score}/{result.total}
+      <div className="relative min-h-[100dvh] overflow-x-clip bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-slate-900 sm:px-6 sm:py-10">
+        <TestCompletionCelebration isRetake={!!result.isRetake} />
+
+        <div className="relative z-10 mx-auto max-w-lg">
+          <motion.div
+            initial={reduceMotion === true ? false : { opacity: 0, y: 28, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 26, delay: reduceMotion === true ? 0 : 0.12 }}
+            className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_24px_64px_-28px_rgba(15,23,42,0.28)] ring-1 ring-slate-100/80 sm:rounded-3xl"
+          >
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/[0.12] via-white to-violet-500/[0.08] px-5 pb-5 pt-6 sm:px-8 sm:pb-6 sm:pt-8">
+              <motion.div
+                className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-400/15 blur-3xl"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+              />
+              <div className="relative flex flex-col items-center text-center">
+                <div className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center">
+                  {reduceMotion !== true && !result.isRetake ? (
+                    <>
+                      <motion.span
+                        className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-300/50 to-orange-400/40"
+                        initial={{ scale: 0.92, opacity: 0.55 }}
+                        animate={{ scale: 2.1, opacity: 0 }}
+                        transition={{ duration: 1.25, repeat: 2, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                      <motion.span
+                        className="absolute inset-0 rounded-2xl bg-amber-200/35"
+                        initial={{ scale: 0.92, opacity: 0.45 }}
+                        animate={{ scale: 2.45, opacity: 0 }}
+                        transition={{
+                          duration: 1.4,
+                          repeat: 2,
+                          ease: [0.22, 1, 0.36, 1],
+                          delay: 0.12,
+                        }}
+                      />
+                    </>
+                  ) : null}
+                  <motion.div
+                    className={cn(
+                      "relative z-[1] flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-lg ring-4 ring-white/90",
+                      result.isRetake
+                        ? "bg-gradient-to-br from-teal-500 to-emerald-600 shadow-teal-500/30"
+                        : "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 shadow-amber-500/35",
+                    )}
+                    initial={reduceMotion === true ? false : { scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 280, damping: 17, delay: reduceMotion === true ? 0 : 0.08 }}
+                  >
+                    {result.isRetake ? (
+                      <Sparkles className="h-8 w-8" strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Trophy className="h-8 w-8" strokeWidth={2} aria-hidden />
+                    )}
+                  </motion.div>
+                </div>
+                <motion.p
+                  className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-900/80"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  {result.isRetake ? "Mashq yakunlandi" : "Tabriklaymiz"}
+                </motion.p>
+                <p className="mt-1 text-center text-xs font-semibold text-slate-600">
+                  {result.isRetake ? "Qayta yechish (mashq)" : "Rasmiy natija"}
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">{"To'g'ri"}</p>
-              </div>
-              <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
-              <div className="min-w-0 rounded-xl bg-slate-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
-                <p className="text-xl font-bold tabular-nums text-emerald-700 sm:text-4xl">{pct}%</p>
-                <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">Foiz</p>
-              </div>
-              <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
-              <div className="min-w-0 rounded-xl bg-amber-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
-                <p className="text-xl font-bold tabular-nums text-amber-600 sm:text-4xl">+{result.rankPoints}</p>
-                <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">
-                  {result.isRetake ? "Reyting balli" : "Ball"}
-                </p>
+                <motion.h1
+                  className="mt-3 text-balance text-lg font-bold leading-snug text-slate-900 sm:text-2xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  {title}
+                </motion.h1>
               </div>
             </div>
-            {result.isRetake ? (
-              <p className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-center text-xs leading-relaxed text-sky-900 ring-1 ring-sky-200/80">
-                Bu urinish <strong>faqat mashq</strong>: reyting o‘zgarmaydi, balansdan pul yechilmaydi. Rasmiy ball
-                kabinetdagi birinchi topshiruv bo‘yicha qoladi.
+
+            <div className="px-5 pb-5 sm:px-8 sm:pb-8">
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
+                <div className="min-w-0 rounded-xl bg-slate-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
+                  <p className="text-xl font-bold tabular-nums text-slate-900 sm:text-4xl">
+                    {result.score}/{result.total}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">{"To'g'ri"}</p>
+                </div>
+                <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
+                <div className="min-w-0 rounded-xl bg-slate-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
+                  <motion.p
+                    className="text-xl font-bold tabular-nums text-emerald-700 sm:text-4xl"
+                    initial={reduceMotion === true ? false : { scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 20, delay: 0.25 }}
+                  >
+                    {pct}%
+                  </motion.p>
+                  <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">Foiz</p>
+                </div>
+                <div className="hidden h-10 w-px bg-slate-200 sm:block" aria-hidden />
+                <div className="min-w-0 rounded-xl bg-amber-50/80 px-1 py-2 sm:rounded-none sm:bg-transparent sm:p-0">
+                  <p className="text-xl font-bold tabular-nums text-amber-600 sm:text-4xl">+{result.rankPoints}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-600 sm:text-xs">
+                    {result.isRetake ? "Reyting balli" : "Ball"}
+                  </p>
+                </div>
+              </div>
+              {result.isRetake ? (
+                <p className="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-center text-xs leading-relaxed text-sky-900 ring-1 ring-sky-200/80">
+                  Bu urinish <strong>faqat mashq</strong>: reyting o‘zgarmaydi, balansdan pul yechilmaydi. Rasmiy ball
+                  kabinetdagi birinchi topshiruv bo‘yicha qoladi.
+                </p>
+              ) : null}
+              <p className="mt-4 text-center text-sm text-slate-600">
+                Sarflangan vaqt: <span className="font-semibold text-slate-900">{formatMmSs(result.secondsUsed)}</span>
               </p>
-            ) : null}
-            <p className="mt-4 text-center text-sm text-slate-600">
-              Sarflangan vaqt: <span className="font-semibold text-slate-900">{formatMmSs(result.secondsUsed)}</span>
-            </p>
-          </div>
+            </div>
+          </motion.div>
 
           {wrong.length > 0 ? (
             <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50/90 p-5 shadow-md sm:p-6">
@@ -271,6 +365,14 @@ function TestRunner({
                   <p className="text-sm font-semibold leading-snug text-slate-900">
                     {w.order}. {w.text}
                   </p>
+                  {w.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- uploads under /public
+                    <img
+                      src={w.imageUrl}
+                      alt=""
+                      className="max-h-56 w-full rounded-xl border border-amber-200/80 bg-white object-contain shadow-sm"
+                    />
+                  ) : null}
                   <p className="text-xs text-slate-700">
                     {"Sizning javobingiz: "}
                     <span className="font-bold text-slate-900">{w.chosen ?? "—"}</span>
@@ -413,10 +515,18 @@ function TestRunner({
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-sm font-black text-emerald-900 ring-1 ring-emerald-200/80">
                 {current.order}
               </span>
-              <p className="min-w-0 text-[15px] font-semibold leading-relaxed tracking-tight text-slate-900 sm:text-base">
+              <p className="min-w-0 text-[15px] font-semibold leading-relaxed tracking-tight text-slate-900 sm:text-base whitespace-pre-wrap">
                 {current.text}
               </p>
             </div>
+            {current.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- uploads under /public
+              <img
+                src={current.imageUrl}
+                alt=""
+                className="mt-4 w-full max-w-full rounded-xl border border-slate-200 bg-slate-50 object-contain shadow-inner"
+              />
+            ) : null}
 
             <div
               key={current.id}
@@ -464,7 +574,7 @@ function TestRunner({
                         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-white" /> : null}
                       </span>
                     </span>
-                    <span className={`min-w-0 flex-1 leading-snug ${selected ? "text-white" : "text-slate-800"}`}>
+                    <span className={`min-w-0 flex-1 leading-snug whitespace-pre-wrap ${selected ? "text-white" : "text-slate-800"}`}>
                       <span
                         className={`mr-2 inline-block font-black tabular-nums ${selected ? "text-emerald-100" : "text-emerald-700"}`}
                       >
