@@ -32,7 +32,7 @@ export function ParentMonitoring() {
       id="ota-ona"
       className="border-t border-slate-100 bg-gradient-to-b from-violet-50/40 via-white to-sky-50/30 py-20 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div
           initial={{ opacity: 1, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}

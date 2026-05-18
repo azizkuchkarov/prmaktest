@@ -176,8 +176,26 @@ canvas {
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-x: none;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/**
+ * Landing / umumiy sahifalar: notch va pastki home indicator bilan yon padding.
+ * 1rem (mobil), 1.5rem (sm+), safe-area bilan qayta ishlatiladi.
+ */
+@layer utilities {
+  .pad-x-page {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+  @media (min-width: 640px) {
+    .pad-x-page {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
   }
 }

@@ -40,7 +40,7 @@ export function Benefits() {
       id="afzalliklar"
       className="border-t border-slate-100 bg-white py-20 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div
           initial={{ opacity: 1, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -72,7 +72,7 @@ export function Benefits() {
               >
                 <item.icon className="h-6 w-6" aria-hidden />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+              <h3 className="break-words text-lg font-semibold text-slate-900">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.text}</p>
             </motion.article>
           ))}

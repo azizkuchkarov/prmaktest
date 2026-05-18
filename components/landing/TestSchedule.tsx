@@ -17,7 +17,7 @@ export function TestSchedule() {
       id="jadval"
       className="border-t border-slate-100 bg-gradient-to-br from-blue-50/50 via-white to-teal-50/40 py-20 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl pad-x-page">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">
           <motion.div
             initial={{ opacity: 1, y: 16 }}

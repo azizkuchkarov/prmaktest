@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText, Newspaper, Sparkles, Users } from "lucide-react";
+import { ArrowRight, FileText, Headphones, Newspaper, Sparkles, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminHomePage() {
@@ -37,6 +37,14 @@ export default async function AdminHomePage() {
       hint: `Nashr etilgan: ${publishedTests}`,
       icon: FileText,
       accent: "from-emerald-500 to-teal-600",
+    },
+    {
+      href: "/admin/sozlamalar",
+      label: "Kabinet 24/7",
+      value: "24/7",
+      hint: "Yordam: Telegram chat ID",
+      icon: Headphones,
+      accent: "from-amber-500 to-orange-600",
     },
   ] as const;
 

@@ -8,7 +8,8 @@ import {
   Banknote,
   BarChart3,
   BookOpen,
-  CheckCircle2,
+  Check,
+  ChevronDown,
   ChevronRight,
   Clock,
   MapPin,
@@ -34,6 +35,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { AccordionDetails } from "@/components/test-catalog/AccordionDetails";
 import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
 import { formatPhoneDisplay } from "@/lib/phone";
 import type { RadarSubjectPoint, ReadinessStats, WeekProgressPoint } from "@/lib/kabinet-analytics";
@@ -318,42 +320,76 @@ function CompactRankingBar({
 
 function KabinetCatalogTestRow({ test: t, category }: { test: KabinetBentoTest; category: TestCatalogCategory }) {
   const accent = CATALOG_PANEL_PREMIUM[category];
+  const done = t.completed;
   return (
     <li
       className={cn(
-        "group/card relative box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200/60 bg-white py-3.5 pl-3 pr-3 shadow-sm transition duration-200 sm:pl-4 sm:pr-4",
-        "hover:border-slate-300/80 hover:shadow-md",
+        "group/card relative box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl py-3.5 pl-3 pr-3 transition duration-300 sm:pl-4 sm:pr-4",
         accent.cardBar,
+        done
+          ? "border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/45 to-teal-50/30 shadow-[0_22px_48px_-26px_rgba(16,185,129,0.45)] ring-1 ring-emerald-300/35"
+          : cn(
+              "border border-slate-200/60 bg-white/95 shadow-sm backdrop-blur-sm",
+              "hover:border-slate-300/90 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.18)]",
+            ),
       )}
     >
       <div
         className={cn(
-          "pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full opacity-[0.07] blur-2xl transition-opacity group-hover/card:opacity-[0.12]",
-          accent.orb,
+          "pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full blur-2xl transition-opacity duration-300 group-hover/card:opacity-[0.14]",
+          done ? "bg-emerald-400/25 opacity-[0.12]" : cn("opacity-[0.07]", accent.orb),
         )}
       />
+      {done ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
+          aria-hidden
+        />
+      ) : null}
       <div className="relative z-[1] flex min-w-0 items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1 overflow-hidden">
-          <h3 className="break-words text-[13px] font-semibold leading-snug tracking-tight text-slate-900 sm:text-sm">
-            {t.title}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3
+              className={cn(
+                "break-words text-[13px] font-semibold leading-snug tracking-tight sm:text-sm",
+                done ? "text-emerald-950" : "text-slate-900",
+              )}
+            >
+              {t.title}
+            </h3>
+            {done ? (
+              <Badge
+                variant="outline"
+                className="h-5 shrink-0 rounded-full border-emerald-300/80 bg-emerald-100/80 px-2 py-0 text-[10px] font-bold uppercase tracking-wide text-emerald-900 shadow-sm"
+              >
+                Yechilgan
+              </Badge>
+            ) : null}
+          </div>
           {t.subject ? (
             <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.subject}</p>
           ) : null}
         </div>
-        {t.completed ? (
+        {done ? (
           <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
-            title="Yechib bo'lingan"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40 ring-2 ring-white/90"
+            title="Rasmiy topshiruv qilingan"
           >
-            <CheckCircle2 className="h-4 w-4" aria-hidden strokeWidth={2.5} />
+            <Check className="h-5 w-5" aria-hidden strokeWidth={2.75} />
             <span className="sr-only">Tugallangan</span>
           </span>
         ) : null}
       </div>
-      <div className="relative z-[1] mt-3 flex flex-wrap gap-2">
-        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-          <Clock className="h-3.5 w-3.5 text-slate-400" />
+      <div className={cn("relative z-[1] mt-3 flex flex-wrap gap-2", done && "opacity-90")}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-medium",
+            done
+              ? "border-emerald-200/60 bg-white/70 text-emerald-900"
+              : "border-slate-200/80 bg-slate-50 text-slate-600",
+          )}
+        >
+          <Clock className={cn("h-3.5 w-3.5", done ? "text-emerald-600" : "text-slate-400")} />
           {t.durationMinutes} daq
         </span>
         <span className={cn("rounded-lg border px-2.5 py-1 text-[11px] font-semibold", accent.chipBorder)}>
@@ -366,32 +402,23 @@ function KabinetCatalogTestRow({ test: t, category }: { test: KabinetBentoTest; 
           </span>
         ) : null}
       </div>
-      <div className="relative z-[1] mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-between">
+      <div className="relative z-[1] mt-4 flex flex-col gap-2 border-t border-slate-100/90 pt-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-end">
         {t.questionsCount > 0 ? (
-          t.completed ? (
-            <Link
-              href={`/testlar/${t.id}/boshlash`}
-              className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50/90 px-3 py-2 text-[11px] font-semibold text-sky-900 transition hover:bg-sky-100 min-[400px]:w-auto"
-            >
-              Qayta yechish
-            </Link>
-          ) : (
-            <Link
-              href={`/testlar/${t.id}/boshlash`}
-              className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#6366f1] px-3.5 py-2 text-[11px] font-semibold text-white shadow-md shadow-blue-500/20 transition hover:brightness-105 min-[400px]:w-auto"
-            >
-              Boshlash <ArrowRight className="h-3.5 w-3.5 opacity-90" />
-            </Link>
-          )
+          <Link
+            href={`/testlar/${t.id}`}
+            className={cn(
+              "inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[11px] font-semibold shadow-sm transition min-[400px]:w-auto",
+              done
+                ? "border border-emerald-200/90 bg-white/90 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50/80"
+                : "border border-slate-200/90 bg-white text-slate-800 hover:border-blue-200 hover:bg-slate-50 hover:text-blue-800",
+            )}
+          >
+            Test haqida
+            <ArrowRight className="h-3.5 w-3.5 opacity-80" aria-hidden />
+          </Link>
         ) : (
           <span className="text-[11px] font-semibold text-slate-400">{"Savollar yo'q"}</span>
         )}
-        <Link
-          href={`/testlar/${t.id}`}
-          className="self-start text-[11px] font-semibold text-slate-600 underline-offset-4 transition hover:text-blue-700 hover:underline min-[400px]:self-center"
-        >
-          Batafsil
-        </Link>
       </div>
     </li>
   );
@@ -457,6 +484,13 @@ export function KabinetBentoContent({
     return { testsByCategory: buckets, catalogTotals: totals };
   }, [tests]);
 
+  const defaultOpenCatalogCategory = useMemo(() => {
+    for (const c of TEST_CATALOG_ORDER) {
+      if ((catalogTotals[c] ?? 0) > 0) return c;
+    }
+    return TEST_CATALOG_ORDER[0] ?? "MOCK";
+  }, [catalogTotals]);
+
   return (
     <div className="relative box-border mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip py-5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:space-y-5 sm:px-6 sm:py-7 lg:space-y-6 lg:py-9">
       <div
@@ -510,11 +544,11 @@ export function KabinetBentoContent({
             </div>
             {nextTest && nextTest.questionsCount > 0 ? (
               <Link
-                href={`/testlar/${nextTest.id}/boshlash`}
+                href={`/testlar/${nextTest.id}`}
                 className="hidden w-full min-[480px]:inline-flex sm:w-auto sm:shrink-0 min-[480px]:max-w-xs lg:inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#2563EB]/20 transition hover:brightness-105 active:brightness-95"
               >
-                Testni boshlash
-                <ArrowRight className="h-4 w-4" />
+                Test haqida
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             ) : (
               <Link
@@ -592,7 +626,7 @@ export function KabinetBentoContent({
               ) : rank.republicRank != null ? (
                 <>
                   {rank.republicRank}
-                  <span className="ml-1 text-lg font-semibold text-slate-400">respublika</span>
+                  <span className="ml-1 text-lg font-semibold text-slate-400">Respublika</span>
                 </>
               ) : (
                 <span className="text-xl text-slate-400">—</span>
@@ -600,12 +634,12 @@ export function KabinetBentoContent({
             </p>
             <p className="mt-1 text-xs text-slate-600">
               {gradeOk
-                ? "Sinfingizdagi o‘quvchilar orasida — respublika bo‘yicha."
+                ? "Sinfingizdagi o‘quvchilar orasida — Respublika bo‘yicha."
                 : "Butun mamlakat bo‘yicha o‘rin (sinf tanlanmagan)."}
             </p>
             {gradeOk && rank.republicRank != null ? (
               <p className="mt-1 text-[11px] text-slate-500">
-                Umumiy respublika: <span className="font-semibold text-slate-700">{rank.republicRank}</span>
+                Umumiy Respublika: <span className="font-semibold text-slate-700">{rank.republicRank}</span>
                 -o‘rin
               </p>
             ) : null}
@@ -675,18 +709,13 @@ export function KabinetBentoContent({
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   {nextTest.questionsCount > 0 ? (
                     <Link
-                      href={`/testlar/${nextTest.id}/boshlash`}
-                      className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-[#1d4ed8]"
+                      href={`/testlar/${nextTest.id}`}
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-[#1d4ed8] sm:w-auto"
                     >
-                      Boshlash <ArrowRight className="h-4 w-4" />
+                      Test haqida
+                      <ArrowRight className="h-4 w-4" aria-hidden />
                     </Link>
                   ) : null}
-                  <Link
-                    href={`/testlar/${nextTest.id}`}
-                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Batafsil
-                  </Link>
                 </div>
               </>
             ) : (
@@ -951,7 +980,7 @@ export function KabinetBentoContent({
 
             <div className={cn("min-w-0 overflow-x-clip lg:col-span-12", cardShell)}>
               <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
-                <h3 className="text-sm font-bold text-slate-900">Viloyat va respublika</h3>
+                <h3 className="text-sm font-bold text-slate-900">Viloyat va Respublika</h3>
                 <p className="mt-1 text-[11px] text-slate-600">Bar chart — yig‘ma ballar bilan taqqoslash.</p>
               </div>
               <div className="p-3 sm:p-4 lg:hidden">
@@ -992,8 +1021,11 @@ export function KabinetBentoContent({
                       Testlar katalogi
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                      Bo&apos;lim sarlavhasini bosing — ro&apos;yxat ochiladi yoki yopiladi. Sarlavhada shu yo&apos;nalishdagi{" "}
+                      <span className="font-medium text-slate-800">testlar soni</span> ko&apos;rsatiladi.{" "}
                       To&apos;rt xil yo&apos;nalish — har biri alohida rangda.{" "}
-                      <span className="font-medium text-slate-700">Eng yangi testlar ro&apos;yxat boshida.</span>
+                      <span className="font-medium text-slate-700">Eng yangi testlar ro&apos;yxat boshida.</span>{" "}
+                      <span className="font-medium text-emerald-800">Yechib bo&apos;lgan testlar yashil belgi bilan.</span>
                     </p>
                   </div>
                 </div>
@@ -1017,30 +1049,49 @@ export function KabinetBentoContent({
                     const meta = CATALOG_SECTION_META[cat];
                     const accent = CATALOG_PANEL_PREMIUM[cat];
                     const list = testsByCategory[cat] ?? [];
+                    const total = catalogTotals[cat] ?? 0;
                     return (
-                      <div
+                      <AccordionDetails
                         key={cat}
-                        className="group/panel relative flex min-h-[220px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 shadow-sm ring-1 ring-slate-100 transition duration-200 hover:border-slate-200 hover:shadow-md"
-                      >
-                        <div
-                          className={cn(
-                            "relative overflow-x-clip overflow-y-visible border-b border-white/50 px-3 py-4 sm:px-5",
-                            accent.header,
-                          )}
-                        >
-                          <div
+                        defaultOpen={cat === defaultOpenCatalogCategory}
+                        className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 shadow-sm ring-1 ring-slate-100 transition duration-200 open:shadow-md open:ring-slate-200/80"
+                        summary={(open) => (
+                          <summary
                             className={cn(
-                              "pointer-events-none absolute -right-8 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full blur-2xl",
-                              accent.orb,
+                              "relative flex cursor-pointer list-none items-start justify-between gap-3 overflow-x-clip border-b border-white/50 px-3 py-4 outline-none transition hover:brightness-[1.02] focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:px-5",
+                              "[&::-webkit-details-marker]:hidden",
+                              accent.header,
                             )}
-                          />
-                          <h3 className="relative text-[15px] font-bold tracking-tight text-slate-900 sm:text-base">
-                            {meta.heading}
-                          </h3>
-                          <p className="relative mt-1.5 text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
-                            {meta.subtitle}
-                          </p>
-                        </div>
+                          >
+                            <div
+                              className={cn(
+                                "pointer-events-none absolute -right-8 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full blur-2xl",
+                                accent.orb,
+                              )}
+                            />
+                            <div className="relative min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-[15px] font-bold tracking-tight text-slate-900 sm:text-base">
+                                  {meta.heading}
+                                </h3>
+                                <span className="rounded-full border border-white/60 bg-white/75 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-slate-800 shadow-sm backdrop-blur-sm sm:text-xs">
+                                  {total} ta test
+                                </span>
+                              </div>
+                              <p className="relative mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
+                                {meta.subtitle}
+                              </p>
+                            </div>
+                            <ChevronDown
+                              className={cn(
+                                "relative mt-0.5 h-5 w-5 shrink-0 text-slate-600 transition-transform duration-200",
+                                open && "rotate-180",
+                              )}
+                              aria-hidden
+                            />
+                          </summary>
+                        )}
+                      >
                         <div className="relative flex min-w-0 flex-1 flex-col bg-white/60 p-3 sm:p-5">
                           {list.length === 0 ? (
                             <p className="flex flex-1 items-center py-6 text-center text-xs font-medium text-slate-400">
@@ -1067,7 +1118,7 @@ export function KabinetBentoContent({
                             </>
                           )}
                         </div>
-                      </div>
+                      </AccordionDetails>
                     );
                   })}
                 </div>
@@ -1115,7 +1166,7 @@ export function KabinetBentoContent({
                   <BoardTableBento
                     rows={gradeRepublicRows}
                     currentUserId={student.id}
-                    title={`${student.gradeLevel}-sinf — respublika TOP 15`}
+                    title={`${student.gradeLevel}-sinf — Respublika TOP 15`}
                     subtitle="Faqat shu sinf o‘quchilari."
                   />
                 </TabsContent>

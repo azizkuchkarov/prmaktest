@@ -51,6 +51,7 @@ export type KabinetTestItem = {
 type Props = {
   student: CurrentStudent;
   displayName: string;
+  supportConfigured: boolean;
   rank: StudentRankSummary;
   republicRows: LeaderboardRow[];
   viloyatRows: LeaderboardRow[];
@@ -67,6 +68,7 @@ type Props = {
 export function KabinetDashboard({
   student,
   displayName,
+  supportConfigured,
   rank,
   republicRows,
   viloyatRows,
@@ -81,7 +83,7 @@ export function KabinetDashboard({
 }: Props) {
   const firstPlayable =
     tests.find((t) => t.questionsCount > 0 && !t.completed) ?? tests.find((t) => t.questionsCount > 0);
-  const ctaHref = firstPlayable ? `/testlar/${firstPlayable.id}/boshlash` : "/testlar";
+  const ctaHref = firstPlayable ? `/testlar/${firstPlayable.id}` : "/testlar";
 
   const bentoStudent = {
     id: student.id,
@@ -112,7 +114,8 @@ export function KabinetDashboard({
       displayName={displayName}
       viloyat={student.viloyat}
       ctaHref={ctaHref}
-      ctaLabel="Testni boshlash"
+      ctaLabel="Test haqida"
+      supportConfigured={supportConfigured}
     >
       <KabinetBentoContent
         student={bentoStudent}

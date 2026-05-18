@@ -17,7 +17,7 @@ const STEPS = [
     phase: "1-bosqich",
     title: "3 ta mock test",
     description:
-      "Saytga kirganingizdan so‘ng uchta mock testni yechasiz. Natijalar asosida respublika va viloyat bo‘yicha o‘rningiz shakllana boshlaydi — keyingi qadamga tayyorlanish uchun ideal mashg‘ulot.",
+      "Saytga kirganingizdan so‘ng uchta mock testni yechasiz. Natijalar asosida Respublika va viloyat bo‘yicha o‘rningiz shakllana boshlaydi — keyingi qadamga tayyorlanish uchun ideal mashg‘ulot.",
     Icon: BookOpenCheck,
     gradient: "from-[#2563EB] via-[#0ea5e9] to-[#06b6d4]",
     ring: "ring-blue-500/20",

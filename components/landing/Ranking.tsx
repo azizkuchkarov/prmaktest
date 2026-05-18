@@ -7,7 +7,7 @@ import { rankingRows } from "./mock-data";
 export function Ranking() {
   return (
     <section id="reyting" className="w-full min-w-0 overflow-x-hidden bg-white py-16 sm:py-24">
-      <div className="mx-auto w-full min-w-0 max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-6xl pad-x-page">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
           <motion.div
             initial={{ opacity: 1, y: 16 }}

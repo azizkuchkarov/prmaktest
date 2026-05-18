@@ -48,6 +48,10 @@ function buildQuestionRows(payload: TestSavePayload): QuestionRowInsert[] {
       optionB: q.optionB.trim(),
       optionC: q.optionC.trim(),
       optionD: q.optionD.trim(),
+      optionAImageUrl: q.optionAImageUrl?.trim() ? q.optionAImageUrl.trim() : null,
+      optionBImageUrl: q.optionBImageUrl?.trim() ? q.optionBImageUrl.trim() : null,
+      optionCImageUrl: q.optionCImageUrl?.trim() ? q.optionCImageUrl.trim() : null,
+      optionDImageUrl: q.optionDImageUrl?.trim() ? q.optionDImageUrl.trim() : null,
       correctAnswer: c,
       solution: q.solution.trim(),
     };

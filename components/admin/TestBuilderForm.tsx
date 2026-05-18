@@ -12,6 +12,22 @@ import { normalizeBulkPastedText, parseCompactBulkTest } from "@/lib/bulk-test-p
 import { CATALOG_LABEL_ADMIN, TEST_CATALOG_ORDER } from "@/lib/test-catalog";
 import { Plus, Trash2, Wand2, FileDown, ImagePlus, Loader2 } from "lucide-react";
 
+type OptionLetter = "A" | "B" | "C" | "D";
+
+const OPTION_IMAGE_KEY: Record<OptionLetter, keyof QuestionDraft> = {
+  A: "optionAImageUrl",
+  B: "optionBImageUrl",
+  C: "optionCImageUrl",
+  D: "optionDImageUrl",
+};
+
+const OPTION_TEXT_KEY: Record<OptionLetter, keyof QuestionDraft> = {
+  A: "optionA",
+  B: "optionB",
+  C: "optionC",
+  D: "optionD",
+};
+
 const BULK_EXAMPLE = `1. 5+ 6 nechchi bo'ladi?
 A. 11
 B. 12
@@ -37,6 +53,10 @@ function emptyRow(order: number): QuestionDraft {
     optionB: "",
     optionC: "",
     optionD: "",
+    optionAImageUrl: "",
+    optionBImageUrl: "",
+    optionCImageUrl: "",
+    optionDImageUrl: "",
     correctAnswer: "A",
     solution: "",
   };
@@ -54,6 +74,10 @@ function fromPrisma(q: Question): QuestionDraft {
     optionB: q.optionB,
     optionC: q.optionC,
     optionD: q.optionD,
+    optionAImageUrl: q.optionAImageUrl ?? "",
+    optionBImageUrl: q.optionBImageUrl ?? "",
+    optionCImageUrl: q.optionCImageUrl ?? "",
+    optionDImageUrl: q.optionDImageUrl ?? "",
     correctAnswer: correct,
     solution: q.solution,
   };
@@ -100,30 +124,48 @@ export function TestBuilderForm(props: Props) {
   const [bulkText, setBulkText] = useState("");
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const [imageUploadIndex, setImageUploadIndex] = useState<number | null>(null);
+  const [imageUploadKey, setImageUploadKey] = useState<string | null>(null);
   const [imageErr, setImageErr] = useState<string | null>(null);
+
+  async function postQuestionImage(file: File): Promise<string | null> {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/question-images", {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+    });
+    const data = (await res.json()) as { url?: string; error?: string };
+    if (!res.ok) {
+      setImageErr(data.error ?? "Yuklash muvaffaqiyatsiz.");
+      return null;
+    }
+    return data.url ?? null;
+  }
 
   async function uploadQuestionImage(file: File, rowIndex: number) {
     setImageErr(null);
-    setImageUploadIndex(rowIndex);
+    setImageUploadKey(`${rowIndex}-q`);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/question-images", {
-        method: "POST",
-        body: fd,
-        credentials: "same-origin",
-      });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok) {
-        setImageErr(data.error ?? "Yuklash muvaffaqiyatsiz.");
-        return;
-      }
-      if (data.url) updateRow(rowIndex, { imageUrl: data.url });
+      const url = await postQuestionImage(file);
+      if (url) updateRow(rowIndex, { imageUrl: url });
     } catch {
       setImageErr("Tarmoq xatosi. Qayta urinib ko‘ring.");
     } finally {
-      setImageUploadIndex(null);
+      setImageUploadKey(null);
+    }
+  }
+
+  async function uploadOptionImage(file: File, rowIndex: number, letter: OptionLetter) {
+    setImageErr(null);
+    setImageUploadKey(`${rowIndex}-${letter}`);
+    try {
+      const url = await postQuestionImage(file);
+      if (url) updateRow(rowIndex, { [OPTION_IMAGE_KEY[letter]]: url } as Partial<QuestionDraft>);
+    } catch {
+      setImageErr("Tarmoq xatosi. Qayta urinib ko‘ring.");
+    } finally {
+      setImageUploadKey(null);
     }
   }
 
@@ -406,7 +448,7 @@ export function TestBuilderForm(props: Props) {
             rows={18}
             spellCheck={false}
             className="w-full rounded-xl border border-indigo-200 bg-white p-3 font-mono text-[12px] leading-relaxed text-slate-900 shadow-inner outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/25"
-            placeholder={`1. Savol matni
+            placeholder={`1. Savol matni (kasr: [[3/4]], aralash: [[4|4/3]])
 A. …
 B. …
 C. …
@@ -459,6 +501,16 @@ Tushuntirish: …
               </div>
               <div className="mb-3">
                 <label className={label}>Savol matni</label>
+                <p className="mb-1.5 text-[11px] leading-snug text-slate-500">
+                  Vertikal kasr: <code className="rounded bg-slate-100 px-1 font-mono text-[10px]">[[3/4]]</code>; aralash kasr
+                  (masalan 4 butun 4/3):{' '}
+                  <code className="rounded bg-slate-100 px-1 font-mono text-[10px]">[[4|4/3]]</code>. Daraja:{' '}
+                  <code className="rounded bg-slate-100 px-1 font-mono text-[10px]">x^2</code>,{' '}
+                  <code className="rounded bg-slate-100 px-1 font-mono text-[10px]">{"a^{n+1}"}</code>. Masalan:
+                  &quot;Hisoblang [[2/3]] + [[1/6]]&quot;. Agar talabada hamon{' '}
+                  <code className="font-mono text-[10px]">[[3/4]]</code> matn ko‘rinib qolsa, serverda loyihani qayta{' '}
+                  <code className="font-mono text-[10px]">build</code> qiling (yangi frontend yuklanmagan bo‘lishi mumkin).
+                </p>
                 <textarea
                   className={`${field} min-h-[72px] resize-y whitespace-pre-wrap font-sans`}
                   value={row.text}
@@ -474,7 +526,7 @@ Tushuntirish: …
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50">
-                    {imageUploadIndex === i ? (
+                    {imageUploadKey === `${i}-q` ? (
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />
                     ) : (
                       <ImagePlus className="h-4 w-4 text-blue-600" aria-hidden />
@@ -484,7 +536,7 @@ Tushuntirish: …
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
                       className="sr-only"
-                      disabled={imageUploadIndex !== null}
+                      disabled={imageUploadKey !== null}
                       onChange={(e) => {
                         const f = e.target.files?.[0];
                         e.target.value = "";
@@ -511,43 +563,65 @@ Tushuntirish: …
                   />
                 ) : null}
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={label}>A variant</label>
-                  <input
-                    className={`${field} whitespace-pre-wrap font-sans`}
-                    value={row.optionA}
-                    onChange={(e) => updateRow(i, { optionA: e.target.value })}
-                    spellCheck={false}
-                  />
-                </div>
-                <div>
-                  <label className={label}>B variant</label>
-                  <input
-                    className={`${field} font-sans`}
-                    value={row.optionB}
-                    onChange={(e) => updateRow(i, { optionB: e.target.value })}
-                    spellCheck={false}
-                  />
-                </div>
-                <div>
-                  <label className={label}>C variant</label>
-                  <input
-                    className={`${field} font-sans`}
-                    value={row.optionC}
-                    onChange={(e) => updateRow(i, { optionC: e.target.value })}
-                    spellCheck={false}
-                  />
-                </div>
-                <div>
-                  <label className={label}>D variant</label>
-                  <input
-                    className={`${field} font-sans`}
-                    value={row.optionD}
-                    onChange={(e) => updateRow(i, { optionD: e.target.value })}
-                    spellCheck={false}
-                  />
-                </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(["A", "B", "C", "D"] as const).map((letter) => {
+                  const tk = OPTION_TEXT_KEY[letter];
+                  const ik = OPTION_IMAGE_KEY[letter];
+                  const textVal = row[tk] as string;
+                  const imgVal = row[ik] as string;
+                  return (
+                    <div key={letter} className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 ring-1 ring-slate-100/80">
+                      <label className={label}>
+                        {letter} variant — matn va/yoki rasm
+                      </label>
+                      <input
+                        className={`${field} mt-1 whitespace-pre-wrap font-sans`}
+                        value={textVal}
+                        onChange={(e) => updateRow(i, { [tk]: e.target.value } as Partial<QuestionDraft>)}
+                        spellCheck={false}
+                        placeholder="Matn (rasm bo‘lsa bo‘sh qoldirish mumkin)"
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+                          {imageUploadKey === `${i}-${letter}` ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" aria-hidden />
+                          ) : (
+                            <ImagePlus className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+                          )}
+                          Rasm
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="sr-only"
+                            disabled={imageUploadKey !== null}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              e.target.value = "";
+                              if (f) void uploadOptionImage(f, i, letter);
+                            }}
+                          />
+                        </label>
+                        {imgVal ? (
+                          <button
+                            type="button"
+                            onClick={() => updateRow(i, { [ik]: "" } as Partial<QuestionDraft>)}
+                            className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-800 hover:bg-red-100"
+                          >
+                            Rasmsiz
+                          </button>
+                        ) : null}
+                      </div>
+                      {imgVal ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- admin uploads
+                        <img
+                          src={imgVal}
+                          alt=""
+                          className="mt-2 max-h-40 w-full rounded-lg border border-slate-200 bg-white object-contain shadow-sm"
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>

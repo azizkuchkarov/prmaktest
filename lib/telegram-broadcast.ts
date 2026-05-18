@@ -56,6 +56,15 @@ async function sendOne(token: string, chatId: string, text: string, opts?: SendO
   return false;
 }
 
+/** Admin yoki boshqa joydan bitta chatga oddiy matn (HTML emas). */
+export async function sendTelegramPlainToChat(chatId: string, text: string): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!token) return false;
+  const t = text.trim();
+  if (!t) return false;
+  return sendOne(token, chatId, t.slice(0, 4096));
+}
+
 const RANK_FOLLOWUP_DELAY_MS = 60_000;
 
 function attachBackgroundWork(work: Promise<void>): void {
@@ -164,6 +173,7 @@ export type OfficialTestTelegramPayload = {
 
 /**
  * Rasmiy topshiruvdan keyin: 1) darhol natija (shu so‘rovda yuboriladi); 2) ~1 daqiqa keyin reyting.
+ * O‘quvchi va ota-ona (`parentTelegramId`) alohida chatlarga oladi; bir xil chat ID takrorlanmaydi.
  * Qayta yechish (mashq) uchun chaqirilmaydi.
  */
 export async function notifyOfficialTestCompletionTelegram(payload: OfficialTestTelegramPayload): Promise<void> {
@@ -175,62 +185,104 @@ export async function notifyOfficialTestCompletionTelegram(payload: OfficialTest
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { telegramId: true, viloyat: true, gradeLevel: true },
+    select: {
+      telegramId: true,
+      parentTelegramId: true,
+      firstName: true,
+      lastName: true,
+      viloyat: true,
+      gradeLevel: true,
+    },
   });
-  if (user?.telegramId == null) {
+  if (!user) {
+    console.warn("[telegram-test-complete] Foydalanuvchi topilmadi.");
+    return;
+  }
+
+  const studentChat = user.telegramId != null ? user.telegramId.toString() : null;
+  const parentChat = user.parentTelegramId != null ? user.parentTelegramId.toString() : null;
+  const targets: Array<{ chatId: string; role: "student" | "parent" }> = [];
+  if (studentChat) targets.push({ chatId: studentChat, role: "student" });
+  if (parentChat && parentChat !== studentChat) targets.push({ chatId: parentChat, role: "parent" });
+
+  if (targets.length === 0) {
     console.warn(
-      "[telegram-test-complete] Bu akkauntda Telegram ulangan emas (Kabinet → bot orqali bog‘lang).",
+      "[telegram-test-complete] Telegram yo‘q: na o‘quvchi, na ota-ona chat ID (admin panelda kiriting).",
     );
     return;
   }
 
-  const chatId = user.telegramId.toString();
   const origin = sitePublicOrigin();
   const label = escapeHtml(sitePublicLabel());
   const titleEsc = escapeHtml(payload.testTitle.trim().slice(0, 300));
   const wrong = payload.total - payload.score;
 
-  const msg1 = [
-    `<b>✅ Test yakunlandi</b>`,
-    `🌐 <a href="${origin}">${label}</a>`,
-    ``,
-    `<b>${titleEsc}</b>`,
-    ``,
-    `✅ To‘g‘ri: <b>${payload.score}</b>`,
-    `❌ Xato: <b>${wrong}</b>`,
-    `⏱ Sarflangan vaqt: <b>${formatDurationUz(payload.secondsUsed)}</b>`,
-    `🏆 Reyting balli: <b>+${payload.rankPoints}</b>`,
-    ``,
-    `👉 <a href="${origin}/testlar/${payload.testId}">Natija · ${label}</a>`,
-  ].join("\n");
+  const childName =
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "O'quvchi";
+  const childNameEsc = escapeHtml(childName.slice(0, 120));
 
-  const plain1 = [
-    `✅ Test yakunlandi · ${sitePublicLabel()}`,
-    ``,
-    payload.testTitle.trim(),
-    ``,
-    `To'g'ri: ${payload.score}`,
-    `Xato: ${wrong}`,
-    `Vaqt: ${formatDurationUz(payload.secondsUsed)}`,
-    `Reyting balli: +${payload.rankPoints}`,
-    ``,
-    `${origin}/testlar/${payload.testId}`,
-  ].join("\n");
+  const buildCompletionHtml = (role: "student" | "parent") => {
+    const head =
+      role === "parent"
+        ? [`<b>✅ Farzandingiz testni yakunladi</b>`, `👤 <b>O'quvchi:</b> ${childNameEsc}`, ``]
+        : [`<b>✅ Test yakunlandi</b>`, ``];
+    return [
+      ...head,
+      `🌐 <a href="${origin}">${label}</a>`,
+      ``,
+      `<b>${titleEsc}</b>`,
+      ``,
+      `✅ To‘g‘ri: <b>${payload.score}</b>`,
+      `❌ Xato: <b>${wrong}</b>`,
+      `⏱ Sarflangan vaqt: <b>${formatDurationUz(payload.secondsUsed)}</b>`,
+      `🏆 Reyting balli: <b>+${payload.rankPoints}</b>`,
+      ``,
+      `👉 <a href="${origin}/testlar/${payload.testId}">Natija · ${label}</a>`,
+    ].join("\n");
+  };
 
-  let sent = await sendOne(token, chatId, msg1, { parseMode: "HTML" });
-  if (!sent) {
-    console.warn("[telegram-test-complete] HTML xabar rad etildi, oddiy matn bilan qayta uriniladi.");
-    sent = await sendOne(token, chatId, plain1);
+  const buildCompletionPlain = (role: "student" | "parent") => {
+    const head =
+      role === "parent"
+        ? [
+            `✅ Farzandingiz testni yakunladi · ${sitePublicLabel()}`,
+            `O'quvchi: ${childName}`,
+            ``,
+          ]
+        : [`✅ Test yakunlandi · ${sitePublicLabel()}`, ``];
+    return [
+      ...head,
+      payload.testTitle.trim(),
+      ``,
+      `To'g'ri: ${payload.score}`,
+      `Xato: ${wrong}`,
+      `Vaqt: ${formatDurationUz(payload.secondsUsed)}`,
+      `Reyting balli: +${payload.rankPoints}`,
+      ``,
+      `${origin}/testlar/${payload.testId}`,
+    ].join("\n");
+  };
+
+  for (const t of targets) {
+    const msgHtml = buildCompletionHtml(t.role);
+    const msgPlain = buildCompletionPlain(t.role);
+    let sent = await sendOne(token, t.chatId, msgHtml, { parseMode: "HTML" });
+    if (!sent) {
+      sent = await sendOne(token, t.chatId, msgPlain);
+    }
+    if (!sent) {
+      console.warn(
+        "[telegram-test-complete] Xabar yuborilmadi (chat:",
+        t.chatId,
+        "role:",
+        t.role,
+        ") — bot /start qilinganmi?",
+      );
+    }
+    await new Promise((r) => setTimeout(r, 80));
   }
-  if (!sent) {
-    console.warn(
-      "[telegram-test-complete] Telegram birinchi xabarni qabul qilmadi. Bot foydalanuvchi bilan suhbatni boshlaganmi? chat_id to‘g‘rimi?",
-    );
-    return;
-  }
 
-  const viloyat = user.viloyat;
-  const gradeLevel = user.gradeLevel;
+  const { viloyat, gradeLevel } = user;
 
   const followUp = (async () => {
     await new Promise((r) => setTimeout(r, RANK_FOLLOWUP_DELAY_MS));
@@ -238,26 +290,57 @@ export async function notifyOfficialTestCompletionTelegram(payload: OfficialTest
     const gradeScope = isValidStudentGrade(gradeLevel) ? gradeLevel : null;
     const summary = await getStudentRankSummary(payload.userId, viloyat, gradeScope);
 
-    const lines = [
-      `<b>📊 Reyting</b> <i>(1 daqiqa keyin — jadval yangilangan)</i>`,
-      `🌐 <a href="${origin}">${label}</a>`,
-      ``,
-      `<b>Sizning o‘rningiz</b>`,
-      `   📍 Respublika: <b>${summary.republicRank ?? "—"}</b>`,
-      `   📍 Viloyat: <b>${summary.viloyatRank ?? "—"}</b>`,
-    ];
-    if (summary.gradeRepublicRank != null) {
-      lines.push(`   📍 Sinf (respublika): <b>${summary.gradeRepublicRank}</b>`);
-    }
-    if (summary.gradeViloyatRank != null) {
-      lines.push(`   📍 Sinf (viloyat): <b>${summary.gradeViloyatRank}</b>`);
-    }
-    lines.push(``, `🎯 Jami ball: <b>${summary.totalPoints}</b>`, ``);
-    lines.push(`👉 <a href="${origin}/kabinet">Kabinet · to‘liq jadval</a>`);
+    const buildRankHtml = (role: "student" | "parent") => {
+      const titleLine =
+        role === "parent"
+          ? `<b>📊 Reyting</b> <i>(1 daqiqa keyin — jadval yangilangan. ${childNameEsc})</i>`
+          : `<b>📊 Reyting</b> <i>(1 daqiqa keyin — jadval yangilangan)</i>`;
+      const orinTitle =
+        role === "parent"
+          ? `<b>${childNameEsc} ning o‘rni</b>`
+          : `<b>Sizning o‘rningiz</b>`;
+      const lines = [
+        titleLine,
+        `🌐 <a href="${origin}">${label}</a>`,
+        ``,
+        orinTitle,
+        `   📍 Respublika: <b>${summary.republicRank ?? "—"}</b>`,
+        `   📍 Viloyat: <b>${summary.viloyatRank ?? "—"}</b>`,
+      ];
+      if (summary.gradeRepublicRank != null) {
+        lines.push(`   📍 Sinf (respublika): <b>${summary.gradeRepublicRank}</b>`);
+      }
+      if (summary.gradeViloyatRank != null) {
+        lines.push(`   📍 Sinf (viloyat): <b>${summary.gradeViloyatRank}</b>`);
+      }
+      lines.push(``, `🎯 Jami ball: <b>${summary.totalPoints}</b>`, ``);
+      lines.push(`👉 <a href="${origin}/kabinet">Kabinet · ${label}</a>`);
+      return lines.join("\n");
+    };
 
-    const ok2 = await sendOne(token, chatId, lines.join("\n"), { parseMode: "HTML" });
-    if (!ok2) {
-      console.warn("[telegram-test-complete] Reyting xabari yuborilmadi (API xatosi yoki vaqt tugashi).");
+    for (const t of targets) {
+      const rankHtml = buildRankHtml(t.role);
+      const ok2 = await sendOne(token, t.chatId, rankHtml, { parseMode: "HTML" });
+      if (!ok2) {
+        const plainRank = [
+          t.role === "parent"
+            ? `📊 Reyting (1 daqiqa keyin) · ${childName} · ${sitePublicLabel()}`
+            : `📊 Reyting (1 daqiqa keyin) · ${sitePublicLabel()}`,
+          "",
+          t.role === "parent" ? `${childName} ning o'rni:` : "Sizning o'rningiz:",
+          `Respublika: ${summary.republicRank ?? "—"}`,
+          `Viloyat: ${summary.viloyatRank ?? "—"}`,
+          summary.gradeRepublicRank != null ? `Sinf (RB): ${summary.gradeRepublicRank}` : "",
+          summary.gradeViloyatRank != null ? `Sinf (viloyat): ${summary.gradeViloyatRank}` : "",
+          "",
+          `Jami ball: ${summary.totalPoints}`,
+          `${origin}/kabinet`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+        await sendOne(token, t.chatId, plainRank);
+      }
+      await new Promise((r) => setTimeout(r, 80));
     }
   })();
 

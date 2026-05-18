@@ -19,7 +19,7 @@ export function Hero() {
   return (
     <section
       id="hero"
-      className="relative overflow-hidden bg-gradient-to-b from-sky-50 via-white to-indigo-50/40 pb-20 pt-10 sm:pt-14 lg:pb-28"
+      className="relative overflow-x-clip bg-gradient-to-b from-sky-50 via-white to-indigo-50/40 pb-20 pt-10 sm:pt-14 lg:pb-28"
     >
       <div
         className="pointer-events-none absolute -right-24 top-20 h-96 w-96 rounded-full bg-teal-200/40 blur-3xl"
@@ -30,7 +30,7 @@ export function Hero() {
         aria-hidden
       />
 
-      <div className="relative mx-auto grid w-full min-w-0 max-w-6xl gap-10 px-4 sm:gap-12 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
+      <div className="relative mx-auto grid w-full min-w-0 max-w-6xl gap-10 pad-x-page sm:gap-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-10">
         <div>
           <motion.div
             initial={{ opacity: 1, y: 8 }}
@@ -63,24 +63,24 @@ export function Hero() {
             initial={{ opacity: 1, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.18 }}
-            className="mt-8 flex flex-wrap gap-3"
+            className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap"
           >
             <Link
               href="#boshlash"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-teal-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/35 active:scale-[0.98]"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-teal-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/35 active:scale-[0.98] sm:w-auto"
             >
               Testlarni boshlash
             </Link>
             <Link
               href="#afzalliklar"
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.98]"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.98] sm:w-auto"
             >
               Platforma haqida
             </Link>
           </motion.div>
         </div>
 
-        <div className="pointer-events-none relative mx-auto w-full max-w-md lg:max-w-none">
+        <div className="pointer-events-none relative isolate mx-auto w-full max-w-md overflow-x-clip lg:max-w-none">
           <motion.div
             initial={{ opacity: 1, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}

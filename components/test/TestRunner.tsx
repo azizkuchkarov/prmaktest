@@ -8,6 +8,7 @@ import { submitTestAttempt, saveTestProgress, type SubmitTestResult } from "@/ap
 import { TestCompletionCelebration } from "@/components/test/TestCompletionCelebration";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { cn } from "@/lib/utils";
+import { RenderFractionText } from "@/components/math/RenderFractionText";
 
 export type RunnerQuestion = {
   id: string;
@@ -18,6 +19,10 @@ export type RunnerQuestion = {
   optionB: string;
   optionC: string;
   optionD: string;
+  optionAImageUrl?: string | null;
+  optionBImageUrl?: string | null;
+  optionCImageUrl?: string | null;
+  optionDImageUrl?: string | null;
 };
 
 export type TestRunnerInitialSession = {
@@ -363,7 +368,7 @@ function TestRunner({
               {w ? (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm font-semibold leading-snug text-slate-900">
-                    {w.order}. {w.text}
+                    {w.order}. <RenderFractionText text={w.text} />
                   </p>
                   {w.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- uploads under /public
@@ -379,10 +384,49 @@ function TestRunner({
                     {" · To'g'ri: "}
                     <span className="font-bold text-emerald-700">{w.correct}</span>
                   </p>
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Variantlar</p>
+                    <ul className="grid gap-2 sm:grid-cols-2">
+                      {w.options.map((o) => {
+                        const isCorrect = o.letter === w.correct;
+                        const isChosen = o.letter === w.chosen;
+                        const wrongPick = isChosen && !isCorrect;
+                        return (
+                          <li
+                            key={o.letter}
+                            className={cn(
+                              "rounded-xl border bg-white p-2.5 text-left text-sm shadow-sm",
+                              isCorrect && "border-emerald-400 ring-1 ring-emerald-200",
+                              wrongPick && "border-red-300 ring-1 ring-red-200",
+                              !isCorrect && !wrongPick && "border-slate-200",
+                            )}
+                          >
+                            <span className="font-black text-emerald-800">{o.letter}.</span>{" "}
+                            {o.text.trim() ? (
+                              <span className="font-medium text-slate-800">
+                                <RenderFractionText text={o.text} />
+                              </span>
+                            ) : null}
+                            {o.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- uploads under /public
+                              <img
+                                src={o.imageUrl}
+                                alt=""
+                                className="mt-2 max-h-40 w-full rounded-lg border border-slate-200 bg-slate-50 object-contain"
+                              />
+                            ) : null}
+                            {!o.text.trim() && !o.imageUrl ? (
+                              <span className="text-xs text-slate-400">—</span>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                   <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
                     <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Yechim</p>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-                      {w.solution || "Tushuntirish kiritilmagan."}
+                      {w.solution ? <RenderFractionText text={w.solution} /> : "Tushuntirish kiritilmagan."}
                     </p>
                   </div>
                 </div>
@@ -516,7 +560,7 @@ function TestRunner({
                 {current.order}
               </span>
               <p className="min-w-0 text-[15px] font-semibold leading-relaxed tracking-tight text-slate-900 sm:text-base whitespace-pre-wrap">
-                {current.text}
+                <RenderFractionText text={current.text} />
               </p>
             </div>
             {current.imageUrl ? (
@@ -536,13 +580,15 @@ function TestRunner({
             >
               {(
                 [
-                  ["A", current.optionA],
-                  ["B", current.optionB],
-                  ["C", current.optionC],
-                  ["D", current.optionD],
+                  ["A", current.optionA, current.optionAImageUrl],
+                  ["B", current.optionB, current.optionBImageUrl],
+                  ["C", current.optionC, current.optionCImageUrl],
+                  ["D", current.optionD, current.optionDImageUrl],
                 ] as const
-              ).map(([letter, label]) => {
+              ).map(([letter, label, optImg]) => {
                 const selected = chosenForCurrent === letter;
+                const hasText = label.trim().length > 0;
+                const hasImg = Boolean(optImg);
                 return (
                   <button
                     key={letter}
@@ -554,14 +600,14 @@ function TestRunner({
                       if (e.button !== 0 && e.pointerType === "mouse") return;
                       pickAnswer(String(current.id), letter);
                     }}
-                    className={`flex min-h-[3.5rem] w-full cursor-pointer select-none items-center gap-3 rounded-2xl border-2 px-3 py-3 text-left text-sm font-medium transition-colors duration-150 [-webkit-tap-highlight-color:transparent] sm:min-h-[3.25rem] sm:px-4 ${
+                    className={`flex min-h-[3.5rem] w-full cursor-pointer select-none items-start gap-3 rounded-2xl border-2 px-3 py-3 text-left text-sm font-medium transition-colors duration-150 [-webkit-tap-highlight-color:transparent] sm:min-h-[3.25rem] sm:px-4 ${
                       selected
                         ? "border-emerald-600 bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-400/60"
                         : "border-slate-200 bg-white text-slate-800 shadow-sm active:bg-slate-50"
                     }`}
                   >
                     <span
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${
+                      className={`relative top-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${
                         selected ? "bg-white/95 ring-2 ring-white/70" : "bg-slate-100 ring-1 ring-slate-200/80"
                       }`}
                       aria-hidden
@@ -574,17 +620,30 @@ function TestRunner({
                         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-white" /> : null}
                       </span>
                     </span>
-                    <span className={`min-w-0 flex-1 leading-snug whitespace-pre-wrap ${selected ? "text-white" : "text-slate-800"}`}>
+                    <span
+                      className={`min-w-0 flex-1 leading-snug ${hasText ? "whitespace-pre-wrap" : ""} ${selected ? "text-white" : "text-slate-800"}`}
+                    >
                       <span
                         className={`mr-2 inline-block font-black tabular-nums ${selected ? "text-emerald-100" : "text-emerald-700"}`}
                       >
                         {letter}.
                       </span>
-                      {label}
+                      {hasText ? <RenderFractionText text={label} /> : null}
+                      {optImg ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- uploads under /public
+                        <img
+                          src={optImg}
+                          alt=""
+                          className={`mt-2 w-full max-w-full rounded-xl border object-contain shadow-inner ${selected ? "border-white/40 bg-white/10" : "border-slate-200 bg-slate-50"}`}
+                        />
+                      ) : null}
+                      {!hasText && !hasImg ? (
+                        <span className={`text-xs ${selected ? "text-emerald-100" : "text-slate-400"}`}>—</span>
+                      ) : null}
                     </span>
                     {selected ? (
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-lg font-bold text-white ring-1 ring-white/50"
+                        className="relative top-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-lg font-bold text-white ring-1 ring-white/50"
                         aria-hidden
                       >
                         ✓

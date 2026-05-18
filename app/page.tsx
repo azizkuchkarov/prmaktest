@@ -4,18 +4,23 @@ import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingHeader } from "@/components/landing/LandingHeader";
+import { LandingSupport247 } from "@/components/landing/LandingSupport247";
 import { ParentMonitoring } from "@/components/landing/ParentMonitoring";
 import { Ranking } from "@/components/landing/Ranking";
 import { Subjects } from "@/components/landing/Subjects";
 import { TestSchedule } from "@/components/landing/TestSchedule";
+import { getAdminSiteSettingsRow, isKabinetSupportReady } from "@/lib/admin-site-settings";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const siteSettings = await getAdminSiteSettingsRow();
+  const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
+
   return (
     <>
       <LandingHeader />
-      <main className="flex-1 min-w-0 w-full overflow-x-hidden">
+      <main className="flex-1 min-w-0 w-full overflow-x-clip">
         <Hero />
         <Benefits />
         <HowItWorks />
@@ -26,6 +31,7 @@ export default function Home() {
         <FinalCTA />
       </main>
       <LandingFooter />
+      <LandingSupport247 supportConfigured={supportConfigured} />
     </>
   );
 }

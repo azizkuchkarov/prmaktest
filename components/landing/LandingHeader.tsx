@@ -29,7 +29,7 @@ export async function LandingHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full min-w-0 overflow-x-hidden border-b border-slate-200/80 bg-white/90 pt-[max(0px,env(safe-area-inset-top))] backdrop-blur-md [-webkit-tap-highlight-color:transparent]">
-      <div className="mx-auto w-full min-w-0 max-w-6xl px-3 sm:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-6xl pad-x-page">
         <div className="flex h-14 items-center justify-between gap-2 sm:h-16 sm:gap-4">
           <Link
             href="/#hero"
@@ -82,12 +82,6 @@ export async function LandingHeader() {
                 </Link>
               </>
             )}
-            <Link
-              href="/#boshlash"
-              className="hidden min-h-11 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100 sm:inline sm:text-sm"
-            >
-              Boshlash
-            </Link>
           </div>
         </div>
         <nav

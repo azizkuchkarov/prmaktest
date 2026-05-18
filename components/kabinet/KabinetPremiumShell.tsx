@@ -8,7 +8,7 @@ import {
   BarChart3,
   BookOpen,
   GitBranch,
-  Home,
+  Headphones,
   LayoutDashboard,
   LogOut,
   Newspaper,
@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { logoutStudent } from "@/app/auth/actions";
+import { KabinetSupportModalForm } from "@/components/kabinet/KabinetSupportModalForm";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -38,46 +39,89 @@ type Props = {
   viloyat: string;
   ctaHref: string;
   ctaLabel: string;
+  supportConfigured: boolean;
   children: React.ReactNode;
 };
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  onNavigate,
+  supportConfigured,
+  onOpenSupport,
+}: {
+  onNavigate?: () => void;
+  supportConfigured?: boolean;
+  onOpenSupport?: () => void;
+}) {
+  const linkClass = cn(
+    "flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700",
+    "transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-500/[0.08] hover:to-violet-500/[0.08] hover:text-[#1d4ed8] hover:shadow-sm hover:ring-1 hover:ring-slate-200/60 active:scale-[0.99]",
+  );
+  const iconWrapClass =
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 text-[#2563EB] shadow-inner ring-1 ring-white/80";
+
   return (
     <nav className="flex flex-col gap-1 px-3 py-2" aria-label="Asosiy menyu">
       {nav.map(({ href, label, icon: Icon }) => (
-        <a
-          key={href}
-          href={href}
-          onClick={() => onNavigate?.()}
-          className={cn(
-            "flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700",
-            "transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-500/[0.08] hover:to-violet-500/[0.08] hover:text-[#1d4ed8] hover:shadow-sm hover:ring-1 hover:ring-slate-200/60 active:scale-[0.99]",
-          )}
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 text-[#2563EB] shadow-inner ring-1 ring-white/80">
+        <a key={href} href={href} onClick={() => onNavigate?.()} className={linkClass}>
+          <span className={iconWrapClass}>
             <Icon className="h-[18px] w-[18px]" aria-hidden />
           </span>
           <span className="min-w-0 break-words">{label}</span>
         </a>
       ))}
-      <Link
-        href="/"
-        onClick={() => onNavigate?.()}
-        className="mt-2 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100/90 hover:shadow-sm"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 ring-1 ring-white/80">
-          <Home className="h-[18px] w-[18px]" aria-hidden />
-        </span>
-        Bosh sahifa
-      </Link>
+      {supportConfigured && onOpenSupport ? (
+        <button
+          type="button"
+          className={cn(
+            linkClass,
+            "w-full text-left hover:from-teal-500/[0.09] hover:to-violet-500/[0.1] hover:text-violet-800",
+          )}
+          onClick={() => {
+            onOpenSupport();
+            onNavigate?.();
+          }}
+        >
+          <span
+            className={cn(
+              iconWrapClass,
+              "from-teal-50 to-violet-50 text-violet-600",
+            )}
+          >
+            <Headphones className="h-[18px] w-[18px]" aria-hidden />
+          </span>
+          <span className="min-w-0 text-left break-words">
+            <span className="block">24/7 yordam</span>
+            <span className="mt-0.5 block text-[11px] font-normal text-slate-500">
+              Texnik qo&apos;llab-quvvatlash
+            </span>
+          </span>
+        </button>
+      ) : null}
     </nav>
   );
 }
 
-export function KabinetPremiumShell({ displayName, viloyat, ctaHref, ctaLabel, children }: Props) {
+export function KabinetPremiumShell({
+  displayName,
+  viloyat,
+  ctaHref,
+  ctaLabel,
+  supportConfigured,
+  children,
+}: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportModalNonce, setSupportModalNonce] = useState(0);
+  const [mounted, setMounted] = useState(false);
   /** Start narrow so desktop aside is not mounted until `matchMedia` runs (avoids ghost overlap on mobile). */
   const [isLg, setIsLg] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const openSupportModal = () => {
+    setSupportModalNonce((n) => n + 1);
+    setSupportOpen(true);
+  };
 
   useLayoutEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -146,7 +190,11 @@ export function KabinetPremiumShell({ displayName, viloyat, ctaHref, ctaLabel, c
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-8">
-                <NavLinks onNavigate={() => setSheetOpen(false)} />
+                <NavLinks
+                  onNavigate={() => setSheetOpen(false)}
+                  supportConfigured={supportConfigured}
+                  onOpenSupport={openSupportModal}
+                />
                 <div className="px-3 pt-4">
                   <form action={logoutStudent} autoComplete="off" suppressHydrationWarning>
                     <button
@@ -185,7 +233,7 @@ export function KabinetPremiumShell({ displayName, viloyat, ctaHref, ctaLabel, c
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain py-2">
-            <NavLinks />
+            <NavLinks supportConfigured={supportConfigured} onOpenSupport={openSupportModal} />
           </div>
           <div className="shrink-0 border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <form action={logoutStudent} autoComplete="off" suppressHydrationWarning>
@@ -227,7 +275,7 @@ export function KabinetPremiumShell({ displayName, viloyat, ctaHref, ctaLabel, c
         <div
           className={cn(
             "relative w-full min-w-0 overflow-x-clip",
-            "pb-[calc(6.25rem+env(safe-area-inset-bottom))] lg:pb-[max(2rem,env(safe-area-inset-bottom))]"
+            "pb-[calc(6.25rem+env(safe-area-inset-bottom))] lg:pb-[max(2rem,env(safe-area-inset-bottom))]",
           )}
         >
           {children}
@@ -242,6 +290,12 @@ export function KabinetPremiumShell({ displayName, viloyat, ctaHref, ctaLabel, c
           </Link>
         </div>
       </div>
+      {mounted && supportOpen && supportConfigured
+        ? createPortal(
+            <KabinetSupportModalForm key={supportModalNonce} onClose={() => setSupportOpen(false)} />,
+            document.body,
+          )
+        : null}
       {mobileMenuLayer}
     </div>
   );

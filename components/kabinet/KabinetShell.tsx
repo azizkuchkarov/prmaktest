@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   BookOpen,
   GitBranch,
-  Home,
   LayoutDashboard,
   LogOut,
   Newspaper,
@@ -128,14 +126,6 @@ export function KabinetShell({ displayName, viloyat, children }: Props) {
               <span className="min-w-0 whitespace-normal break-words">{label}</span>
             </a>
           ))}
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="mt-4 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white [touch-action:manipulation]"
-          >
-            <Home className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
-            <span className="min-w-0">Bosh sahifa</span>
-          </Link>
         </nav>
 
         <div className="shrink-0 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

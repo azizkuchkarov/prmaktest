@@ -65,6 +65,11 @@ model Question {
   optionB       String
   optionC       String
   optionD       String
+  /// Variant rasmlari (masalan `/uploads/questions/....jpg`), ixtiyoriy
+  optionAImageUrl String?
+  optionBImageUrl String?
+  optionCImageUrl String?
+  optionDImageUrl String?
   correctAnswer TestChoice
   solution      String     @default("")
   createdAt     DateTime   @default(now())
@@ -89,6 +94,8 @@ model User {
   /// Sinf (3–9). 0 = eski yozuvlar / hali tanlanmagan
   gradeLevel          Int            @default(0)
   telegramId          BigInt?        @unique
+  /// Ota-ona Telegram chat ID (admin qo‘lda yoki alohida bog‘lanish — bot bilan suhbat boshlangan bo‘lishi kerak)
+  parentTelegramId    BigInt?
   telegramUsername    String?
   telegramLinkedAt    DateTime?
   /// Botga /start TOKEN — bot serverdan tasdiqlash uchun
@@ -101,8 +108,36 @@ model User {
   balanceDeposits     BalanceDeposit[]
   /// Balans (so'm). Click orqali to'ldiriladi.
   balanceSum          Int            @default(0)
+  supportHelpRequests SupportHelpRequest[]
 
   @@index([gradeLevel])
+}
+
+/// Bitta qator — admin panelidagi global sozlamalar
+model AdminSiteSettings {
+  id                    String   @id @default("default")
+  /// 24/7 yordam: xabar yuboriladigan Telegram chat_id (shaxsiy ID yoki guruh)
+  supportTelegramChatId String   @default("")
+  updatedAt             DateTime @updatedAt
+}
+
+/// Kabinetdan 24/7 yordam tezligi cheklovi uchun log
+model SupportHelpRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Landing (mehmon) 24/7 yordam — tezlik cheklovi telefon bo'yicha
+model PublicSupportHelpRequest {
+  id        String   @id @default(cuid())
+  phone     String
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
 }
 
 enum DepositStatus {

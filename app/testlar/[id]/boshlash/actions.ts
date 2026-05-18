@@ -13,10 +13,17 @@ const CHOICES: TestChoice[] = ["A", "B", "C", "D"];
 
 const SUBMIT_GRACE_MS = 120_000;
 
+export type WrongDetailOption = {
+  letter: TestChoice;
+  text: string;
+  imageUrl?: string | null;
+};
+
 export type WrongDetail = {
   order: number;
   text: string;
   imageUrl?: string | null;
+  options: WrongDetailOption[];
   correct: TestChoice;
   chosen: TestChoice | null;
   solution: string;
@@ -281,6 +288,14 @@ export async function submitTestAttempt(
           order: true,
           text: true,
           imageUrl: true,
+          optionA: true,
+          optionB: true,
+          optionC: true,
+          optionD: true,
+          optionAImageUrl: true,
+          optionBImageUrl: true,
+          optionCImageUrl: true,
+          optionDImageUrl: true,
           correctAnswer: true,
           solution: true,
         },
@@ -345,6 +360,12 @@ export async function submitTestAttempt(
             order: q.order,
             text: q.text,
             imageUrl: q.imageUrl,
+            options: [
+              { letter: "A", text: q.optionA, imageUrl: q.optionAImageUrl },
+              { letter: "B", text: q.optionB, imageUrl: q.optionBImageUrl },
+              { letter: "C", text: q.optionC, imageUrl: q.optionCImageUrl },
+              { letter: "D", text: q.optionD, imageUrl: q.optionDImageUrl },
+            ],
             correct: q.correctAnswer,
             chosen,
             solution: q.solution,

@@ -48,7 +48,7 @@ export function HowItWorks() {
       id="qanday-ishlaydi"
       className="bg-gradient-to-b from-slate-50/80 to-white py-20 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div
           initial={{ opacity: 1, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}

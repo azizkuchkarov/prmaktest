@@ -17,6 +17,7 @@ import {
 import { isStudentProfileComplete, PROFILE_SETUP_PATH, studentDisplayName } from "@/lib/student-profile";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { prisma } from "@/lib/prisma";
+import { getAdminSiteSettingsRow, isKabinetSupportReady } from "@/lib/admin-site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function KabinetPage() {
   const displayName = studentDisplayName(student);
   const gradeOk = isValidStudentGrade(student.gradeLevel);
 
-  const [rank, republicRows, viloyatRows, gradeRepublicRows, gradeViloyatRows, republicViloyatTotals, completedAttempts, news, tests, weekly, radar, readiness] =
+  const [rank, republicRows, viloyatRows, gradeRepublicRows, gradeViloyatRows, republicViloyatTotals, completedAttempts, news, tests, weekly, radar, readiness, siteSettings] =
     await Promise.all([
       getStudentRankSummary(student.id, student.viloyat, gradeOk ? student.gradeLevel : null),
       getRepublicLeaderboard(15),
@@ -66,14 +67,17 @@ export default async function KabinetPage() {
       getStudentWeeklyProgress(student.id),
       getStudentSubjectRadar(student.id),
       getStudentReadiness(student.id),
+      getAdminSiteSettingsRow(),
     ]);
 
+  const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
   const completedTestIds = new Set(completedAttempts.map((a) => a.testId));
 
   return (
     <KabinetDashboard
       student={student}
       displayName={displayName}
+      supportConfigured={supportConfigured}
       rank={rank}
       republicRows={republicRows}
       viloyatRows={viloyatRows}

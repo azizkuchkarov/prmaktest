@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ExternalLink,
   FileText,
+  Headphones,
   LayoutDashboard,
   LogOut,
   Newspaper,
@@ -19,6 +20,7 @@ const links = [
   { href: "/admin/userlar", label: "Userlar", icon: Users },
   { href: "/admin/yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "/admin/testlar", label: "Testlar", icon: FileText },
+  { href: "/admin/sozlamalar", label: "Kabinet yordam", icon: Headphones },
 ] as const;
 
 function linkActive(href: string, pathname: string) {
