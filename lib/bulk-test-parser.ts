@@ -7,13 +7,14 @@ import type { QuestionDraft } from "@/lib/test-builder-rules";
  * A. 11
  * …
  *
- * - Savol `1.` `2.` yoki `1)` `2)` bilan boshlanishi mumkin (Word ro‘yxati)
+ * - Keyingi savol yangi qatorda `2.` … (nuqta bilan). Tushuntirish ichida `1.` / `1)` bilan qator boshlama yoki `- ` ro‘yxat ishlating.
  * - Variantlar: `A.` / `A)` / tab bilan
  * - To'g'ri javob: `@A` yoki `*B`
  * - Tushuntirish: `#` yoki `Tushuntirish:`
  */
 
-const CORRECT_LINE = /^\s*[*@]\s*([ABCD])\s*$/i;
+/** To'g'ri javob qatori: @A, *B yoki to'liq kenglik @ (＠) */
+const CORRECT_LINE = /^\s*[*@＠]\s*([ABCD])\s*$/i;
 /** Word: 1. 1) 1: (to'liq belgi va raqamlar) */
 const QUESTION_HEAD = /^\s*(\d+)\s*[.):：]\s*(.*)$/;
 const TUSHUNTIRISH_HEAD = /^tushuntirish\s*:\s*(.*)$/i;
@@ -202,7 +203,7 @@ export function parseCompactBulkTest(text: string): { questions: QuestionDraft[]
   if (!t) return { questions: [], errors: ["Matn bo'sh."] };
 
   const blocks = t
-    .split(/\n(?=\s*\d+\s*[.):：]\s*)/)
+    .split(/\n(?=\d{1,3}\.\s*\S)/)
     .map((b) => b.trim())
     .filter(Boolean);
 

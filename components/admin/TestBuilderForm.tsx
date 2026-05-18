@@ -407,8 +407,11 @@ export function TestBuilderForm(props: Props) {
               (Word dan nusxa ko&apos;chirganda saqlanadi).
             </li>
             <li>
-              <strong>Geometriya:</strong> Word dagi chizma matn sifatida ko&apos;rinmasa, shaklni
-              matn yoki Unicode belgilar bilan yozing yoki savolni bir nechta qatorga bo&apos;ling.
+              <strong>Savol boshlanishi:</strong> har doim <code className="rounded bg-white/90 px-1 font-mono">1.</code>{" "}
+              <code className="rounded bg-white/90 px-1 font-mono">2.</code> (nuqta bilan). Tushuntirish ichida yangi
+              qatordan <code className="rounded bg-white/90 px-1 font-mono">1)</code> yoki{" "}
+              <code className="rounded bg-white/90 px-1 font-mono">2.</code> yozmaslik yaxshi (bloklar chalkashadi); ro&apos;yxat uchun{" "}
+              <code className="rounded bg-white/90 px-1 font-mono">- band</code> ishlating.
             </li>
             <li>
               <strong>Maxsus tire/tirnoq</strong> (Word auto-format) yuklashdan oldin &quot;Matnni
@@ -417,7 +420,9 @@ export function TestBuilderForm(props: Props) {
           </ul>
           <p className="font-medium text-indigo-900">
             Word dan to&apos;liq tanlab nusxa oling — bo&apos;shliqlar, tire va raqamlar parser tomonidan
-            yengillashtiriladi.
+            yengillashtiriladi. Matnni joylashtirib, albatta{" "}
+            <strong className="text-indigo-950">«Matnni jadvalga qo&apos;llash»</strong> tugmasini bosing
+            (avtomatik saqlanmaydi).
           </p>
           <div className="flex flex-wrap gap-2">
             <button
