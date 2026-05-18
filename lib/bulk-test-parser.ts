@@ -58,7 +58,7 @@ function parseInlineOptions(line: string): Pick<QuestionDraft, "optionA" | "opti
 }
 
 function parseStackOptions(lines: string[]): Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null {
-  const row = /^([ABCD])(?:[\.\):\-–]\s*|\s+|\t+)(.+)$/i;
+  const row = /^([ABCD])(?:[\.\):\-–]\s*|\t+)(.+)$/i;
   const map: Partial<Record<"A" | "B" | "C" | "D", string>> = {};
   for (const ln of lines) {
     const m = ln.trim().match(row);
@@ -70,8 +70,11 @@ function parseStackOptions(lines: string[]): Pick<QuestionDraft, "optionA" | "op
   return { optionA: map.A, optionB: map.B, optionC: map.C, optionD: map.D };
 }
 
-/** Alohida qatorda A. B. C. D. — Word ba'zan tab yoki tire ishlatadi */
-const STACK_OPTION_LINE = /^[ABCD](?:[\.\):\-–]\s*|\s+|\t+).+/i;
+/**
+ * Alohida qatorda A) B) … — faqat aniq ajratgichdan keyin: "A doctor …" artikli A) deb o‘qilmasin.
+ * Faqat `A.` `A)` `A:` `A-` yoki `A<TAB>`.
+ */
+const STACK_OPTION_LINE = /^[ABCD](?:[\.\):\-–]\s*|\t+).+/i;
 
 function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraft; error?: string } {
   const block = rawBlock.trim();
@@ -97,7 +100,8 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
       continue;
     }
     if (CORRECT_LINE.test(ln) || ln.startsWith("#") || TUSHUNTIRISH_HEAD.test(ln)) break;
-    if (/\b[ABCD][\.\):\-–]?\s+.+\b[ABCD][\.\):\-–]?\s+/i.test(ln)) break;
+    // Ikki variant bir qatorda: har bir harfdan keyin ajratgich shart (aks holda "A doctor … in a …" o‘xshab qoladi).
+    if (/\b[ABCD][\.\):\-–]\s*.+\b[ABCD][\.\):\-–]\s*/.test(ln)) break;
     if (STACK_OPTION_LINE.test(ln)) break;
     stemLines.push(ln);
     i += 1;
@@ -114,7 +118,7 @@ function parseOneBlock(rawBlock: string, blockIndex: number): { q?: QuestionDraf
   let options: Pick<QuestionDraft, "optionA" | "optionB" | "optionC" | "optionD"> | null = null;
   const optLine = lines[i].trim();
 
-  if (/\b[ABCD][\.\):\-–]?\s+.+\b[ABCD][\.\):\-–]?\s+/i.test(optLine)) {
+  if (/\b[ABCD][\.\):\-–]\s*.+\b[ABCD][\.\):\-–]\s*/.test(optLine)) {
     options = parseInlineOptions(optLine);
     i += 1;
   } else {
@@ -208,13 +212,14 @@ export function parseCompactBulkTest(text: string): { questions: QuestionDraft[]
     .filter(Boolean);
 
   const questions: QuestionDraft[] = [];
-  let idx = 1;
-  for (const block of blocks) {
-    const r = parseOneBlock(block, idx);
+  let order = 1;
+  for (let b = 0; b < blocks.length; b++) {
+    const fileBlockIndex = b + 1;
+    const r = parseOneBlock(blocks[b], fileBlockIndex);
     if (r.error) errors.push(r.error);
     else if (r.q) {
-      questions.push({ ...r.q, order: idx });
-      idx += 1;
+      questions.push({ ...r.q, order });
+      order += 1;
     }
   }
 

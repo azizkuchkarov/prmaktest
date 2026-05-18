@@ -8,13 +8,14 @@ datasource db {
 }
 
 model News {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   title     String
-  excerpt   String   @default("")
-  body      String   @default("")
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  excerpt   String     @default("")
+  body      String     @default("")
+  published Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  reads     NewsRead[]
 }
 
 enum TestChoice {
@@ -109,8 +110,23 @@ model User {
   /// Balans (so'm). Click orqali to'ldiriladi.
   balanceSum          Int            @default(0)
   supportHelpRequests SupportHelpRequest[]
+  newsReads           NewsRead[]
 
   @@index([gradeLevel])
+}
+
+/// O‘quvchi yangilikni ochganida — ro‘yxatlarda New / O‘qilgan
+model NewsRead {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsId String
+  news   News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  readAt DateTime @default(now())
+
+  @@unique([userId, newsId])
+  @@index([userId])
+  @@index([newsId])
 }
 
 /// Bitta qator — admin panelidagi global sozlamalar

@@ -18,6 +18,7 @@ import { isStudentProfileComplete, PROFILE_SETUP_PATH, studentDisplayName } from
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { prisma } from "@/lib/prisma";
 import { getAdminSiteSettingsRow, isKabinetSupportReady } from "@/lib/admin-site-settings";
+import { getNewsReadIdSet } from "@/lib/news-read";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function KabinetPage() {
       prisma.news.findMany({
         where: { published: true },
         orderBy: { updatedAt: "desc" },
-        take: 9,
+        take: 2,
         select: { id: true, title: true, excerpt: true, updatedAt: true },
       }),
       prisma.test.findMany({
@@ -72,6 +73,11 @@ export default async function KabinetPage() {
 
   const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
   const completedTestIds = new Set(completedAttempts.map((a) => a.testId));
+  const newsReadIds = await getNewsReadIdSet(
+    student.id,
+    news.map((n) => n.id),
+  );
+  const newsForDash = news.map((n) => ({ ...n, isRead: newsReadIds.has(n.id) }));
 
   return (
     <KabinetDashboard
@@ -84,7 +90,7 @@ export default async function KabinetPage() {
       gradeRepublicRows={gradeRepublicRows}
       gradeViloyatRows={gradeViloyatRows}
       republicViloyatTotals={republicViloyatTotals}
-      news={news}
+      news={newsForDash}
       tests={tests.map((t) => ({ ...t, completed: completedTestIds.has(t.id) }))}
       weekly={weekly}
       radar={radar}

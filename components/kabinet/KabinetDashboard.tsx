@@ -31,6 +31,7 @@ export type KabinetNewsItem = {
   title: string;
   excerpt: string;
   updatedAt: Date;
+  isRead: boolean;
 };
 
 export type KabinetTestItem = {
@@ -101,6 +102,7 @@ export function KabinetDashboard({
   const newsSer: KabinetBentoNews[] = news.map((n) => ({
     ...n,
     updatedAt: n.updatedAt.toISOString(),
+    isRead: n.isRead,
   }));
   const testsSer: KabinetBentoTest[] = tests.map((t) => ({
     ...t,

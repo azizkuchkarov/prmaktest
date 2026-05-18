@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { Newspaper } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ProseLongform } from "@/components/content/ProseLongform";
+import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
+import { getCurrentStudent } from "@/lib/student-auth";
+import { markNewsAsRead } from "@/lib/news-read";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,11 @@ export default async function NewsDetailPage({ params, searchParams }: Props) {
     where: { id, published: true },
   });
   if (!news) notFound();
+
+  const student = await getCurrentStudent();
+  if (student) {
+    await markNewsAsRead(student.id, news.id);
+  }
 
   const listHref = fromKabinet ? "/yangiliklar?from=kabinet" : "/yangiliklar";
   const secondaryHref = fromKabinet ? "/kabinet" : "/";
@@ -51,9 +59,12 @@ export default async function NewsDetailPage({ params, searchParams }: Props) {
         </div>
       </header>
       <article className="mx-auto max-w-3xl pad-x-page py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:py-14">
-        <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          {news.title}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            {news.title}
+          </h1>
+          {student ? <NewsStatusBadge isRead className="sm:mt-2" /> : null}
+        </div>
         <p className="mt-3 text-sm text-slate-500">
           {news.updatedAt.toLocaleString("uz-UZ", {
             dateStyle: "long",

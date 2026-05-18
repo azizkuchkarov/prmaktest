@@ -49,6 +49,7 @@ import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
 import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
+import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
 import {
   CATALOG_MENU_MAX,
   CATALOG_PANEL_PREMIUM,
@@ -64,6 +65,7 @@ export type KabinetBentoNews = {
   title: string;
   excerpt: string;
   updatedAt: string;
+  isRead: boolean;
 };
 
 export type KabinetBentoTest = {
@@ -573,13 +575,19 @@ export function KabinetBentoContent({
               <Newspaper className="h-7 w-7 text-[#2563EB]" />
               Yangiliklar
             </h2>
-            <p className="mt-1 text-sm text-slate-600">Platforma yangilanishlari.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              So‘nggi ikkita yangilik. Barchasini to‘liq ro‘yxatda ko‘rishingiz mumkin.
+            </p>
           </div>
-          <Link href="/yangiliklar?from=kabinet" className="shrink-0 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8]">
-            Barchasi →
+          <Link
+            href="/yangiliklar?from=kabinet"
+            className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-3 text-sm font-bold text-[#2563EB] ring-1 ring-[#2563EB]/25 transition hover:bg-[#eff6ff] hover:text-[#1d4ed8] hover:ring-[#2563EB]/40"
+          >
+            Barcha yangiliklar
+            <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
-        <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
           {news.length === 0 ? (
             <li className={cn("col-span-full py-14 text-center text-sm text-slate-500", cardShell)}>
               {"Hozircha yangiliklar yo'q."}
@@ -594,7 +602,12 @@ export function KabinetBentoContent({
                     cardShell
                   )}
                 >
-                  <h3 className="font-semibold leading-snug text-slate-900 group-hover:text-[#2563EB]">{n.title}</h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="min-w-0 flex-1 font-semibold leading-snug text-slate-900 group-hover:text-[#2563EB]">
+                      {n.title}
+                    </h3>
+                    <NewsStatusBadge isRead={n.isRead} className="mt-0.5" />
+                  </div>
                   {n.excerpt ? (
                     <p className="mt-2 line-clamp-2 flex-1 text-xs text-slate-600">{n.excerpt}</p>
                   ) : null}
@@ -606,6 +619,16 @@ export function KabinetBentoContent({
             ))
           )}
         </ul>
+        {news.length > 0 ? (
+          <Link
+            href="/yangiliklar?from=kabinet"
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#2563EB]/35 bg-white px-4 py-3 text-sm font-bold text-[#2563EB] shadow-sm shadow-slate-200/40 ring-1 ring-slate-200/60 transition hover:border-[#2563EB]/50 hover:bg-[#eff6ff] active:bg-[#dbeafe]"
+          >
+            <Newspaper className="h-4 w-4 shrink-0" aria-hidden />
+            Barcha yangiliklar ro‘yxati
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          </Link>
+        ) : null}
       </motion.section>
 
       <div className="relative grid auto-rows-min gap-4 min-w-0 lg:grid-cols-12 lg:gap-5">

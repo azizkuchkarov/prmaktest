@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Newspaper } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
+import { getNewsReadIdSet } from "@/lib/news-read";
+import { getCurrentStudent } from "@/lib/student-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,15 @@ export default async function NewsPublicPage({ searchParams }: PageProps) {
     where: { published: true },
     orderBy: { updatedAt: "desc" },
   });
+
+  const student = await getCurrentStudent();
+  const readIds =
+    student && items.length > 0
+      ? await getNewsReadIdSet(
+          student.id,
+          items.map((n) => n.id),
+        )
+      : new Set<string>();
 
   const itemQuery = fromKabinet ? "?from=kabinet" : "";
 
@@ -59,7 +71,10 @@ export default async function NewsPublicPage({ searchParams }: PageProps) {
                   href={`/yangiliklar/${n.id}${itemQuery}`}
                   className="block rounded-2xl border border-slate-100 bg-white p-5 shadow-md shadow-slate-200/40 transition hover:border-blue-100 hover:shadow-lg"
                 >
-                  <h2 className="text-lg font-semibold text-slate-900">{n.title}</h2>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h2 className="min-w-0 flex-1 text-lg font-semibold text-slate-900">{n.title}</h2>
+                    {student ? <NewsStatusBadge isRead={readIds.has(n.id)} className="mt-0.5" /> : null}
+                  </div>
                   {n.excerpt ? (
                     <p className="mt-2 line-clamp-2 text-sm text-slate-600">{n.excerpt}</p>
                   ) : null}
