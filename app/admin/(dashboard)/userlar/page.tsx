@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { ChevronDown, MessageSquare, Users } from "lucide-react";
+import { BarChart3, ChevronDown, MessageSquare, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { normalizeUzbekPhone, formatPhoneDisplay } from "@/lib/phone";
 import { VILOYATLAR, isViloyat } from "@/lib/viloyats";
@@ -30,7 +30,7 @@ type Search = {
 
 type Props = { searchParams: Promise<Search> };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 function parsePage(raw: string | undefined): number {
   const n = typeof raw === "string" ? Number.parseInt(raw, 10) : NaN;
@@ -134,9 +134,31 @@ function PaginationBar({
   );
 }
 
-function shortUserId(id: string): string {
-  if (id.length <= 14) return id;
-  return `${id.slice(0, 10)}…`;
+function buildNationwideViloyatStats(
+  totalsByVil: { viloyat: string; _count: { _all: number } }[],
+  noTgByVil: { viloyat: string; _count: { _all: number } }[],
+) {
+  const totalMap = new Map(totalsByVil.map((r) => [r.viloyat, r._count._all]));
+  const noTgMap = new Map(noTgByVil.map((r) => [r.viloyat, r._count._all]));
+  const known = new Set<string>([...VILOYATLAR]);
+
+  const rows: { viloyat: string; total: number; noTg: number; withTg: number }[] = [];
+  for (const v of VILOYATLAR) {
+    const total = totalMap.get(v) ?? 0;
+    const noTg = noTgMap.get(v) ?? 0;
+    rows.push({ viloyat: v, total, noTg, withTg: total - noTg });
+  }
+
+  const extras = [...totalMap.keys()].filter((k) => !known.has(k)).sort((a, b) => a.localeCompare(b, "uz"));
+  for (const v of extras) {
+    const total = totalMap.get(v) ?? 0;
+    const noTg = noTgMap.get(v) ?? 0;
+    rows.push({ viloyat: v, total, noTg, withTg: total - noTg });
+  }
+
+  const sumTotal = totalsByVil.reduce((acc, r) => acc + r._count._all, 0);
+  const sumNoTg = noTgByVil.reduce((acc, r) => acc + r._count._all, 0);
+  return { rows, sumTotal, sumNoTg, hasExtraViloyats: extras.length > 0 };
 }
 
 function buildUsersWhere(
@@ -216,143 +238,132 @@ function UserCard({
 
   return (
     <li
-      className={`rounded-xl border border-slate-200/90 p-4 shadow-sm transition-shadow hover:shadow-md ${cardHighlight}`}
+      className={`rounded-lg border border-slate-200/90 p-2.5 shadow-sm transition-shadow hover:shadow-md ${cardHighlight}`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-1">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-            <span className="text-xs font-semibold text-slate-400">#{idx}</span>
-            <span className="font-mono text-[11px] text-slate-600" title={u.id}>
-              {shortUserId(u.id)}
-            </span>
+            <span className="text-[10px] font-semibold text-slate-400">#{idx}</span>
+            <span className="text-sm font-semibold leading-tight text-slate-900">{displayName}</span>
           </div>
-          <p className="text-base font-semibold text-slate-900">{displayName}</p>
-          <div className="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row sm:flex-wrap sm:gap-x-4">
-            <span>
-              <span className="text-slate-400">Tel:</span> {formatPhoneDisplay(u.phone)}
-            </span>
-            <span>
-              <span className="text-slate-400">Ota-ona:</span>{" "}
-              {parentPhoneOk ? formatPhoneDisplay(u.parentPhone) : "—"}
-            </span>
-            <span>
-              <span className="text-slate-400">Viloyat:</span> {u.viloyat}
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-700 break-all" title={u.id}>
+            {u.id}
+          </p>
+          <p className="mt-1 text-[10px] leading-snug text-slate-600">
+            <span className="text-slate-400">Tel</span> {formatPhoneDisplay(u.phone)}
+            <span className="mx-1 text-slate-300">·</span>
+            <span className="text-slate-400">Ota</span> {parentPhoneOk ? formatPhoneDisplay(u.parentPhone) : "—"}
+            <span className="mx-1 text-slate-300">·</span>
+            <span className="text-slate-400">Vil</span> {u.viloyat}
+          </p>
+          <p className="mt-0.5 text-[10px] text-slate-400">
             {u.telegramUsername ? (
               <span className="font-mono">@{u.telegramUsername}</span>
             ) : (
-              <span>@user —</span>
+              <span className="font-mono">@—</span>
             )}
-            <span className="mx-1.5 text-slate-300">·</span>
-            Ro&apos;yxatdan:{" "}
-            {u.createdAt.toLocaleString("uz-UZ", {
-              dateStyle: "short",
-              timeStyle: "short",
-            })}
+            <span className="mx-1 text-slate-300">·</span>
+            {u.createdAt.toLocaleString("uz-UZ", { dateStyle: "short", timeStyle: "short" })}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[14rem] sm:justify-end">
+        <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
           {missingStudentTg ? (
-            <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900">
-              O&apos;quvchi TG yo&apos;q
+            <span className="inline-flex rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-900">
+              TG yo&apos;q
             </span>
           ) : (
-            <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-900">
-              O&apos;quvchi TG OK
+            <span className="inline-flex rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-900">
+              TG OK
             </span>
           )}
           {missingParentTg ? (
-            <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900">
-              Ota-ona TG yo&apos;q
+            <span className="inline-flex rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-900">
+              Ota TG
             </span>
           ) : parentPhoneOk && u.parentTelegramId != null ? (
-            <span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-900">
-              Ota-ona TG OK
+            <span className="inline-flex rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-900">
+              Ota OK
             </span>
           ) : null}
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">TG — o&apos;quvchi</p>
-          <form action={updateUserTelegram.bind(null, u.id)} className="mt-2 flex items-center gap-2">
-            <RedirectFields vil={validViloyat} tel={telFilter} />
-            <input
-              name="telegramId"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              title="Bo'sh qoldirsangiz Telegram ID o'chadi"
-              placeholder="Telegram ID"
-              defaultValue={u.telegramId != null ? String(u.telegramId) : ""}
-              className="min-h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
-            />
-            <button
-              type="submit"
-              className="h-10 shrink-0 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700"
-            >
-              Saqlash
-            </button>
-          </form>
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">TG — ota-ona</p>
-          <form action={updateParentTelegram.bind(null, u.id)} className="mt-2 flex items-center gap-2">
-            <RedirectFields vil={validViloyat} tel={telFilter} />
-            <input
-              name="parentTelegramId"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              title="Bo'sh qoldirsangiz ota-ona TG o'chadi"
-              placeholder="Telegram ID"
-              defaultValue={u.parentTelegramId != null ? String(u.parentTelegramId) : ""}
-              className="min-h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs text-slate-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25"
-            />
-            <button
-              type="submit"
-              className="h-10 shrink-0 rounded-lg bg-violet-600 px-3 text-xs font-semibold text-white hover:bg-violet-700"
-            >
-              Saqlash
-            </button>
-          </form>
-        </div>
+      <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2 sm:grid-cols-2">
+        <form action={updateUserTelegram.bind(null, u.id)} className="flex min-w-0 items-center gap-1.5">
+          <RedirectFields vil={validViloyat} tel={telFilter} />
+          <span className="w-[4.5rem] shrink-0 text-[10px] font-medium text-slate-500">TG o&apos;quvchi</span>
+          <input
+            name="telegramId"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            title="Bo'sh qoldirsangiz Telegram ID o'chadi"
+            placeholder="ID"
+            defaultValue={u.telegramId != null ? String(u.telegramId) : ""}
+            className="h-8 min-w-0 flex-1 rounded-md border border-slate-200 px-1.5 font-mono text-[11px] text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+          />
+          <button
+            type="submit"
+            className="h-8 shrink-0 rounded-md bg-blue-600 px-2 text-[11px] font-semibold text-white hover:bg-blue-700"
+          >
+            OK
+          </button>
+        </form>
+        <form action={updateParentTelegram.bind(null, u.id)} className="flex min-w-0 items-center gap-1.5">
+          <RedirectFields vil={validViloyat} tel={telFilter} />
+          <span className="w-[4.5rem] shrink-0 text-[10px] font-medium text-slate-500">TG ota</span>
+          <input
+            name="parentTelegramId"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            title="Bo'sh qoldirsangiz ota-ona TG o'chadi"
+            placeholder="ID"
+            defaultValue={u.parentTelegramId != null ? String(u.parentTelegramId) : ""}
+            className="h-8 min-w-0 flex-1 rounded-md border border-slate-200 px-1.5 font-mono text-[11px] text-slate-900 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/20"
+          />
+          <button
+            type="submit"
+            className="h-8 shrink-0 rounded-md bg-violet-600 px-2 text-[11px] font-semibold text-white hover:bg-violet-700"
+          >
+            OK
+          </button>
+        </form>
       </div>
 
-      <div className="mt-4 border-t border-slate-100 pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Yangi parol (kabinet)</p>
-        <form
-          action={updateUserPassword.bind(null, u.id)}
-          className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end"
-        >
+      <details className="group/pw mt-2 border-t border-slate-100 pt-1.5">
+        <summary className="cursor-pointer list-none text-[10px] font-semibold text-slate-500 hover:text-slate-700 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-1">
+            <ChevronDown className="h-3 w-3 shrink-0 transition-transform group-open/pw:rotate-180" aria-hidden />
+            Parol
+          </span>
+        </summary>
+        <form action={updateUserPassword.bind(null, u.id)} className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <RedirectFields vil={validViloyat} tel={telFilter} />
           <input
             name="password"
             type="password"
             autoComplete="new-password"
-            placeholder="Kamida 8 belgi"
+            placeholder="Yangi"
             minLength={8}
-            className="min-h-10 w-full min-w-0 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm sm:max-w-[11rem]"
+            className="h-8 min-w-[7rem] flex-1 rounded-md border border-slate-200 px-2 text-[11px] text-slate-900 sm:flex-none sm:min-w-[8rem]"
           />
           <input
             name="password2"
             type="password"
             autoComplete="new-password"
-            placeholder="Takrorlang"
+            placeholder="Takror"
             minLength={8}
-            className="min-h-10 w-full min-w-0 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm sm:max-w-[11rem]"
+            className="h-8 min-w-[7rem] flex-1 rounded-md border border-slate-200 px-2 text-[11px] text-slate-900 sm:flex-none sm:min-w-[8rem]"
           />
           <button
             type="submit"
-            className="h-10 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+            className="h-8 shrink-0 rounded-md border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-800 hover:bg-slate-50"
           >
-            Parolni yangilash
+            Saqlash
           </button>
         </form>
-      </div>
+      </details>
     </li>
   );
 }
@@ -368,7 +379,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const usersWhere = buildUsersWhere(validViloyat, telFilter);
 
-  const [users, viloyatTotal, viloyatNoTg] = await Promise.all([
+  const [users, viloyatTotal, viloyatNoTg, nationwideTotals, nationwideNoTg] = await Promise.all([
     usersWhere
       ? prisma.user.findMany({
           where: usersWhere,
@@ -380,7 +391,19 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     validViloyat
       ? prisma.user.count({ where: { viloyat: validViloyat, telegramId: null } })
       : Promise.resolve(0),
+    prisma.user.groupBy({
+      by: ["viloyat"],
+      _count: { _all: true },
+    }),
+    prisma.user.groupBy({
+      by: ["viloyat"],
+      where: { telegramId: null },
+      _count: { _all: true },
+    }),
   ]);
+
+  const { rows: nationwideRows, sumTotal: nationwideSumTotal, sumNoTg: nationwideSumNoTg, hasExtraViloyats } =
+    buildNationwideViloyatStats(nationwideTotals, nationwideNoTg);
 
   const republicRows =
     validViloyat != null
@@ -435,69 +458,73 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
-      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:p-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:px-6">
         <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Userlar</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">
-          Barcha bazani yuklash serverni ortiqcha yuklamasligi uchun <strong>foydalanuvchi kartochkalari</strong> faqat{" "}
-          <strong>viloyat</strong> tanlangan yoki <strong>telefon</strong> bo&apos;yicha qidiruv ishlaganda chiqadi.
-          Viloyat bo&apos;yicha qisqa statistika ham shu tanlovdan keyin ochiladi. Telefon bilan qidirganda kamida{" "}
-          <strong>4 ta raqam</strong> yoki to&apos;g&apos;ri format kiriting. Har bir guruhda <strong>10 ta</strong> foydalanuvchi
-          sahifalanadi.
-        </p>
       </div>
 
-      {validViloyat ? (
-        <details className="group rounded-2xl border border-slate-200/90 bg-white shadow-md open:shadow-lg">
-          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-4 pr-4 [&::-webkit-details-marker]:hidden sm:px-5">
-            <ChevronDown
-              className="h-5 w-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180"
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-slate-900">Viloyat bo&apos;yicha qisqa statistika</p>
-              <p className="mt-0.5 text-xs text-slate-600">
-                <strong>{validViloyat}</strong> — jami: <strong>{republicSum.total}</strong>, Telegram ID yo&apos;q:{" "}
-                <strong className="text-amber-700">{republicSum.noTg}</strong>
-              </p>
-            </div>
-            <span className="hidden shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 sm:inline">
-              Bosing
-            </span>
-          </summary>
-          <div className="border-t border-slate-100 px-3 pb-4 sm:px-5">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <th className="py-3 pl-0 pr-2">Viloyat</th>
-                    <th className="px-2 py-3 text-right tabular-nums">Jami</th>
-                    <th className="px-2 py-3 text-right tabular-nums text-amber-700">TG yo&apos;q</th>
-                    <th className="py-3 pl-2 pr-0 text-right tabular-nums text-emerald-700">TG bor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {republicRows.map((r) => (
-                    <tr key={r.viloyat} className="border-b border-slate-50 last:border-0">
-                      <td className="py-2.5 pl-0 pr-2 font-medium text-slate-800">{r.viloyat}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-slate-700">{r.total}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums font-medium text-amber-800">{r.noTg}</td>
-                      <td className="py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-800">{r.withTg}</td>
-                    </tr>
-                  ))}
-                  <tr className="bg-slate-50 font-semibold">
-                    <td className="rounded-bl-lg py-3 pl-0 pr-2 text-slate-900">Jami</td>
-                    <td className="px-2 py-3 text-right tabular-nums text-slate-900">{republicSum.total}</td>
-                    <td className="px-2 py-3 text-right tabular-nums text-amber-900">{republicSum.noTg}</td>
-                    <td className="rounded-br-lg py-3 pl-2 pr-0 text-right tabular-nums text-emerald-900">
-                      {republicSum.total - republicSum.noTg}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+      <details className="group/stats rounded-2xl border border-slate-200/90 bg-white shadow-md open:shadow-lg">
+        <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3 sm:px-5 sm:py-4 [&::-webkit-details-marker]:hidden">
+          <ChevronDown
+            className="mt-0.5 h-5 w-5 shrink-0 text-slate-500 transition-transform group-open/stats:rotate-180"
+            aria-hidden
+          />
+          <BarChart3 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-slate-900">Umumiy statistika — barcha viloyatlar</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Jami: <strong>{nationwideSumTotal}</strong>, TG ID yo&apos;q:{" "}
+              <strong className="text-amber-700">{nationwideSumNoTg}</strong>, TG bor:{" "}
+              <strong className="text-emerald-700">{nationwideSumTotal - nationwideSumNoTg}</strong>
+            </p>
           </div>
-        </details>
-      ) : null}
+        </summary>
+        <div className="border-t border-slate-100 px-3 pb-4 pt-2 sm:px-5">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="py-2.5 pl-0 pr-2">Viloyat</th>
+                  <th className="px-2 py-2.5 text-right tabular-nums">Jami userlar</th>
+                  <th className="px-2 py-2.5 text-right tabular-nums text-amber-700">TG ID yo&apos;q</th>
+                  <th className="py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-700">TG bor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nationwideRows.map((r) => (
+                  <tr key={r.viloyat} className="border-b border-slate-50 last:border-0">
+                    <td className="py-2 pl-0 pr-2 font-medium text-slate-800">{r.viloyat}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-slate-700">{r.total}</td>
+                    <td className="px-2 py-2 text-right tabular-nums font-medium text-amber-800">{r.noTg}</td>
+                    <td className="py-2 pl-2 pr-0 text-right tabular-nums text-emerald-800">{r.withTg}</td>
+                  </tr>
+                ))}
+                <tr className="bg-slate-50 font-semibold">
+                  <td className="rounded-bl-lg py-2.5 pl-0 pr-2 text-slate-900">Jami (respublika)</td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">{nationwideSumTotal}</td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-amber-900">{nationwideSumNoTg}</td>
+                  <td className="rounded-br-lg py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-900">
+                    {nationwideSumTotal - nationwideSumNoTg}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {hasExtraViloyats ? (
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+              Ro&apos;yxatdagi standart viloyat nomlaridan tashqari bazada boshqa <strong>viloyat</strong> qiymati bilan
+              saqlangan foydalanuvchilar alohida qatorlarda keltiriladi.
+            </p>
+          ) : null}
+        </div>
+      </details>
+
+      <AdminUserFilters
+        defaultViloyat={validViloyat ?? ""}
+        defaultTel={telFilter ?? ""}
+        viloyatOptions={VILOYATLAR}
+        hasActiveFilter={hasActiveFilter}
+        filterClearHref={filterClearHref}
+      />
 
       {viloyatInvalid ? (
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -577,66 +604,111 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         </p>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:p-6">
-        <div className="flex items-start gap-3">
+      {validViloyat ? (
+        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-md">
+          <div className="border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4">
+            <p className="font-bold text-slate-900">Respublika bo&apos;yicha qisqa statistika</p>
+            <p className="mt-1 text-xs text-slate-600">
+              <strong className="text-sky-800">{validViloyat}</strong> — jami: <strong>{republicSum.total}</strong>,
+              Telegram ID yo&apos;q: <strong className="text-amber-700">{republicSum.noTg}</strong>, Telegram bor:{" "}
+              <strong className="text-emerald-700">{republicSum.total - republicSum.noTg}</strong>
+            </p>
+          </div>
+          <div className="px-3 pb-4 pt-2 sm:px-5">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="py-2.5 pl-0 pr-2">Hudud</th>
+                    <th className="px-2 py-2.5 text-right tabular-nums">Jami</th>
+                    <th className="px-2 py-2.5 text-right tabular-nums text-amber-700">TG yo&apos;q</th>
+                    <th className="py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-700">TG bor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {republicRows.map((r) => (
+                    <tr key={r.viloyat} className="border-b border-slate-50 last:border-0">
+                      <td className="py-2 pl-0 pr-2 font-medium text-slate-800">{r.viloyat}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-slate-700">{r.total}</td>
+                      <td className="px-2 py-2 text-right tabular-nums font-medium text-amber-800">{r.noTg}</td>
+                      <td className="py-2 pl-2 pr-0 text-right tabular-nums text-emerald-800">{r.withTg}</td>
+                    </tr>
+                  ))}
+                  {republicRows.length > 1 ? (
+                    <tr className="bg-slate-50 font-semibold">
+                      <td className="rounded-bl-lg py-2.5 pl-0 pr-2 text-slate-900">Jami</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">{republicSum.total}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-amber-900">{republicSum.noTg}</td>
+                      <td className="rounded-br-lg py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-900">
+                        {republicSum.total - republicSum.noTg}
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <details className="group rounded-2xl border border-slate-200/80 bg-white/90 shadow-md shadow-slate-200/40 backdrop-blur-sm open:shadow-lg">
+        <summary className="flex cursor-pointer list-none items-start gap-3 rounded-2xl p-5 pb-4 pr-4 [&::-webkit-details-marker]:hidden sm:p-6 sm:pb-4">
+          <ChevronDown
+            className="mt-0.5 h-5 w-5 shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+            aria-hidden
+          />
           <MessageSquare className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" aria-hidden />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold text-slate-900">O&apos;quvchi va ota-onaga Telegram xabar</h2>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Kartochkadagi <span className="font-mono">User ID</span> ni nusxalang.
+              Kartochkadagi <span className="font-mono">User ID</span> ni nusxalang. Bosing — forma ochiladi / yopiladi.
             </p>
-            <form
-              action={sendAdminUserParentTelegram}
-              className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
-            >
-              <RedirectFields vil={validViloyat} tel={telFilter} />
-              <div className="min-w-0 w-full sm:w-56">
-                <label htmlFor="notifyUserId" className="block text-xs font-medium text-slate-500">
-                  User ID
-                </label>
-                <input
-                  id="notifyUserId"
-                  name="notifyUserId"
-                  type="text"
-                  required
-                  placeholder="cuid"
-                  defaultValue={highlightId ?? ""}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25"
-                />
-              </div>
-              <div className="min-w-0 flex-1 basis-[min(100%,20rem)]">
-                <label htmlFor="notifyMessage" className="block text-xs font-medium text-slate-500">
-                  Xabar matni
-                </label>
-                <textarea
-                  id="notifyMessage"
-                  name="notifyMessage"
-                  required
-                  rows={2}
-                  placeholder="Matn…"
-                  className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25 sm:min-h-[2.75rem]"
-                />
-              </div>
-              <button
-                type="submit"
-                className="h-11 w-full shrink-0 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-5 text-sm font-bold text-white shadow-md transition hover:brightness-110 sm:w-auto"
-              >
-                Yuborish
-              </button>
-            </form>
           </div>
+        </summary>
+        <div className="border-t border-slate-100 px-5 pb-5 pt-3 sm:px-6 sm:pb-6">
+          <form
+            action={sendAdminUserParentTelegram}
+            className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+          >
+            <RedirectFields vil={validViloyat} tel={telFilter} />
+            <div className="min-w-0 w-full sm:w-56">
+              <label htmlFor="notifyUserId" className="block text-xs font-medium text-slate-500">
+                User ID
+              </label>
+              <input
+                id="notifyUserId"
+                name="notifyUserId"
+                type="text"
+                required
+                placeholder="cuid"
+                defaultValue={highlightId ?? ""}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25"
+              />
+            </div>
+            <div className="min-w-0 flex-1 basis-[min(100%,20rem)]">
+              <label htmlFor="notifyMessage" className="block text-xs font-medium text-slate-500">
+                Xabar matni
+              </label>
+              <textarea
+                id="notifyMessage"
+                name="notifyMessage"
+                required
+                rows={2}
+                placeholder="Matn…"
+                className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25 sm:min-h-[2.75rem]"
+              />
+            </div>
+            <button
+              type="submit"
+              className="h-11 w-full shrink-0 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-5 text-sm font-bold text-white shadow-md transition hover:brightness-110 sm:w-auto"
+            >
+              Yuborish
+            </button>
+          </form>
         </div>
-      </div>
+      </details>
 
-      <AdminUserFilters
-        defaultViloyat={validViloyat ?? ""}
-        defaultTel={telFilter ?? ""}
-        viloyatOptions={VILOYATLAR}
-        hasActiveFilter={hasActiveFilter}
-        filterClearHref={filterClearHref}
-      />
-
-      <div className="space-y-8">
+      <div className="space-y-6">
         {!usersWhere ? (
           <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 px-4 py-10 text-center shadow-sm sm:px-6">
             <p className="text-sm font-semibold text-slate-800">Foydalanuvchi ro&apos;yxati yuklanmadi</p>
@@ -657,23 +729,20 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         ) : null}
 
         {usersWhere && validViloyat ? (
-          <details
-            className="group overflow-hidden rounded-2xl border-2 border-amber-200/90 bg-amber-50/20 shadow-md shadow-slate-200/30 open:shadow-lg"
-            open
-          >
-            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 border-b border-amber-100 bg-amber-50/80 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <details className="group overflow-hidden rounded-2xl border-2 border-amber-200/90 bg-amber-50/20 shadow-md shadow-slate-200/30 open:shadow-lg">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-1.5 border-b border-amber-100 bg-amber-50/80 px-3 py-2 [&::-webkit-details-marker]:hidden">
               <ChevronDown
-                className="h-5 w-5 shrink-0 text-amber-700 transition-transform group-open:rotate-180"
+                className="h-4 w-4 shrink-0 text-amber-700 transition-transform group-open:rotate-180"
                 aria-hidden
               />
-              <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-xs font-bold text-amber-950">
-                Telegram yo&apos;q
+              <span className="rounded-md bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+                TG yo&apos;q
               </span>
-              <Users className="h-5 w-5 text-amber-700" aria-hidden />
-              <span className="text-sm font-semibold text-slate-900">
+              <Users className="h-4 w-4 text-amber-700" aria-hidden />
+              <span className="text-xs font-semibold text-slate-900 sm:text-sm">
                 <span className="text-amber-900">{validViloyat}</span>
                 {" · "}
-                {usersNoTg.length} ta — TG ID kiritish kerak
+                {usersNoTg.length} ta
                 {usersNoTg.length > 0 ? (
                   <span className="ml-2 font-normal text-slate-600">
                     (ko&apos;rsatilmoqda {(safeNoTgPage - 1) * PAGE_SIZE + 1}–
@@ -682,14 +751,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 ) : null}
               </span>
             </summary>
-            <div className="p-3 sm:p-4">
+            <div className="p-2 sm:p-3">
               {usersNoTg.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-600">
+                <p className="py-6 text-center text-sm text-slate-600">
                   Bu guruh bo&apos;yicha yo&apos;q{hasActiveFilter ? " (filtr natijasi)" : ""}.
                 </p>
               ) : (
                 <>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {usersNoTgPage.map((u, i) => (
                       <UserCard
                         key={u.id}
@@ -717,14 +786,18 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           </details>
         ) : null}
         {usersWhere && !validViloyat ? (
-          <section className="overflow-hidden rounded-2xl border-2 border-amber-200/90 bg-amber-50/20 shadow-md shadow-slate-200/30">
-            <div className="flex flex-wrap items-center gap-2 border-b border-amber-100 bg-amber-50/80 px-4 py-3">
-              <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-xs font-bold text-amber-950">
-                Telegram yo&apos;q
+          <details className="group overflow-hidden rounded-2xl border-2 border-amber-200/90 bg-amber-50/20 shadow-md shadow-slate-200/30 open:shadow-lg">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-1.5 border-b border-amber-100 bg-amber-50/80 px-3 py-2 [&::-webkit-details-marker]:hidden">
+              <ChevronDown
+                className="h-4 w-4 shrink-0 text-amber-700 transition-transform group-open:rotate-180"
+                aria-hidden
+              />
+              <span className="rounded-md bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+                TG yo&apos;q
               </span>
-              <Users className="h-5 w-5 text-amber-700" aria-hidden />
-              <span className="text-sm font-semibold text-slate-900">
-                {usersNoTg.length} ta — TG ID kiritish kerak
+              <Users className="h-4 w-4 text-amber-700" aria-hidden />
+              <span className="text-xs font-semibold text-slate-900 sm:text-sm">
+                {usersNoTg.length} ta
                 {usersNoTg.length > 0 ? (
                   <span className="ml-2 font-normal text-slate-600">
                     (ko&apos;rsatilmoqda {(safeNoTgPage - 1) * PAGE_SIZE + 1}–
@@ -732,15 +805,15 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   </span>
                 ) : null}
               </span>
-            </div>
-            <div className="p-3 sm:p-4">
+            </summary>
+            <div className="p-2 sm:p-3">
               {usersNoTg.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-600">
+                <p className="py-6 text-center text-sm text-slate-600">
                   Bu guruh bo&apos;yicha yo&apos;q{hasActiveFilter ? " (filtr natijasi)" : ""}.
                 </p>
               ) : (
                 <>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {usersNoTgPage.map((u, i) => (
                       <UserCard
                         key={u.id}
@@ -765,24 +838,21 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 </>
               )}
             </div>
-          </section>
+          </details>
         ) : null}
 
         {usersWhere && validViloyat ? (
-          <details
-            className="group overflow-hidden rounded-2xl border-2 border-emerald-200/90 bg-emerald-50/15 shadow-md shadow-slate-200/30 open:shadow-lg"
-            open
-          >
-            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 border-b border-emerald-100 bg-emerald-50/70 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <details className="group overflow-hidden rounded-2xl border-2 border-emerald-200/90 bg-emerald-50/15 shadow-md shadow-slate-200/30 open:shadow-lg">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-1.5 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2 [&::-webkit-details-marker]:hidden">
               <ChevronDown
-                className="h-5 w-5 shrink-0 text-emerald-700 transition-transform group-open:rotate-180"
+                className="h-4 w-4 shrink-0 text-emerald-700 transition-transform group-open:rotate-180"
                 aria-hidden
               />
-              <span className="rounded-full bg-emerald-200/80 px-2 py-0.5 text-xs font-bold text-emerald-950">
-                Telegram bor
+              <span className="rounded-md bg-emerald-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-950">
+                TG bor
               </span>
-              <Users className="h-5 w-5 text-emerald-700" aria-hidden />
-              <span className="text-sm font-semibold text-slate-900">
+              <Users className="h-4 w-4 text-emerald-700" aria-hidden />
+              <span className="text-xs font-semibold text-slate-900 sm:text-sm">
                 <span className="text-emerald-900">{validViloyat}</span>
                 {" · "}
                 {usersWithTg.length} ta
@@ -794,14 +864,14 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 ) : null}
               </span>
             </summary>
-            <div className="p-3 sm:p-4">
+            <div className="p-2 sm:p-3">
               {usersWithTg.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-600">
+                <p className="py-6 text-center text-sm text-slate-600">
                   Bu guruh bo&apos;yicha yo&apos;q{hasActiveFilter ? " (filtr natijasi)" : ""}.
                 </p>
               ) : (
                 <>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {usersWithTgPage.map((u, i) => (
                       <UserCard
                         key={u.id}
@@ -829,13 +899,17 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           </details>
         ) : null}
         {usersWhere && !validViloyat ? (
-          <section className="overflow-hidden rounded-2xl border-2 border-emerald-200/90 bg-emerald-50/15 shadow-md shadow-slate-200/30">
-            <div className="flex flex-wrap items-center gap-2 border-b border-emerald-100 bg-emerald-50/70 px-4 py-3">
-              <span className="rounded-full bg-emerald-200/80 px-2 py-0.5 text-xs font-bold text-emerald-950">
-                Telegram bor
+          <details className="group overflow-hidden rounded-2xl border-2 border-emerald-200/90 bg-emerald-50/15 shadow-md shadow-slate-200/30 open:shadow-lg">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-1.5 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2 [&::-webkit-details-marker]:hidden">
+              <ChevronDown
+                className="h-4 w-4 shrink-0 text-emerald-700 transition-transform group-open:rotate-180"
+                aria-hidden
+              />
+              <span className="rounded-md bg-emerald-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-950">
+                TG bor
               </span>
-              <Users className="h-5 w-5 text-emerald-700" aria-hidden />
-              <span className="text-sm font-semibold text-slate-900">
+              <Users className="h-4 w-4 text-emerald-700" aria-hidden />
+              <span className="text-xs font-semibold text-slate-900 sm:text-sm">
                 {usersWithTg.length} ta
                 {usersWithTg.length > 0 ? (
                   <span className="ml-2 font-normal text-slate-600">
@@ -844,15 +918,15 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   </span>
                 ) : null}
               </span>
-            </div>
-            <div className="p-3 sm:p-4">
+            </summary>
+            <div className="p-2 sm:p-3">
               {usersWithTg.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-600">
+                <p className="py-6 text-center text-sm text-slate-600">
                   Bu guruh bo&apos;yicha yo&apos;q{hasActiveFilter ? " (filtr natijasi)" : ""}.
                 </p>
               ) : (
                 <>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {usersWithTgPage.map((u, i) => (
                       <UserCard
                         key={u.id}
@@ -877,7 +951,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 </>
               )}
             </div>
-          </section>
+          </details>
         ) : null}
       </div>
     </div>
