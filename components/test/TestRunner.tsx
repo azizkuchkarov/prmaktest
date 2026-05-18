@@ -72,6 +72,7 @@ function TestRunner({
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
 
   const [step, setStep] = useState(safeStepInit);
+  const [celebrationResult, setCelebrationResult] = useState<SubmitTestResult | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>(() => ({ ...initialSession.answers }));
   const [result, setResult] = useState<SubmitTestResult | null>(null);
   const [wrongStep, setWrongStep] = useState(0);
@@ -116,22 +117,33 @@ function TestRunner({
     const used = Math.floor((Date.now() - (startedAtMsRef.current || Date.now())) / 1000);
     setIsSubmitting(true);
     void submitTestAttempt(testId, answersRef.current, used)
-      .then(setResult)
+      .then((res) => {
+        if (res.ok) {
+          const ms = reduceMotion === true ? 450 : 3000;
+          setCelebrationResult(res);
+          window.setTimeout(() => {
+            setResult(res);
+            setCelebrationResult(null);
+          }, ms);
+        } else {
+          setResult(res);
+        }
+      })
       .finally(() => setIsSubmitting(false));
-  }, [testId]);
+  }, [testId, reduceMotion]);
 
   useEffect(() => {
-    if (result) return;
+    if (result || celebrationResult) return;
     const id = window.setInterval(() => {
       const end = deadlineMsRef.current;
       if (!end) return;
       setSecondsLeft(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
     }, 250);
     return () => window.clearInterval(id);
-  }, [result, totalSeconds]);
+  }, [result, celebrationResult, totalSeconds]);
 
   useEffect(() => {
-    if (result || isSubmitting) return;
+    if (result || isSubmitting || celebrationResult) return;
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       saveDebounceRef.current = null;
@@ -143,7 +155,7 @@ function TestRunner({
         saveDebounceRef.current = null;
       }
     };
-  }, [testId, step, answers, result, isSubmitting, flushProgress]);
+  }, [testId, step, answers, result, isSubmitting, celebrationResult, flushProgress]);
 
   useEffect(() => {
     const onVis = () => {
@@ -186,10 +198,10 @@ function TestRunner({
   }, [flushProgress]);
 
   useEffect(() => {
-    if (result || isSubmitting) return;
+    if (result || isSubmitting || celebrationResult) return;
     if (secondsLeft > 0) return;
     runSubmit();
-  }, [secondsLeft, result, isSubmitting, runSubmit]);
+  }, [secondsLeft, result, isSubmitting, celebrationResult, runSubmit]);
 
   const pickAnswerSigRef = useRef<{ t: number; sig: string }>({ t: 0, sig: "" });
 
@@ -211,7 +223,7 @@ function TestRunner({
   }, []);
 
   const goNext = useCallback(() => {
-    if (result || isSubmitting) return;
+    if (result || isSubmitting || celebrationResult) return;
     setStep((s) => {
       const q = questions[s];
       if (!q) return s;
@@ -224,12 +236,72 @@ function TestRunner({
       queueMicrotask(() => runSubmit());
       return s;
     });
-  }, [result, isSubmitting, questions, totalQ, runSubmit]);
+  }, [result, isSubmitting, celebrationResult, questions, totalQ, runSubmit]);
 
   const goPrev = useCallback(() => {
-    if (result || isSubmitting) return;
+    if (result || isSubmitting || celebrationResult) return;
     setStep((s) => (s > 0 ? s - 1 : s));
-  }, [result, isSubmitting]);
+  }, [result, isSubmitting, celebrationResult]);
+
+  if (celebrationResult?.ok && !result) {
+    const barSec = reduceMotion === true ? 0.45 : 3;
+    return (
+      <div
+        className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-x-clip bg-gradient-to-b from-emerald-50/90 via-white to-teal-50/40 px-6 py-12 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <motion.div
+          className="relative z-[1] flex max-w-md flex-col items-center text-center"
+          initial={reduceMotion === true ? false : { opacity: 0, y: 24, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+        >
+          <div className="relative flex h-28 w-28 items-center justify-center">
+            {reduceMotion !== true ? (
+              <>
+                <motion.span
+                  className="absolute inset-2 rounded-full bg-amber-400/30"
+                  initial={{ scale: 0.85, opacity: 0.6 }}
+                  animate={{ scale: 2.2, opacity: 0 }}
+                  transition={{ duration: 1.2, repeat: 2, ease: "easeOut" }}
+                />
+                <motion.span
+                  className="absolute inset-2 rounded-full bg-emerald-400/25"
+                  initial={{ scale: 0.85, opacity: 0.5 }}
+                  animate={{ scale: 2.5, opacity: 0 }}
+                  transition={{ duration: 1.35, repeat: 2, ease: "easeOut", delay: 0.15 }}
+                />
+              </>
+            ) : null}
+            <motion.div
+              className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 text-white shadow-2xl shadow-amber-500/35 ring-4 ring-white"
+              initial={reduceMotion === true ? false : { rotate: -12, scale: 0.85 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 280, damping: 16 }}
+            >
+              <Trophy className="h-12 w-12" strokeWidth={2} aria-hidden />
+            </motion.div>
+          </div>
+          <p className="mt-8 text-sm font-bold uppercase tracking-[0.2em] text-emerald-900/85">Test yakunlandi</p>
+          <p className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">Natijangiz tayyorlanmoqda</p>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600">
+            Bir necha soniya ichida ball va tafsilotlarni ko&apos;rasiz.
+          </p>
+          <div className="mt-10 h-2 w-full max-w-xs overflow-hidden rounded-full bg-slate-200/90 shadow-inner">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: barSec, ease: "linear" }}
+              aria-hidden
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (result?.ok) {
     const pct = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;

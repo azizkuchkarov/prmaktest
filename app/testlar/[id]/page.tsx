@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, FileText, ListChecks, Banknote, Trophy } from "luc
 import { prisma } from "@/lib/prisma";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { getStudentSessionUserId } from "@/lib/student-auth";
+import { ProseLongform } from "@/components/content/ProseLongform";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,12 @@ export default async function TestDetailPage({ params }: Props) {
           {test.title}
         </h1>
         {test.description ? (
-          <p className="mt-4 text-base leading-relaxed text-slate-700">{test.description}</p>
+          <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm ring-1 ring-slate-100/80 sm:p-6">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-teal-800">Tavsif</h2>
+            <div className="mt-3">
+              <ProseLongform text={test.description} renderMath />
+            </div>
+          </div>
         ) : null}
 
         <h2 className="mt-10 text-lg font-bold text-slate-900 sm:text-xl">Test haqida</h2>

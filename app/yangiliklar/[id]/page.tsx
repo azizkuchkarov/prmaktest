@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Newspaper } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { ProseLongform } from "@/components/content/ProseLongform";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> };
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const news = await prisma.news.findFirst({
     where: { id, published: true },
@@ -17,29 +18,35 @@ export async function generateMetadata({ params }: Props) {
   return { title: `${news.title} — Prezident Test` };
 }
 
-export default async function NewsDetailPage({ params }: Props) {
+export default async function NewsDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const q = await searchParams;
+  const fromKabinet = q.from === "kabinet";
   const news = await prisma.news.findFirst({
     where: { id, published: true },
   });
   if (!news) notFound();
+
+  const listHref = fromKabinet ? "/yangiliklar?from=kabinet" : "/yangiliklar";
+  const secondaryHref = fromKabinet ? "/kabinet" : "/";
+  const secondaryLabel = fromKabinet ? "Kabinetga qaytish" : "Bosh sahifa";
 
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-gradient-to-b from-sky-50/80 via-white to-indigo-50/30">
       <header className="border-b border-slate-200/80 bg-white/90 pt-[max(0px,env(safe-area-inset-top))] backdrop-blur">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center justify-between gap-2 pad-x-page sm:h-16">
           <Link
-            href="/yangiliklar"
+            href={listHref}
             className="flex min-h-11 min-w-0 max-w-[65%] items-center gap-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-sky-50 hover:text-blue-700 active:bg-sky-100 sm:max-w-none"
           >
             <Newspaper className="h-4 w-4 shrink-0" aria-hidden />
             <span className="truncate">Barcha yangiliklar</span>
           </Link>
           <Link
-            href="/"
+            href={secondaryHref}
             className="flex min-h-11 shrink-0 items-center rounded-lg px-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100"
           >
-            Bosh sahifa
+            {secondaryLabel}
           </Link>
         </div>
       </header>
@@ -54,10 +61,14 @@ export default async function NewsDetailPage({ params }: Props) {
           })}
         </p>
         {news.excerpt ? (
-          <p className="mt-6 text-lg text-slate-700">{news.excerpt}</p>
+          <p className="mt-6 text-lg font-medium leading-relaxed text-slate-800 sm:text-xl">{news.excerpt}</p>
         ) : null}
-        <div className="prose prose-slate mt-8 max-w-none whitespace-pre-wrap text-slate-800">
-          {news.body || "—"}
+        <div className="mt-8 rounded-2xl border border-slate-200/80 bg-white/70 p-6 shadow-sm ring-1 ring-slate-100/80 sm:p-8">
+          {news.body ? (
+            <ProseLongform text={news.body} />
+          ) : (
+            <p className="text-slate-500">—</p>
+          )}
         </div>
       </article>
     </div>

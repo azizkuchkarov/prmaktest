@@ -575,7 +575,7 @@ export function KabinetBentoContent({
             </h2>
             <p className="mt-1 text-sm text-slate-600">Platforma yangilanishlari.</p>
           </div>
-          <Link href="/yangiliklar" className="shrink-0 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8]">
+          <Link href="/yangiliklar?from=kabinet" className="shrink-0 text-sm font-semibold text-[#2563EB] hover:text-[#1d4ed8]">
             Barchasi →
           </Link>
         </div>
@@ -588,7 +588,7 @@ export function KabinetBentoContent({
             news.map((n) => (
               <li key={n.id} className="min-w-0">
                 <Link
-                  href={`/yangiliklar/${n.id}`}
+                  href={`/yangiliklar/${n.id}?from=kabinet`}
                   className={cn(
                     "group flex h-full flex-col p-5 transition hover:border-[#2563EB]/25 hover:shadow-lg",
                     cardShell

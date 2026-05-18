@@ -9,18 +9,24 @@ export const metadata = {
   description: "Prezident maktabi tayyorgarligi bo'yicha yangiliklar.",
 };
 
-export default async function NewsPublicPage() {
+type PageProps = { searchParams: Promise<{ from?: string }> };
+
+export default async function NewsPublicPage({ searchParams }: PageProps) {
+  const q = await searchParams;
+  const fromKabinet = q.from === "kabinet";
   const items = await prisma.news.findMany({
     where: { published: true },
     orderBy: { updatedAt: "desc" },
   });
+
+  const itemQuery = fromKabinet ? "?from=kabinet" : "";
 
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-gradient-to-b from-sky-50/80 via-white to-indigo-50/30">
       <header className="border-b border-slate-200/80 bg-white/90 pt-[max(0px,env(safe-area-inset-top))] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-2 pad-x-page sm:h-16">
           <Link
-            href="/"
+            href={fromKabinet ? "/kabinet" : "/"}
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg py-1 font-semibold text-slate-900 hover:bg-slate-50 active:bg-slate-100"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 text-white">
@@ -29,10 +35,10 @@ export default async function NewsPublicPage() {
             <span className="truncate">Yangiliklar</span>
           </Link>
           <Link
-            href="/"
+            href={fromKabinet ? "/kabinet" : "/"}
             className="flex min-h-11 shrink-0 items-center rounded-lg px-2 text-sm font-medium text-blue-600 hover:bg-sky-50 hover:text-blue-700 active:bg-sky-100"
           >
-            Bosh sahifa
+            {fromKabinet ? "Kabinetga qaytish" : "Bosh sahifa"}
           </Link>
         </div>
       </header>
@@ -50,7 +56,7 @@ export default async function NewsPublicPage() {
             items.map((n) => (
               <li key={n.id}>
                 <Link
-                  href={`/yangiliklar/${n.id}`}
+                  href={`/yangiliklar/${n.id}${itemQuery}`}
                   className="block rounded-2xl border border-slate-100 bg-white p-5 shadow-md shadow-slate-200/40 transition hover:border-blue-100 hover:shadow-lg"
                 >
                   <h2 className="text-lg font-semibold text-slate-900">{n.title}</h2>

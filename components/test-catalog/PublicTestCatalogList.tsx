@@ -5,6 +5,7 @@ import { Check, ChevronDown, Clock, Banknote } from "lucide-react";
 import type { TestCatalogCategory } from "@prisma/client";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { cn } from "@/lib/utils";
+import { RenderFractionText } from "@/components/math/RenderFractionText";
 import {
   CATALOG_PANEL_PREMIUM,
   CATALOG_SECTION_META,
@@ -154,7 +155,9 @@ export function PublicTestCatalogList({ sections, defaultOpenCategory, completed
                             ) : null}
                           </div>
                           {t.description ? (
-                            <p className="relative mt-3 line-clamp-3 text-sm text-slate-600">{t.description}</p>
+                            <div className="relative mt-3 line-clamp-3 text-[0.9375rem] leading-[1.65] text-slate-600">
+                              <RenderFractionText text={t.description} />
+                            </div>
                           ) : null}
                           <div className="relative mt-4 flex flex-wrap items-center gap-3 text-xs">
                             <span
