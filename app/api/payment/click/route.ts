@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { clickSignComplete, clickSignPrepare, timingSafeEqualHex } from "@/lib/click-sign";
+import { verifyClickCompleteSign, verifyClickPrepareSign } from "@/lib/click-sign";
 
 export const dynamic = "force-dynamic";
 
@@ -60,9 +60,22 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === 0) {
-    const expected = clickSignPrepare(clickTransId, serviceId, secret, merchantTransId, amountRaw, 0, signTime);
-    if (!timingSafeEqualHex(expected, signString)) {
-      console.warn("[click] prepare sign xato");
+    const ok = verifyClickPrepareSign(
+      clickTransId,
+      serviceId,
+      secret,
+      merchantTransId,
+      amountRaw,
+      0,
+      signTime,
+      signString,
+    );
+    if (!ok) {
+      console.warn("[click] prepare invalid_sign (SECRET_KEY yoki amount formatini tekshiring)", {
+        amountRaw,
+        merchant_trans_id: merchantTransId,
+        service_id: serviceId,
+      });
       return clickJson({ error: -1, error_note: "invalid_sign" });
     }
 
@@ -135,7 +148,7 @@ export async function POST(request: NextRequest) {
     const merchantPrepareId = body.merchant_prepare_id ?? "";
     const completeError = Number(body.error ?? 0);
 
-    const expected = clickSignComplete(
+    const ok = verifyClickCompleteSign(
       clickTransId,
       serviceId,
       secret,
@@ -144,9 +157,14 @@ export async function POST(request: NextRequest) {
       amountRaw,
       1,
       signTime,
+      signString,
     );
-    if (!timingSafeEqualHex(expected, signString)) {
-      console.warn("[click] complete sign xato");
+    if (!ok) {
+      console.warn("[click] complete invalid_sign", {
+        amountRaw,
+        merchant_prepare_id: merchantPrepareId,
+        merchant_trans_id: merchantTransId,
+      });
       return clickJson({ error: -1, error_note: "invalid_sign" });
     }
 
