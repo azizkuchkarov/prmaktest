@@ -11,11 +11,29 @@ const devExtraOrigins = (process.env.NEXT_DEV_EXTRA_ORIGINS ?? "")
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  /** Xavfsizlik — reverse proxy (Nginx) bilan birga ishlatiladi. */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   /** Brauzer `/uploads/...` ni saqlaydi; ichki qidiruv API route orqali diskdan beradi. */
   async rewrites() {
     return [{ source: "/uploads/questions/:name", destination: "/api/uploads/questions/:name" }];
   },
-  /** Docker / minimal VPS: NEXT_STANDALONE=1 npm run build → .next/standalone */
+  /** Ixcham deploy: NEXT_STANDALONE=1 npm run build → .next/standalone (PM2 + `next start` uchun shart emas) */
   ...(process.env.NEXT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Turbopack Prisma clientni noto‘g‘ri bundle qilganda ba’zi delegate’lar (masalan testAttempt) yo‘qolishi mumkin.
   serverExternalPackages: ["@prisma/client", "prisma"],

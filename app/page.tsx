@@ -9,12 +9,10 @@ import { ParentMonitoring } from "@/components/landing/ParentMonitoring";
 import { Ranking } from "@/components/landing/Ranking";
 import { Subjects } from "@/components/landing/Subjects";
 import { TestSchedule } from "@/components/landing/TestSchedule";
-import { getAdminSiteSettingsRow, isKabinetSupportReady } from "@/lib/admin-site-settings";
-
-export const dynamic = "force-dynamic";
+import { getAdminSiteSettingsCached, isKabinetSupportReady } from "@/lib/admin-site-settings";
 
 export default async function Home() {
-  const siteSettings = await getAdminSiteSettingsRow();
+  const siteSettings = await getAdminSiteSettingsCached();
   const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
 
   return (

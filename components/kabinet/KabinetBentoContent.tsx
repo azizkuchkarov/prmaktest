@@ -253,6 +253,75 @@ function shortViloyatLabel(name: string) {
   return name.replace(/\s+viloyati\s*$/i, "").replace(/^Toshkent shahri$/i, "Toshkent sh.");
 }
 
+/** Mobil uchun viloyat ichidagi TOP — desktopdagi o‘ng diagrammaning analogi */
+function CompactViloyatTopBar({
+  viloyatTop,
+  currentUserId,
+}: {
+  viloyatTop: LeaderboardRow[];
+  currentUserId: string;
+}) {
+  const data = useMemo(
+    () =>
+      viloyatTop.map((r) => ({
+        name: r.name.length > 11 ? `${r.name.slice(0, 9)}…` : r.name,
+        full: r.name,
+        ball: r.points,
+        sizniki: r.userId === currentUserId,
+      })),
+    [viloyatTop, currentUserId],
+  );
+
+  const barMuted = "#c4b5fd";
+  const barYou = "#10B981";
+  const barH = Math.max(200, 36 + data.length * 22);
+
+  if (data.length === 0) {
+    return <p className="py-8 text-center text-sm text-slate-500">Viloyatingizda hozircha reyting yo‘q.</p>;
+  }
+
+  return (
+    <div className="w-full min-w-0 overflow-hidden">
+      <div className="w-full min-w-0" style={{ height: barH }}>
+        <ResponsiveContainer width="100%" height={barH} minWidth={0} debounce={50}>
+          <BarChart data={data} layout="vertical" margin={{ left: 2, right: 4, top: 4, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal className="stroke-slate-100" vertical={false} />
+            <XAxis type="number" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={56}
+              tick={{ fontSize: 8, fill: "#475569" }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const row = payload[0]?.payload as { full?: string; ball?: number };
+                return (
+                  <div className="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-xs shadow-lg">
+                    <p className="font-bold text-slate-900">{row.full}</p>
+                    <p className="mt-0.5 font-semibold text-indigo-700">
+                      {formatUzInteger(Number(row.ball))} ball
+                    </p>
+                  </div>
+                );
+              }}
+              cursor={{ fill: "rgba(15,23,42,0.04)" }}
+            />
+            <Bar dataKey="ball" radius={[0, 6, 6, 0]} maxBarSize={16}>
+              {data.map((entry, i) => (
+                <Cell key={i} fill={entry.sizniki ? barYou : barMuted} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 /** Mobil uchun bitta gorizontal bar — viloyatlar / TOP taqqoslash */
 function CompactRankingBar({
   republicByViloyat,
@@ -1006,8 +1075,26 @@ export function KabinetBentoContent({
                 <h3 className="text-sm font-bold text-slate-900">Viloyat va Respublika</h3>
                 <p className="mt-1 text-[11px] text-slate-600">Bar chart — yig‘ma ballar bilan taqqoslash.</p>
               </div>
-              <div className="p-3 sm:p-4 lg:hidden">
-                <CompactRankingBar republicByViloyat={republicViloyatTotals} userViloyat={student.viloyat} />
+              <div className="space-y-8 p-3 sm:p-4 lg:hidden">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Respublika bo‘yicha</h4>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
+                    Viloyatlar yig‘ma rank ballari. <strong className="text-teal-700">{student.viloyat}</strong> alohida
+                    rangda.
+                  </p>
+                  <div className="mt-3">
+                    <CompactRankingBar republicByViloyat={republicViloyatTotals} userViloyat={student.viloyat} />
+                  </div>
+                </div>
+                <div className="border-t border-slate-100 pt-6">
+                  <h4 className="text-xs font-bold text-slate-900">Viloyatingiz bo‘yicha</h4>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-600">
+                    {student.viloyat}: yetakchilar. <strong className="text-indigo-700">Siz</strong> yashil ustunda.
+                  </p>
+                  <div className="mt-3">
+                    <CompactViloyatTopBar viloyatTop={viloyatRows} currentUserId={student.id} />
+                  </div>
+                </div>
               </div>
               <div className="hidden p-3 sm:p-4 lg:block">
                 <KabinetRankingChartsDesktop

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { isAdminSessionValid } from "@/lib/auth-session";
 import { getAdminSiteSettingsRow, normalizeSupportTelegramChatId } from "@/lib/admin-site-settings";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +28,7 @@ export async function saveSupportTelegramSettings(
     data: { supportTelegramChatId: value },
   });
 
+  revalidateTag("admin-site-settings", "max");
   revalidatePath("/admin/sozlamalar");
   revalidatePath("/kabinet");
   revalidatePath("/");

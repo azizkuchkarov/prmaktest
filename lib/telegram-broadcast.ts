@@ -1,4 +1,4 @@
-import { waitUntil } from "@vercel/functions";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sitePublicLabel, sitePublicOrigin } from "@/lib/site-public";
 import { isValidStudentGrade } from "@/lib/student-grade";
@@ -68,11 +68,13 @@ export async function sendTelegramPlainToChat(chatId: string, text: string): Pro
 const RANK_FOLLOWUP_DELAY_MS = 60_000;
 
 function attachBackgroundWork(work: Promise<void>): void {
-  void work.catch((e) => console.error("[telegram-background]", e));
+  const safe = work.catch((e) => {
+    console.error("[telegram-background]", e);
+  });
   try {
-    waitUntil(work);
+    after(safe);
   } catch {
-    /* mahalliy muhit: waitUntil konteksti bo‘lmasligi mumkin */
+    void safe;
   }
 }
 

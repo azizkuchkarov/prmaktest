@@ -17,7 +17,7 @@ import {
 import { isStudentProfileComplete, PROFILE_SETUP_PATH, studentDisplayName } from "@/lib/student-profile";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { prisma } from "@/lib/prisma";
-import { getAdminSiteSettingsRow, isKabinetSupportReady } from "@/lib/admin-site-settings";
+import { getAdminSiteSettingsCached, isKabinetSupportReady } from "@/lib/admin-site-settings";
 import { getNewsReadIdSet } from "@/lib/news-read";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +68,7 @@ export default async function KabinetPage() {
       getStudentWeeklyProgress(student.id),
       getStudentSubjectRadar(student.id),
       getStudentReadiness(student.id),
-      getAdminSiteSettingsRow(),
+      getAdminSiteSettingsCached(),
     ]);
 
   const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
