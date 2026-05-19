@@ -11,6 +11,7 @@ import {
   Newspaper,
   Shield,
   Users,
+  Wallet,
 } from "lucide-react";
 import { adminLogout } from "@/app/admin/login/actions";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin", label: "Boshqaruv", icon: LayoutDashboard },
   { href: "/admin/userlar", label: "Userlar", icon: Users },
+  { href: "/admin/tolovlar", label: "To'lovlar", icon: Wallet },
   { href: "/admin/yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "/admin/testlar", label: "Testlar", icon: FileText },
   { href: "/admin/sozlamalar", label: "Kabinet yordam", icon: Headphones },

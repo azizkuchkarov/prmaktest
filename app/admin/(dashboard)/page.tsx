@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, FileText, Headphones, Newspaper, Sparkles, Users } from "lucide-react";
+import { ArrowRight, FileText, Headphones, Newspaper, Sparkles, Users, Wallet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminHomePage() {
-  const [newsCount, testCount, publishedNews, publishedTests, userCount, usersNoTelegram] =
+  const [newsCount, testCount, publishedNews, publishedTests, userCount, usersNoTelegram, depositCompletedCount] =
     await Promise.all([
       prisma.news.count(),
       prisma.test.count(),
@@ -11,6 +11,7 @@ export default async function AdminHomePage() {
       prisma.test.count({ where: { isPublished: true } }),
       prisma.user.count(),
       prisma.user.count({ where: { telegramId: null } }),
+      prisma.balanceDeposit.count({ where: { status: "COMPLETED" } }),
     ]);
 
   const cards = [
@@ -21,6 +22,14 @@ export default async function AdminHomePage() {
       hint: `Telegram yo'q: ${usersNoTelegram}`,
       icon: Users,
       accent: "from-sky-500 to-blue-600",
+    },
+    {
+      href: "/admin/tolovlar",
+      label: "To'lovlar",
+      value: depositCompletedCount,
+      hint: "Yakunlangan CLICK depozitlari",
+      icon: Wallet,
+      accent: "from-emerald-500 to-teal-600",
     },
     {
       href: "/admin/yangiliklar",
