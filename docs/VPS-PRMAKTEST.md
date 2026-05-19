@@ -127,7 +127,9 @@ curl -sS -o /dev/null -w "%{http_code}\n" -X POST "https://SIZNING-DOMEN/api/tel
   -d '{"phone":"998901112233","telegramId":"1"}'
 ```
 
-Kutiladi: **404** (JSON, `user_not_found`) yoki **400** — lekin **502/301 HTML** bo‘lsa Nginx yo‘nalishi noto‘g‘ri.
+Kutiladi: **404** (JSON, `user_not_found`) yoki **400** — lekin **502/HTML** bo‘lsa Nginx noto‘g‘ri.
+
+**HTTP 405 (Method Not Allowed):** ko‘pincha `.env` da `http://testpm.uz` bo‘lib, HTTPS ga yo‘naltirish paytida `POST` so‘rov `GET` bo‘lib ketadi. Yechim: `NEXT_PUBLIC_APP_URL=https://testpm.uz` (darhol `https`, ortiqcha `/` yo‘q) va `npm run build` + `pm2 restart` ikkalasini ham; yoki `TELEGRAM_LINK_SITE_URL=http://127.0.0.1:3000` (bot va Next bir VPS da).
 
 ---
 

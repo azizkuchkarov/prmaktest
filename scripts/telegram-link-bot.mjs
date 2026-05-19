@@ -47,6 +47,17 @@ if (!SITE) {
   process.exit(1);
 }
 
+try {
+  const u = new URL(SITE);
+  if (u.protocol === "http:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") {
+    console.warn(
+      "[bot] Diqqat: sayt URL http:// bilan. http→https redirect POST ni GET ga aylantirishi mumkin (405). .env da to‘g‘ridan-to‘g‘ri https:// ishlating.",
+    );
+  }
+} catch {
+  /* ignore */
+}
+
 const TG = `https://api.telegram.org/bot${TOKEN}`;
 
 function sleep(ms) {
@@ -91,16 +102,42 @@ function logSiteUnreachableOnce(err) {
   console.error("[bot] 2) `.env` da ichki chaqiruv uchun: TELEGRAM_LINK_SITE_URL=http://127.0.0.1:3000");
 }
 
+/** http→https redirect da fetch POST ni GET ga almashtirib yubormasligi uchun (405). */
+async function fetchPostPreserveMethod(absUrl, payload) {
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${API_SECRET}`,
+  };
+  const body = JSON.stringify(payload);
+
+  let res = await fetch(absUrl, {
+    method: "POST",
+    headers,
+    body,
+    redirect: "manual",
+  });
+
+  if ([301, 302, 303, 307, 308].includes(res.status)) {
+    const loc = res.headers.get("location");
+    if (loc) {
+      const nextUrl = new URL(loc, absUrl).href;
+      res = await fetch(nextUrl, {
+        method: "POST",
+        headers,
+        body,
+        redirect: "manual",
+      });
+    }
+  }
+
+  return res;
+}
+
 async function postSiteJson(path, payload) {
   try {
-    const res = await fetch(`${SITE}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_SECRET}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const absUrl = `${SITE}${path}`;
+    const res = await fetchPostPreserveMethod(absUrl, payload);
+
     const text = await res.text();
     const looksJson = Boolean(text && text.trim().startsWith("{"));
     let body = {};
@@ -157,6 +194,13 @@ const KEYBOARD = {
 const REMOVE_KEYBOARD = { remove_keyboard: true };
 
 function replyLinkByPhoneError(status, err, detail) {
+  if (status === 405) {
+    return (
+      "❌ HTTP 405: POST bloklangan yoki http→HTTPS ga yo‘naltirish POST ni GET ga aylantirgan. " +
+      "`.env` da `NEXT_PUBLIC_APP_URL=https://…` (darhol https, ortiqcha `/` yo‘q) yoki " +
+      "`TELEGRAM_LINK_SITE_URL=http://127.0.0.1:3000` qilib botni restart qiling; Nginx da `/api/` ga proxy_pass tekshiring."
+    );
+  }
   if (status === 404 || err === "user_not_found") {
     return "❌ Bu telefon saytda ro‘yxatdan o‘tmagan. Avval saytda ro‘yxatdan o‘ting, shu raqamni kiriting.";
   }
