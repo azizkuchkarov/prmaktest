@@ -24,33 +24,53 @@ Brauzer: [http://localhost:3000](http://localhost:3000)
 | `npm run db:deploy` | `prisma migrate deploy` (production DB) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
+| `npm run bot:link` | Telegram bot (telefon ulanishi + `/start` token). Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_API_SECRET`, `NEXT_PUBLIC_APP_URL` |
 
-## VPS: Git + `npm ci` + build + PM2
+## Telegram bot (telefon → admin panel `telegramId`)
 
-Serverda loyiha papkasi ichida (masalan `/var/www/pmtest`) odatiy yangilanish:
+Loyihada **ikki qism** bor:
+
+1. **Next.js API** — `POST /api/telegram/link-by-phone` va `POST /api/telegram/confirm-link` (Bearer `TELEGRAM_BOT_API_SECRET`).
+2. **Oddiy bot skripti** — `scripts/telegram-link-bot.mjs`: foydalanuvchi `/start` beradi, bot telefon ulashni so‘raydi, kontakt kelgacha sayt API ga yuboradi; bazada `User.phone` topilsa, `telegramId` to‘ldiriladi (admin panelda ko‘rinadi).
+
+Mahalliy ishga tushirish (Next ham ishlayotgan bo‘lsin, `localhost` bo‘lsa Telegram serveridan API ga urinib bo‘lmaydi — VPS yoki tunnel kerak):
+
+```bash
+npm run bot:link
+```
+
+Production VPS: `pm2` ichida **prmaktest-bot** (yoki `ecosystem.config.cjs` bilan birga ishga tushadi).
+
+**Eslatma:** BotFather da webhook yoqilgan bo‘lsa, `getUpdates` (long polling) bilan ziddiyat bo‘lishi mumkin — webhook ni o‘chiring yoki skript o‘rniga webhook + server route yozing.
+
+## VPS: Git + `npm ci` + build + PM2 (**prmaktest**)
+
+**To‘liq qo‘llanma:** [docs/VPS-PRMAKTEST.md](./docs/VPS-PRMAKTEST.md) — papka nomi, `prmaktest` / `prmaktest-bot`, Nginx, `.env`.
+
+Qisqacha yangilanish:
 
 ```bash
 git pull
 npm ci
+npx prisma migrate deploy
 npm run build
-pm2 restart pmtest
+pm2 restart prmaktest
+pm2 restart prmaktest-bot
 ```
 
-**Birinchi marta**
+**Birinchi marta** loyiha ildizidan: `pm2 start ecosystem.config.cjs` (sayt + bot birga).
+
+**Birinchi marta** (qisqa)
 
 1. Node.js **20+** o‘rnating.
-2. PostgreSQL va `.env` (serverda `cp .env.example .env` yoki muhit o‘zgaruvchilari) — xususan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL` (productionda `https://...`), admin/o‘quvchi maxfiy kalitlar.
-3. Migratsiya: `npx prisma migrate deploy` (keyin schema o‘zgarganda ham shu buyruq).
-4. Build: `npm ci` va `npm run build`.
-5. PM2:
-   - Loyiha ildizidan: `pm2 start ecosystem.config.cjs`
-   - Yoki avvalroq: `pm2 start npm --name pmtest -- run start`
+2. PostgreSQL va `.env` — xususan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL` (**https://**), kalitlar.
+3. `npx prisma migrate deploy`, keyin `npm ci` va `npm run build`.
+4. PM2: `pm2 start ecosystem.config.cjs` (jarayonlar: **prmaktest**, **prmaktest-bot**).
 
 **Eslatmalar**
 
-- **`NEXT_STANDALONE=1` shart emas** — u faqat `.next/standalone` + alohida `node server.js` uchun. Siz `next start` ishlatasiz, oddiy `npm run build` yetadi.
-- **Schema o‘zgarganda** pull dan keyin: `npx prisma migrate deploy`, keyin `npm run build`, keyin `pm2 restart`.
-- **Nginx** orqali `proxy_pass` `http://127.0.0.1:3000`, SSL (Certbot).
+- **`NEXT_STANDALONE=1` shart emas** — `next start` uchun oddiy `npm run build` yetadi.
+- **Nginx** — `proxy_pass` `http://127.0.0.1:3000`, SSL.
 
 ## Ishlash bilan bog‘liq qisqacha eslatmalar
 
