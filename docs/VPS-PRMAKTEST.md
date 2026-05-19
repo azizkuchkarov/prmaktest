@@ -111,7 +111,23 @@ pm2 restart prmaktest
 ## 7. Telegram bot eslatmalari
 
 - Bot API chaqiruvlari **`NEXT_PUBLIC_APP_URL`** (HTTPS domen) orqali saytga boradi; lokal `localhost` productionda ishlatilmaydi.
-- BotFather da **webhook** yoqilgan bo‘lsa, `getUpdates` (long polling) bilan ziddiyat bo‘lishi mumkin — webhookni o‘chiring yoki alohida strategiya tanlang.
+- **Ayni VPS da** ba’zan domen SSL/proxy bilan bot ichidan muammo bo‘lsa, `.env` da qo‘shing:  
+  `TELEGRAM_LINK_SITE_URL=http://127.0.0.1:3000` — bot to‘g‘ridan-to‘g‘ri Next portiga murojaat qiladi (Nginxdan chetlab).
+- **`TELEGRAM_BOT_API_SECRET`** — `.env` da **bir xil** qiymat bo‘lishi kerak: `prmaktest` (sayt) va `prmaktest-bot` ikkalasi ham shu papkadan `npm`/`.env` bilan ishlaydi. Bittasi eski kalit bilan ishga tushsa **401** bo‘ladi.
+- BotFather da **webhook** yoqilgan bo‘lsa, `getUpdates` (long polling) bilan ziddiyat bo‘lishi mumkin — webhookni o‘chiring.
+
+**Tekshiruv (serverda SSH):**
+
+```bash
+cd /var/www/prmaktest
+# .env dan SECRET va URL o‘qing; keyin:
+curl -sS -o /dev/null -w "%{http_code}\n" -X POST "https://SIZNING-DOMEN/api/telegram/link-by-phone" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer PASTE_TELEGRAM_BOT_API_SECRET" \
+  -d '{"phone":"998901112233","telegramId":"1"}'
+```
+
+Kutiladi: **404** (JSON, `user_not_found`) yoki **400** — lekin **502/301 HTML** bo‘lsa Nginx yo‘nalishi noto‘g‘ri.
 
 ---
 

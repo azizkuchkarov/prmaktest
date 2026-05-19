@@ -101,9 +101,27 @@ async function postSiteJson(path, payload) {
       },
       body: JSON.stringify(payload),
     });
-    const j = await res.json().catch(() => ({}));
+    const text = await res.text();
+    const looksJson = Boolean(text && text.trim().startsWith("{"));
+    let body = {};
+    try {
+      body = looksJson ? JSON.parse(text) : {};
+    } catch {
+      body = { ok: false, error: "invalid_response", detail: `HTTP ${res.status}` };
+    }
+    if (!body.ok && typeof body.error !== "string") {
+      if (res.status === 401) {
+        body.error = "unauthorized";
+      } else if (res.status >= 400) {
+        body.error = looksJson ? "http_error" : "invalid_response";
+        body.detail = `HTTP ${res.status}`;
+      }
+    }
+    if (body.error === "http_error" && body.detail == null) {
+      body.detail = `HTTP ${res.status}`;
+    }
     siteUnreachableLogged = false;
-    return { status: res.status, body: j };
+    return { status: res.status, body };
   } catch (e) {
     logSiteUnreachableOnce(e);
     return { status: 0, body: { ok: false, error: "site_unreachable" } };
@@ -138,7 +156,7 @@ const KEYBOARD = {
 
 const REMOVE_KEYBOARD = { remove_keyboard: true };
 
-function replyLinkByPhoneError(status, err) {
+function replyLinkByPhoneError(status, err, detail) {
   if (status === 404 || err === "user_not_found") {
     return "❌ Bu telefon saytda ro‘yxatdan o‘tmagan. Avval saytda ro‘yxatdan o‘ting, shu raqamni kiriting.";
   }
@@ -153,6 +171,22 @@ function replyLinkByPhoneError(status, err) {
   }
   if (err === "site_unreachable") {
     return "❌ Sayt hozir javob bermayapti. Keyinroq urinib ko‘ring (server ishga tushgan bo‘lishi kerak).";
+  }
+  if (err === "unauthorized") {
+    return "❌ Bot va sayt maxfiy kaliti mos emas. VPS da .env dagi TELEGRAM_BOT_API_SECRET bilan Bearer bir xil bo‘lsin; prmaktest va prmaktest-bot ni qayta ishga tushiring.";
+  }
+  if (err === "not_configured") {
+    return "❌ Saytda TELEGRAM_BOT_API_SECRET kamida 16 belgi emas yoki .env o‘qilmayapti. Sayt jarayonini (prmaktest) tekshiring.";
+  }
+  if (err === "invalid_response") {
+    return (
+      "❌ Sayt HTML/noto‘g‘ri javob qaytardi (Nginx 502/proxy). " +
+      (detail ? detail + " " : "") +
+      "/api/telegram/link-by-phone domen orqali ochiqmi — admin tekshirsin."
+    );
+  }
+  if (err === "http_error") {
+    return `❌ Sayt xatosi: ${detail || "HTTP " + status}. Keyinroq urinib ko‘ring.`;
   }
   return "❌ Bog‘lanmadi. Keyinroq qayta urinib ko‘ring yoki admin bilan bog‘laning.";
 }
@@ -173,7 +207,7 @@ async function handleMessage(msg) {
     if (body?.error === "site_unreachable") {
       await tgPost("sendMessage", {
         chat_id: chatId,
-        text: replyLinkByPhoneError(status, "site_unreachable"),
+        text: replyLinkByPhoneError(status, "site_unreachable", undefined),
         reply_markup: REMOVE_KEYBOARD,
       });
       return;
@@ -187,9 +221,10 @@ async function handleMessage(msg) {
       return;
     }
     const err = typeof body?.error === "string" ? body.error : "";
+    const detail = typeof body?.detail === "string" ? body.detail : undefined;
     await tgPost("sendMessage", {
       chat_id: chatId,
-      text: replyLinkByPhoneError(status, err),
+      text: replyLinkByPhoneError(status, err, detail),
       reply_markup: REMOVE_KEYBOARD,
     });
     return;
@@ -201,7 +236,7 @@ async function handleMessage(msg) {
     if (body?.error === "site_unreachable") {
       await tgPost("sendMessage", {
         chat_id: chatId,
-        text: replyLinkByPhoneError(status, "site_unreachable"),
+        text: replyLinkByPhoneError(status, "site_unreachable", undefined),
         reply_markup: REMOVE_KEYBOARD,
       });
       return;
@@ -232,7 +267,11 @@ async function handleMessage(msg) {
     }
     await tgPost("sendMessage", {
       chat_id: chatId,
-      text: "❌ Bog‘lanmadi. Qayta urinib ko‘ring.",
+      text: replyLinkByPhoneError(
+        status,
+        typeof body?.error === "string" ? body.error : "",
+        typeof body?.detail === "string" ? body.detail : undefined,
+      ),
       reply_markup: KEYBOARD,
     });
     return;
