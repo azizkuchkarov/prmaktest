@@ -585,7 +585,7 @@ function TestRunner({
               }`}
             >
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Qoldi</p>
-              <p className="text-base font-black tabular-nums leading-none">{formatMmSs(secondsLeft)}</p>
+              <p className="text-lg font-black tabular-nums leading-none sm:text-xl">{formatMmSs(secondsLeft)}</p>
             </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-600">
@@ -735,7 +735,7 @@ function TestRunner({
             type="button"
             aria-disabled={prevLocked}
             onClick={goPrev}
-            className={`touch-manipulation min-h-[3.25rem] min-w-[6.5rem] flex-1 rounded-2xl border-2 border-slate-200 bg-white text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 ${prevLocked ? "pointer-events-none cursor-not-allowed opacity-40" : "cursor-pointer active:bg-slate-100"}`}
+            className={`touch-manipulation min-h-14 min-w-[6.5rem] flex-1 rounded-2xl border-2 border-slate-200 bg-white text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:min-h-[3.25rem] ${prevLocked ? "pointer-events-none cursor-not-allowed opacity-40" : "cursor-pointer active:bg-slate-100"}`}
           >
             Oldingi
           </button>
@@ -743,7 +743,7 @@ function TestRunner({
             type="button"
             aria-disabled={isSubmitting}
             onClick={goNext}
-            className={`touch-manipulation min-h-[3.25rem] min-w-[10rem] flex-1 rounded-2xl px-2 text-sm font-black text-white shadow-md shadow-emerald-600/20 transition sm:flex-[1.4] ${isSubmitting ? "pointer-events-none cursor-wait bg-emerald-800/60 opacity-80" : "cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-105 active:brightness-95 active:opacity-95"}`}
+            className={`touch-manipulation min-h-14 min-w-[10rem] flex-1 rounded-2xl px-2 text-sm font-black text-white shadow-md shadow-emerald-600/20 transition sm:min-h-[3.25rem] sm:flex-[1.4] ${isSubmitting ? "pointer-events-none cursor-wait bg-emerald-800/60 opacity-80" : "cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-105 active:brightness-95 active:opacity-95"}`}
           >
             {step < totalQ - 1 ? "Keyingi savol" : isSubmitting ? "Hisoblanmoqda…" : "Natijani olish"}
           </button>

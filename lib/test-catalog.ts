@@ -94,13 +94,13 @@ export const RADAR_AXIS_LABELS: Record<TestCatalogCategory, string> = {
 /** Kabinet katalog «menyusi»: har bo'limda eng ko'pi bilan shuncha test. */
 export const CATALOG_MENU_MAX = 3;
 
-/** Kabinet katalogida: eng yangi (createdAt) testlar ro'yxat boshida. */
+/** Kabinet katalogida: yaratilgan vaqt bo'yicha 1→2→3 (eski yuqorida, tanlanganlar orasida eng yangisi oxirida). */
 export function pickLatestTestsForCatalogMenu<T extends { createdAt: string | Date }>(
   items: T[],
   max: number = CATALOG_MENU_MAX,
 ): T[] {
   const sorted = [...items].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
   return sorted.slice(0, max);
 }

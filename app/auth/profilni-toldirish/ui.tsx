@@ -37,7 +37,7 @@ export function ProfileSetupForm({
           autoComplete="given-name"
           placeholder="Masalan: Ali"
           defaultValue={initialFirstName}
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       <div>
@@ -54,7 +54,7 @@ export function ProfileSetupForm({
           autoComplete="family-name"
           placeholder="Masalan: Valiyev"
           defaultValue={initialLastName}
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       <div>
@@ -66,7 +66,7 @@ export function ProfileSetupForm({
           name="gradeLevel"
           required
           defaultValue={gradeDefault || ""}
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         >
           <option value="" disabled>
             3–9-sinfni tanlang…
@@ -90,7 +90,7 @@ export function ProfileSetupForm({
           autoComplete="tel"
           placeholder="+998 90 000 00 00"
           defaultValue={initialParentPhone}
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
         <p className="mt-1 text-xs text-slate-500">
           {"Monitoring va kelajakdagi SMS/Telegram xabarnomalar uchun. O'quvchi raqamidan farq qilishi kerak."}
@@ -102,7 +102,7 @@ export function ProfileSetupForm({
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+        className="min-h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
       >
         {pending ? "Saqlanmoqda…" : "Davom etish"}
       </button>

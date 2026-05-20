@@ -18,7 +18,7 @@ export default async function Home() {
   return (
     <>
       <LandingHeader />
-      <main className="flex-1 min-w-0 w-full overflow-x-clip">
+      <main className="flex-1 min-w-0 w-full overflow-x-clip pb-[max(0px,env(safe-area-inset-bottom))]">
         <Hero />
         <Benefits />
         <HowItWorks />

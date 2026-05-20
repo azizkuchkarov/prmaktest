@@ -42,7 +42,7 @@ export async function LandingHeader() {
             <span className="truncate sm:hidden">PT</span>
           </Link>
           <nav
-            className="scrollbar-touch hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex"
+            className="scrollbar-touch hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto overscroll-x-contain md:flex"
             aria-label="Asosiy navigatsiya"
           >
             {navLinks}
@@ -85,7 +85,7 @@ export async function LandingHeader() {
           </div>
         </div>
         <nav
-          className="scrollbar-touch -mx-3 flex gap-0.5 overflow-x-auto border-t border-slate-100 px-2 py-2 md:hidden"
+          className="scrollbar-touch -mx-3 flex gap-0.5 overflow-x-auto overscroll-x-contain border-t border-slate-100 px-2 py-2 md:hidden"
           aria-label="Asosiy navigatsiya"
         >
           {navLinks}

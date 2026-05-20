@@ -45,6 +45,12 @@ export default async function TestsPublicPage() {
     buckets[c].push(t);
   }
 
+  for (const c of TEST_CATALOG_ORDER) {
+    (buckets[c] ?? []).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }
+
   const defaultOpenCategory =
     TEST_CATALOG_ORDER.find((c) => (buckets[c]?.length ?? 0) > 0) ?? TEST_CATALOG_ORDER[0];
 

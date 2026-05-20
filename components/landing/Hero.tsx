@@ -19,7 +19,7 @@ export function Hero() {
   return (
     <section
       id="hero"
-      className="relative overflow-x-clip bg-gradient-to-b from-sky-50 via-white to-indigo-50/40 pb-20 pt-10 sm:pt-14 lg:pb-28"
+      className="scroll-mt-sticky-page relative overflow-x-clip bg-gradient-to-b from-sky-50 via-white to-indigo-50/40 pb-20 pt-10 sm:pt-14 lg:pb-28"
     >
       <div
         className="pointer-events-none absolute -right-24 top-20 h-96 w-96 rounded-full bg-teal-200/40 blur-3xl"

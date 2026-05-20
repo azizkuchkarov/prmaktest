@@ -1,21 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useSyncExternalStore } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   ArrowRight,
   Banknote,
   BarChart3,
   BookOpen,
+  Brain,
+  Calculator,
   Check,
   ChevronDown,
   ChevronRight,
   Clock,
+  Languages,
+  Layers,
   MapPin,
   Newspaper,
   Sparkles,
   Trophy,
+  TrendingUp,
+  Users,
+  Zap,
 } from "lucide-react";
 import {
   Area,
@@ -55,9 +64,11 @@ import {
   CATALOG_PANEL_PREMIUM,
   CATALOG_SECTION_META,
   TEST_CATALOG_ORDER,
+  isTestCatalogCategory,
   normalizeTestCatalogCategory,
   pickLatestTestsForCatalogMenu,
 } from "@/lib/test-catalog";
+import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
 import type { TestCatalogCategory } from "@prisma/client";
 
 export type KabinetBentoNews = {
@@ -111,6 +122,7 @@ type Props = {
   weekly: WeekProgressPoint[];
   radar: RadarSubjectPoint[];
   readiness: ReadinessStats;
+  liveStats: KabinetLiveStatsPayload;
 };
 
 const cardShell =
@@ -123,6 +135,176 @@ const fadeUp = {
   viewport: { once: true, amount: 0.06, margin: "0px 0px 100px 0px" },
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
 };
+
+const liveStatsCatIcons: Record<TestCatalogCategory, LucideIcon> = {
+  MOCK: Layers,
+  MATHEMATICS: Calculator,
+  CRITICAL_LOGIC: Brain,
+  ENGLISH: Languages,
+};
+
+function KabinetLiveStatsPanel({ liveStats }: { liveStats: KabinetLiveStatsPayload }) {
+  const [open, setOpen] = useState(false);
+  const statsRegionId = useId().replace(/:/g, "");
+
+  return (
+    <div
+      className="relative mt-5 overflow-hidden rounded-[1.35rem] border border-violet-200/35 bg-gradient-to-br from-slate-50/95 via-white/92 to-violet-50/55 p-px shadow-[0_26px_70px_-24px_rgba(79,70,229,0.22),inset_0_1px_0_0_rgba(255,255,255,0.85)] sm:mt-6"
+      aria-label="Platforma statistikasi"
+    >
+      <div
+        className="pointer-events-none absolute -right-16 top-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.2),transparent_68%)] blur-2xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-14 bottom-0 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.15),transparent_65%)] blur-2xl"
+        aria-hidden
+      />
+      <div className="relative rounded-[1.28rem] bg-gradient-to-b from-white/82 via-white/58 to-slate-50/35 px-4 py-4 backdrop-blur-[3px] sm:px-5 sm:py-5">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={`kabinet-live-stats-${statsRegionId}`}
+          className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border-b border-slate-200/55 pb-3.5 text-left outline-none transition hover:bg-slate-50/40 focus-visible:bg-slate-50/50 focus-visible:ring-2 focus-visible:ring-indigo-400/40 -mx-1 -mt-1 px-1 pt-1"
+        >
+          <span className="sr-only">
+            Jonli ko‘rsatkichlar blokini {open ? "yopish" : "ochish"}
+          </span>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] shadow-lg shadow-indigo-500/30 ring-2 ring-white/60">
+              <Users className="h-5 w-5 text-white" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Jonli ko‘rsatkichlar</p>
+              <p className="truncate text-sm font-semibold text-slate-900">
+                Platformada hozir
+                <span className="hidden font-normal text-slate-500 sm:inline">
+                  {" "}
+                  · {open ? "yopish" : "ochish"} uchun
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-teal-50/80 py-0.5 pl-1.5 pr-2 shadow-sm ring-1 ring-white/70 sm:gap-2 sm:py-1 sm:pl-2 sm:pr-3">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-55" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              </span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-900">Jonli</span>
+            </div>
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                open && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </div>
+        </button>
+
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          )}
+        >
+          <div id={`kabinet-live-stats-${statsRegionId}`} className="min-h-0 overflow-hidden">
+            <div className="pt-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="group relative overflow-hidden rounded-2xl border border-blue-200/45 bg-gradient-to-br from-blue-50/95 via-white to-indigo-50/55 p-4 shadow-[0_16px_40px_-24px_rgba(37,99,235,0.35)] ring-1 ring-white/90 transition duration-300 hover:shadow-[0_20px_48px_-22px_rgba(37,99,235,0.42)]">
+            <div
+              className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl transition duration-500 group-hover:bg-blue-400/28"
+              aria-hidden
+            />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-800/75">Umumiy auditoriya</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-600">Ro‘yxatdan o‘tganlar</p>
+                <p className="mt-2 bg-gradient-to-br from-slate-900 to-slate-700 bg-clip-text font-mono text-3xl font-bold tabular-nums tracking-tight text-transparent sm:text-[2rem]">
+                  {formatUzInteger(liveStats.totalUsersDisplay)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-blue-100/90 bg-white/85 p-2 shadow-md shadow-blue-500/10 ring-1 ring-white">
+                <TrendingUp className="h-5 w-5 text-blue-600" aria-hidden />
+              </div>
+            </div>
+          </div>
+          <div className="group relative overflow-hidden rounded-2xl border border-emerald-200/45 bg-gradient-to-br from-emerald-50/95 via-white to-teal-50/50 p-4 shadow-[0_16px_40px_-24px_rgba(16,185,129,0.28)] ring-1 ring-white/90 transition duration-300 hover:shadow-[0_20px_48px_-22px_rgba(16,185,129,0.34)]">
+            <div
+              className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-400/18 blur-2xl transition duration-500 group-hover:bg-emerald-400/26"
+              aria-hidden
+            />
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-900/75">Faol sessiyalar</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-600">Onlayn testda hozir</p>
+                <p className="mt-2 bg-gradient-to-br from-emerald-800 to-teal-700 bg-clip-text font-mono text-3xl font-bold tabular-nums tracking-tight text-transparent sm:text-[2rem]">
+                  {formatUzInteger(liveStats.activeTestTakersDisplay)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-100/90 bg-white/85 p-2 shadow-md shadow-emerald-500/10 ring-1 ring-white">
+                <Activity className="h-5 w-5 text-emerald-600" aria-hidden />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-3 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+            <Zap className="h-3.5 w-3.5 text-amber-500 drop-shadow-sm" aria-hidden />
+            Yo‘nalish bo‘yicha (testda)
+          </p>
+          <ul className="grid gap-2.5 sm:grid-cols-2">
+            {liveStats.byCategory.map((row) => {
+              const cat: TestCatalogCategory = isTestCatalogCategory(row.category) ? row.category : "MATHEMATICS";
+              const pal = CATALOG_PANEL_PREMIUM[cat];
+              const Icon = liveStatsCatIcons[cat];
+              return (
+                <li
+                  key={row.category}
+                  className={cn(
+                    "relative flex min-h-[3.5rem] items-center gap-3 overflow-hidden rounded-2xl border p-3 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.2)] ring-1 transition duration-200 hover:shadow-[0_12px_36px_-16px_rgba(15,23,42,0.22)]",
+                    pal.chipBorder,
+                    pal.cardBar,
+                    "bg-gradient-to-r from-white/95 to-white/40",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/80 shadow-inner",
+                      pal.orb,
+                    )}
+                  >
+                    <Icon className="h-[1.15rem] w-[1.15rem] text-slate-800/90" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold leading-snug text-slate-900">{row.label}</p>
+                    <p className="mt-0.5 text-[10px] font-medium text-slate-500">hozir faol foydalanuvchilar</p>
+                  </div>
+                  <p className="shrink-0 bg-gradient-to-br from-slate-900 to-slate-600 bg-clip-text font-mono text-lg font-bold tabular-nums text-transparent sm:text-xl">
+                    {formatUzInteger(row.activeNow)}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <p className="mt-4 flex gap-2.5 rounded-xl border border-slate-200/40 bg-slate-50/60 px-3 py-2.5 text-[10px] leading-relaxed text-slate-500 shadow-inner">
+          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+          <span>
+            Ma’lumot sahifa yuklanganda yangilanadi. Real-vaqtda kuzatuv yo‘q — serverga yuklama past.
+          </span>
+        </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function subscribeMqLg(cb: () => void) {
   const mq = window.matchMedia("(min-width: 1024px)");
@@ -215,6 +397,19 @@ function BoardTableBento({
     return null;
   };
 
+  const rankBadgeClass = (rank: number) => {
+    if (rank === 1) {
+      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/90 text-[1.7rem] leading-none shadow-sm ring-1 ring-amber-200/90 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
+    }
+    if (rank === 2) {
+      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/90 text-[1.7rem] leading-none shadow-sm ring-1 ring-slate-200/90 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
+    }
+    if (rank === 3) {
+      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50/80 text-[1.7rem] leading-none shadow-sm ring-1 ring-orange-200/80 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
+    }
+    return "h-10 w-10 rounded-xl bg-slate-50 text-xs font-black tabular-nums sm:h-11 sm:w-11 sm:text-sm";
+  };
+
   return (
     <div className={cn("flex min-h-0 flex-col overflow-hidden", cardShell)}>
       <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
@@ -229,18 +424,24 @@ function BoardTableBento({
             <li
               key={`${r.userId}-${r.rank}`}
               className={cn(
-                "flex items-center gap-2.5 px-3 py-2.5 text-sm",
+                "flex items-center gap-3 px-3 py-3 text-sm sm:gap-3 sm:py-3",
                 r.userId === currentUserId ? "bg-[#2563EB]/[0.06] ring-1 ring-inset ring-[#2563EB]/15" : "bg-white"
               )}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xs font-black tabular-nums text-slate-700">
-                {medal(r.rank) ?? r.rank}
+              <span
+                className={cn(
+                  "flex shrink-0 items-center justify-center tabular-nums text-slate-700",
+                  rankBadgeClass(r.rank),
+                )}
+                aria-label={`${r.rank}-o‘rin`}
+              >
+                <span className="select-none">{medal(r.rank) ?? r.rank}</span>
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-slate-900">{r.name}</p>
-                <p className="truncate text-[10px] text-slate-500">{r.viloyat}</p>
+                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{r.viloyat}</p>
               </div>
-              <span className="shrink-0 font-mono text-xs font-bold text-[#2563EB]">{r.points}</span>
+              <span className="shrink-0 font-mono text-sm font-bold text-[#2563EB] sm:text-base">{r.points}</span>
             </li>
           ))
         )}
@@ -509,6 +710,7 @@ export function KabinetBentoContent({
   weekly,
   radar,
   readiness,
+  liveStats,
 }: Props) {
   const chartUid = useId().replace(/:/g, "");
   const chartNarrow = useSyncExternalStore(subscribeMqSm, getMqSmSnapshot, () => true);
@@ -575,7 +777,7 @@ export function KabinetBentoContent({
       <motion.section
         id="bosh"
         {...fadeUp}
-        className={cn("relative scroll-mt-20 overflow-x-clip overflow-y-visible lg:scroll-mt-6", cardShell)}
+        className={cn("relative scroll-mt-kabinet-sticky overflow-x-clip overflow-y-visible", cardShell)}
       >
         <div className="pointer-events-none absolute -right-24 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.25),transparent_65%)] blur-3xl" />
         <div className="pointer-events-none absolute -left-20 top-10 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.28),transparent_60%)] blur-3xl" />
@@ -591,6 +793,7 @@ export function KabinetBentoContent({
             <CardDescription className="text-base text-slate-600">
               Bugungi maqsad: barqaror progress va kamida bitta sifatli test.
             </CardDescription>
+            <KabinetLiveStatsPanel liveStats={liveStats} />
           </CardHeader>
           <CardContent className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
@@ -637,7 +840,7 @@ export function KabinetBentoContent({
         </Card>
       </motion.section>
 
-      <motion.section {...fadeUp} id="yangiliklar" className="relative scroll-mt-20 lg:scroll-mt-6">
+      <motion.section {...fadeUp} id="yangiliklar" className="relative scroll-mt-kabinet-sticky">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900 sm:text-2xl">
@@ -701,7 +904,7 @@ export function KabinetBentoContent({
       </motion.section>
 
       <div className="relative grid auto-rows-min gap-4 min-w-0 lg:grid-cols-12 lg:gap-5">
-        <motion.section {...fadeUp} id="reyting" className="scroll-mt-24 lg:col-span-4 lg:scroll-mt-6">
+        <motion.section {...fadeUp} id="reyting" className="scroll-mt-kabinet-sticky lg:col-span-4">
           <div className={cn("p-5", cardShell)}>
             <div className="flex items-center gap-2 text-slate-600">
               <Trophy className="h-5 w-5 text-[#F59E0B]" aria-hidden />
@@ -765,7 +968,7 @@ export function KabinetBentoContent({
           </div>
         </motion.section>
 
-        <motion.section {...fadeUp} id="tayyorgarlik" className="scroll-mt-24 lg:col-span-4 lg:scroll-mt-6">
+        <motion.section {...fadeUp} id="tayyorgarlik" className="scroll-mt-kabinet-sticky lg:col-span-4">
           <div className={cn("flex flex-col items-center p-5 text-center", cardShell)}>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tayyorgarlik</p>
             <p className="mx-auto mt-2 max-w-[16rem] text-sm font-semibold leading-snug text-slate-800">
@@ -778,7 +981,7 @@ export function KabinetBentoContent({
           </div>
         </motion.section>
 
-        <motion.section {...fadeUp} id="keyingi-test" className="scroll-mt-24 lg:col-span-4 lg:scroll-mt-6">
+        <motion.section {...fadeUp} id="keyingi-test" className="scroll-mt-kabinet-sticky lg:col-span-4">
           <div className={cn("flex h-full flex-col p-5", cardShell)}>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Keyingi test</p>
             {nextTest ? (
@@ -819,7 +1022,7 @@ export function KabinetBentoContent({
         <motion.section
           {...fadeUp}
           id="diagrammalar"
-          className="scroll-mt-24 space-y-5 sm:space-y-6 lg:col-span-12 lg:scroll-mt-6"
+          className="scroll-mt-kabinet-sticky space-y-5 sm:space-y-6 lg:col-span-12"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="min-w-0">
@@ -1111,7 +1314,7 @@ export function KabinetBentoContent({
         <motion.section
           {...fadeUp}
           id="testlar"
-          className="min-w-0 scroll-mt-24 lg:col-span-12 lg:scroll-mt-6"
+          className="min-w-0 scroll-mt-kabinet-sticky lg:col-span-12"
         >
           <div className="relative min-w-0 overflow-hidden rounded-[1.75rem] border border-white/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/40 p-px shadow-[0_28px_90px_-32px_rgba(15,23,42,0.35)] ring-1 ring-slate-200/25">
             <div className="relative min-w-0 overflow-x-clip overflow-y-visible rounded-[1.7rem] bg-gradient-to-b from-white/95 to-slate-50/40 px-3 py-5 backdrop-blur-xl sm:px-7 sm:py-8">
@@ -1134,7 +1337,9 @@ export function KabinetBentoContent({
                       Bo&apos;lim sarlavhasini bosing — ro&apos;yxat ochiladi yoki yopiladi. Sarlavhada shu yo&apos;nalishdagi{" "}
                       <span className="font-medium text-slate-800">testlar soni</span> ko&apos;rsatiladi.{" "}
                       To&apos;rt xil yo&apos;nalish — har biri alohida rangda.{" "}
-                      <span className="font-medium text-slate-700">Eng yangi testlar ro&apos;yxat boshida.</span>{" "}
+                      <span className="font-medium text-slate-700">
+                        Har bo&apos;limda testlar yaratilgan vaqt bo&apos;yicha 1–2–3 tartibida (eski yuqorida).
+                      </span>{" "}
                       <span className="font-medium text-emerald-800">Yechib bo&apos;lgan testlar yashil belgi bilan.</span>
                     </p>
                   </div>
@@ -1237,7 +1442,7 @@ export function KabinetBentoContent({
           </div>
         </motion.section>
 
-        <motion.section {...fadeUp} id="liderlar" className="scroll-mt-24 lg:col-span-12 lg:scroll-mt-6">
+        <motion.section {...fadeUp} id="liderlar" className="scroll-mt-kabinet-sticky lg:col-span-12">
           <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">Leaderboard</h2>
           <Tabs defaultValue={gradeOk ? "g-rep" : "republic"} className="w-full min-w-0 gap-3">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-slate-100/90 p-1">
@@ -1313,7 +1518,7 @@ export function KabinetBentoContent({
           <KabinetRoadmap />
         </motion.div>
 
-        <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-24 p-6 lg:col-span-12 lg:scroll-mt-6", cardShell)}>
+        <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-kabinet-sticky p-6 lg:col-span-12", cardShell)}>
           <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Profil</h2>
           <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
             <div>

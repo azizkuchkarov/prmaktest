@@ -52,7 +52,7 @@ const STEPS = [
 
 export function KabinetRoadmap() {
   return (
-    <section id="roadmap" className="relative scroll-mt-20 lg:scroll-mt-6">
+    <section id="roadmap" className="relative scroll-mt-kabinet-sticky">
       <details
         className={cn(
           "group relative overflow-hidden rounded-[1.75rem]",

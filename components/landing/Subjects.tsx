@@ -23,7 +23,7 @@ const subjects = [
 
 export function Subjects() {
   return (
-    <section id="fanlar" className="bg-white py-20 sm:py-24">
+    <section id="fanlar" className="scroll-mt-sticky-page bg-white py-20 sm:py-24">
       <div className="mx-auto w-full min-w-0 max-w-6xl pad-x-page">
         <motion.div
           initial={{ opacity: 1, y: 16 }}

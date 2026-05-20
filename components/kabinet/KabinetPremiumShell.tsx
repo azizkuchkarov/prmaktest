@@ -275,7 +275,7 @@ export function KabinetPremiumShell({
         <div
           className={cn(
             "relative w-full min-w-0 overflow-x-clip",
-            "pb-[calc(6.25rem+env(safe-area-inset-bottom))] lg:pb-[max(2rem,env(safe-area-inset-bottom))]",
+            "pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-[max(2rem,env(safe-area-inset-bottom))]",
           )}
         >
           {children}
@@ -284,7 +284,7 @@ export function KabinetPremiumShell({
         <div className="fixed inset-x-0 bottom-0 z-40 box-border border-t border-white/80 bg-gradient-to-t from-white/95 via-slate-50/90 to-white/80 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] shadow-[0_-12px_40px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
           <Link
             href={ctaHref}
-            className="box-border flex h-14 w-full max-w-full min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#4f46e5] to-[#7C3AED] px-2 text-base font-bold text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/25 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 active:brightness-95"
+            className="box-border flex h-14 min-h-[3.5rem] w-full max-w-full min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#4f46e5] to-[#7C3AED] px-4 text-base font-bold leading-tight text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/25 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 active:brightness-95 sm:h-14"
           >
             {ctaLabel}
           </Link>

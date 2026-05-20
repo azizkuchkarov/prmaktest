@@ -7,6 +7,7 @@ import type {
 } from "@/lib/kabinet-analytics";
 import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
 import type { KabinetBentoNews, KabinetBentoTest } from "@/components/kabinet/KabinetBentoContent";
+import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
 import { KabinetPremiumShell } from "@/components/kabinet/KabinetPremiumShell";
 
 const KabinetBentoContent = dynamic(
@@ -64,6 +65,7 @@ type Props = {
   weekly: WeekProgressPoint[];
   radar: RadarSubjectPoint[];
   readiness: ReadinessStats;
+  liveStats: KabinetLiveStatsPayload;
 };
 
 export function KabinetDashboard({
@@ -81,10 +83,9 @@ export function KabinetDashboard({
   weekly,
   radar,
   readiness,
+  liveStats,
 }: Props) {
-  const firstPlayable =
-    tests.find((t) => t.questionsCount > 0 && !t.completed) ?? tests.find((t) => t.questionsCount > 0);
-  const ctaHref = firstPlayable ? `/testlar/${firstPlayable.id}` : "/testlar";
+  const ctaHref = "/testlar";
 
   const bentoStudent = {
     id: student.id,
@@ -133,6 +134,7 @@ export function KabinetDashboard({
         weekly={weekly}
         radar={radar}
         readiness={readiness}
+        liveStats={liveStats}
       />
     </KabinetPremiumShell>
   );

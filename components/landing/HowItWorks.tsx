@@ -46,7 +46,7 @@ export function HowItWorks() {
   return (
     <section
       id="qanday-ishlaydi"
-      className="bg-gradient-to-b from-slate-50/80 to-white py-20 sm:py-24"
+      className="scroll-mt-sticky-page bg-gradient-to-b from-slate-50/80 to-white py-20 sm:py-24"
     >
       <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div

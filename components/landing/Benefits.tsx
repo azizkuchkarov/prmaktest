@@ -38,7 +38,7 @@ export function Benefits() {
   return (
     <section
       id="afzalliklar"
-      className="border-t border-slate-100 bg-white py-20 sm:py-24"
+      className="scroll-mt-sticky-page border-t border-slate-100 bg-white py-20 sm:py-24"
     >
       <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div

@@ -52,7 +52,7 @@ export function PublicTestCatalogList({ sections, defaultOpenCategory, completed
             summary={(open) => (
               <summary
                 className={cn(
-                  "relative flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 outline-none transition hover:brightness-[1.01] focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:px-5 sm:py-4",
+                  "relative flex min-h-[3.25rem] cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 outline-none transition [touch-action:manipulation] hover:brightness-[1.01] focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:min-h-0 sm:px-5 sm:py-4",
                   "[&::-webkit-details-marker]:hidden",
                   accent.header,
                 )}

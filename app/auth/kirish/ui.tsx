@@ -39,7 +39,7 @@ export function LoginForm({ redirectFrom }: Props) {
           title="To‘liq raqam: +998 va 9 ta raqam"
           value={phone}
           onChange={(e) => setPhone(buildPhoneDisplay(e.target.value))}
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       <div>
@@ -52,7 +52,7 @@ export function LoginForm({ redirectFrom }: Props) {
           type="password"
           required
           autoComplete="current-password"
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       {state?.error ? (
@@ -63,7 +63,7 @@ export function LoginForm({ redirectFrom }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+        className="min-h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
       >
         {pending ? "Kirilmoqda…" : "Kirish"}
       </button>

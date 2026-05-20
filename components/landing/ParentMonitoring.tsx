@@ -30,7 +30,7 @@ export function ParentMonitoring() {
   return (
     <section
       id="ota-ona"
-      className="border-t border-slate-100 bg-gradient-to-b from-violet-50/40 via-white to-sky-50/30 py-20 sm:py-24"
+      className="scroll-mt-sticky-page border-t border-slate-100 bg-gradient-to-b from-violet-50/40 via-white to-sky-50/30 py-20 sm:py-24"
     >
       <div className="mx-auto max-w-6xl pad-x-page">
         <motion.div

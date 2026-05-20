@@ -15,7 +15,7 @@ export function TestSchedule() {
   return (
     <section
       id="jadval"
-      className="border-t border-slate-100 bg-gradient-to-br from-blue-50/50 via-white to-teal-50/40 py-20 sm:py-24"
+      className="scroll-mt-sticky-page border-t border-slate-100 bg-gradient-to-br from-blue-50/50 via-white to-teal-50/40 py-20 sm:py-24"
     >
       <div className="mx-auto max-w-6xl pad-x-page">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">

@@ -21,7 +21,7 @@ export function RegisterForm() {
           required
           autoComplete="tel"
           placeholder="+998 90 123 45 67"
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       <div>
@@ -33,7 +33,7 @@ export function RegisterForm() {
           name="viloyat"
           required
           defaultValue=""
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         >
           <option value="" disabled>
             Tanlang…
@@ -54,7 +54,7 @@ export function RegisterForm() {
           name="gradeLevel"
           required
           defaultValue=""
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         >
           <option value="" disabled>
             3–9-sinfni tanlang…
@@ -77,7 +77,7 @@ export function RegisterForm() {
           required
           minLength={8}
           autoComplete="new-password"
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       <div>
@@ -91,7 +91,7 @@ export function RegisterForm() {
           required
           minLength={8}
           autoComplete="new-password"
-          className="mt-1 min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
       {state?.error ? (
@@ -102,7 +102,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
+        className="min-h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-teal-600 py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:opacity-60"
       >
         {pending ? "Yaratilmoqda…" : "Ro'yxatdan o'tish"}
       </button>

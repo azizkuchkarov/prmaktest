@@ -9,7 +9,10 @@ type Props = { href: string };
 /** Animatsiya + havola; `href` serverda sessiyadan aniqlanadi. */
 export function FinalCTABody({ href }: Props) {
   return (
-    <section id="boshlash" className="pb-20 pt-4 sm:pb-24 sm:pt-6">
+    <section
+      id="boshlash"
+      className="scroll-mt-sticky-page pb-[max(6.5rem,env(safe-area-inset-bottom)+5rem)] pt-4 sm:pb-24 sm:pt-6"
+    >
       <motion.div
         initial={{ opacity: 1, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}

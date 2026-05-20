@@ -198,4 +198,28 @@ canvas {
       padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
     }
   }
+
+  /**
+   * Landing: sticky header (mobilda 2 qator) ostida #anchor lar to‘liq ko‘rinsin.
+   */
+  .scroll-mt-sticky-page {
+    scroll-margin-top: calc(7.25rem + env(safe-area-inset-top, 0px));
+  }
+  @media (min-width: 768px) {
+    .scroll-mt-sticky-page {
+      scroll-margin-top: calc(4.75rem + env(safe-area-inset-top, 0px));
+    }
+  }
+
+  /**
+   * Kabinet: mobil sticky header + notch; desktopda tor scroll-margin.
+   */
+  .scroll-mt-kabinet-sticky {
+    scroll-margin-top: calc(6rem + env(safe-area-inset-top, 0px));
+  }
+  @media (min-width: 1024px) {
+    .scroll-mt-kabinet-sticky {
+      scroll-margin-top: 1.5rem;
+    }
+  }
 }
