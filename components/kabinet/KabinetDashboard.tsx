@@ -55,10 +55,11 @@ type Props = {
   displayName: string;
   supportConfigured: boolean;
   rank: StudentRankSummary;
-  republicRows: LeaderboardRow[];
   viloyatRows: LeaderboardRow[];
-  gradeRepublicRows: LeaderboardRow[];
-  gradeViloyatRows: LeaderboardRow[];
+  grade4RepublicRows: LeaderboardRow[];
+  middleGradesRepublicRows: LeaderboardRow[];
+  grade4ViloyatRows: LeaderboardRow[];
+  middleGradesViloyatRows: LeaderboardRow[];
   republicViloyatTotals: ViloyatTotalRow[];
   news: KabinetNewsItem[];
   tests: KabinetTestItem[];
@@ -73,10 +74,11 @@ export function KabinetDashboard({
   displayName,
   supportConfigured,
   rank,
-  republicRows,
   viloyatRows,
-  gradeRepublicRows,
-  gradeViloyatRows,
+  grade4RepublicRows,
+  middleGradesRepublicRows,
+  grade4ViloyatRows,
+  middleGradesViloyatRows,
   republicViloyatTotals,
   news,
   tests,
@@ -124,10 +126,11 @@ export function KabinetDashboard({
         student={bentoStudent}
         displayName={displayName}
         rank={rank}
-        republicRows={republicRows}
         viloyatRows={viloyatRows}
-        gradeRepublicRows={gradeRepublicRows}
-        gradeViloyatRows={gradeViloyatRows}
+        grade4RepublicRows={grade4RepublicRows}
+        middleGradesRepublicRows={middleGradesRepublicRows}
+        grade4ViloyatRows={grade4ViloyatRows}
+        middleGradesViloyatRows={middleGradesViloyatRows}
         republicViloyatTotals={republicViloyatTotals}
         news={newsSer}
         tests={testsSer}

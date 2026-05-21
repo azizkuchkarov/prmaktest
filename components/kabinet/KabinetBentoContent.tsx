@@ -45,7 +45,13 @@ import {
   YAxis,
 } from "recharts";
 import { AccordionDetails } from "@/components/test-catalog/AccordionDetails";
-import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
+import {
+  LEADERBOARD_MIDDLE_GRADE_MAX,
+  LEADERBOARD_MIDDLE_GRADE_MIN,
+  type LeaderboardRow,
+  type StudentRankSummary,
+  type ViloyatTotalRow,
+} from "@/lib/student-ranking";
 import { formatPhoneDisplay } from "@/lib/phone";
 import type { RadarSubjectPoint, ReadinessStats, WeekProgressPoint } from "@/lib/kabinet-analytics";
 import { KabinetRankingCharts } from "@/components/kabinet/KabinetRankingCharts";
@@ -112,10 +118,11 @@ type Props = {
   student: KabinetBentoStudent;
   displayName: string;
   rank: StudentRankSummary;
-  republicRows: LeaderboardRow[];
   viloyatRows: LeaderboardRow[];
-  gradeRepublicRows: LeaderboardRow[];
-  gradeViloyatRows: LeaderboardRow[];
+  grade4RepublicRows: LeaderboardRow[];
+  middleGradesRepublicRows: LeaderboardRow[];
+  grade4ViloyatRows: LeaderboardRow[];
+  middleGradesViloyatRows: LeaderboardRow[];
   republicViloyatTotals: ViloyatTotalRow[];
   news: KabinetBentoNews[];
   tests: KabinetBentoTest[];
@@ -700,10 +707,11 @@ export function KabinetBentoContent({
   student,
   displayName,
   rank,
-  republicRows,
   viloyatRows,
-  gradeRepublicRows,
-  gradeViloyatRows,
+  grade4RepublicRows,
+  middleGradesRepublicRows,
+  grade4ViloyatRows,
+  middleGradesViloyatRows,
   republicViloyatTotals,
   news,
   tests,
@@ -716,6 +724,12 @@ export function KabinetBentoContent({
   const chartNarrow = useSyncExternalStore(subscribeMqSm, getMqSmSnapshot, () => true);
   const firstName = displayName.split(" ").filter(Boolean)[0] || "do‘st";
   const gradeOk = isValidStudentGrade(student.gradeLevel);
+  const leaderboardDefaultTab =
+    gradeOk &&
+    student.gradeLevel >= LEADERBOARD_MIDDLE_GRADE_MIN &&
+    student.gradeLevel <= LEADERBOARD_MIDDLE_GRADE_MAX
+      ? "g6-rep"
+      : "g4-rep";
   const nextTest =
     tests.find((t) => t.questionsCount > 0 && !t.completed) ??
     tests.find((t) => t.questionsCount > 0) ??
@@ -915,7 +929,13 @@ export function KabinetBentoContent({
                 <>
                   {rank.gradeRepublicRank}
                   <span className="ml-1 text-lg font-semibold text-slate-400">
-                    ({student.gradeLevel}-sinf, resp.)
+                    (
+                    {student.gradeLevel === 4
+                      ? "4-sinf"
+                      : student.gradeLevel >= 5 && student.gradeLevel <= 9
+                        ? "6-sinf · 5–9"
+                        : `${student.gradeLevel}-sinf`}
+                    , resp.)
                   </span>
                 </>
               ) : rank.republicRank != null ? (
@@ -928,9 +948,20 @@ export function KabinetBentoContent({
               )}
             </p>
             <p className="mt-1 text-xs text-slate-600">
-              {gradeOk
-                ? "Sinfingizdagi o‘quvchilar orasida — Respublika bo‘yicha."
-                : "Butun mamlakat bo‘yicha o‘rin (sinf tanlanmagan)."}
+              {gradeOk ? (
+                student.gradeLevel === 4 ? (
+                  <>Faqat 4-sinf o‘quvchilari orasida — Respublika TOP.</>
+                ) : student.gradeLevel >= 5 && student.gradeLevel <= 9 ? (
+                  <>5–9-sinf ro‘yxatdan o‘tgan va ball yig‘ganlar orasida — Respublika.</>
+                ) : (
+                  <>
+                    Kabinet leaderboardda 4- va 6-sinf (5–9) jadvallari alohida. Siz uchun maxsus sinf guruhi saralanmagan —
+                    umumiy reytingga qarang.
+                  </>
+                )
+              ) : (
+                "Butun mamlakat bo‘yicha o‘rin (sinf tanlanmagan)."
+              )}
             </p>
             {gradeOk && rank.republicRank != null ? (
               <p className="mt-1 text-[11px] text-slate-500">
@@ -940,7 +971,13 @@ export function KabinetBentoContent({
             ) : null}
             <div className="mt-4 rounded-2xl bg-slate-50/90 p-3 ring-1 ring-slate-100">
               <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                {gradeOk ? "Viloyat (shu sinf)" : "Viloyat"}
+                {gradeOk && student.gradeLevel === 4
+                  ? "Viloyat (4-sinf)"
+                  : gradeOk && student.gradeLevel >= 5 && student.gradeLevel <= 9
+                    ? "Viloyat (5–9-sinf)"
+                    : gradeOk
+                      ? "Viloyat"
+                      : "Viloyat"}
               </p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 {gradeOk && rank.gradeViloyatRank != null ? (
@@ -1444,71 +1481,63 @@ export function KabinetBentoContent({
 
         <motion.section {...fadeUp} id="liderlar" className="scroll-mt-kabinet-sticky lg:col-span-12">
           <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">Leaderboard</h2>
-          <Tabs defaultValue={gradeOk ? "g-rep" : "republic"} className="w-full min-w-0 gap-3">
+          <Tabs defaultValue={leaderboardDefaultTab} className="w-full min-w-0 gap-3">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-slate-100/90 p-1">
-              {gradeOk ? (
-                <>
-                  <TabsTrigger
-                    value="g-rep"
-                    className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-                  >
-                    {student.gradeLevel}-sinf · Respublika
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="g-vil"
-                    className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-                  >
-                    {student.gradeLevel}-sinf · {shortViloyatLabel(student.viloyat)}
-                  </TabsTrigger>
-                </>
-              ) : null}
               <TabsTrigger
-                value="republic"
+                value="g4-rep"
                 className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
               >
-                Barcha sinflar · Respublika
+                4-sinf · Respublika
               </TabsTrigger>
               <TabsTrigger
-                value="viloyat"
+                value="g6-rep"
                 className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
               >
-                Barcha · {shortViloyatLabel(student.viloyat)}
+                6-sinf · Respublika
+              </TabsTrigger>
+              <TabsTrigger
+                value="g4-vil"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+              >
+                4-sinf · {shortViloyatLabel(student.viloyat)}
+              </TabsTrigger>
+              <TabsTrigger
+                value="g6-vil"
+                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+              >
+                6-sinf · {shortViloyatLabel(student.viloyat)}
               </TabsTrigger>
             </TabsList>
-            {gradeOk ? (
-              <>
-                <TabsContent value="g-rep" className="mt-3 min-w-0">
-                  <BoardTableBento
-                    rows={gradeRepublicRows}
-                    currentUserId={student.id}
-                    title={`${student.gradeLevel}-sinf — Respublika TOP 15`}
-                    subtitle="Faqat shu sinf o‘quchilari."
-                  />
-                </TabsContent>
-                <TabsContent value="g-vil" className="mt-3 min-w-0">
-                  <BoardTableBento
-                    rows={gradeViloyatRows}
-                    currentUserId={student.id}
-                    title={`${student.gradeLevel}-sinf — ${student.viloyat}`}
-                    subtitle="Viloyat ichida shu sinf."
-                  />
-                </TabsContent>
-              </>
-            ) : null}
-            <TabsContent value="republic" className="mt-3 min-w-0">
+            <TabsContent value="g4-rep" className="mt-3 min-w-0">
               <BoardTableBento
-                rows={republicRows}
+                rows={grade4RepublicRows}
                 currentUserId={student.id}
-                title="Respublika TOP 15"
-                subtitle="Barcha sinflar — yig‘ma ball."
+                title="4-sinf — Respublika TOP 15"
+                subtitle="Faqat 4-sinf, ball yig‘gan o‘quvchilar (qoidalar o‘zgarmagan)."
               />
             </TabsContent>
-            <TabsContent value="viloyat" className="mt-3 min-w-0">
+            <TabsContent value="g6-rep" className="mt-3 min-w-0">
               <BoardTableBento
-                rows={viloyatRows}
+                rows={middleGradesRepublicRows}
                 currentUserId={student.id}
-                title={`${student.viloyat} TOP`}
-                subtitle="Barcha sinflar — mahalliy jadval."
+                title="6-sinf — Respublika TOP 15"
+                subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va rank balli yig‘gan o‘quvchilar."
+              />
+            </TabsContent>
+            <TabsContent value="g4-vil" className="mt-3 min-w-0">
+              <BoardTableBento
+                rows={grade4ViloyatRows}
+                currentUserId={student.id}
+                title={`4-sinf — ${student.viloyat} TOP 15`}
+                subtitle="Profilingizdagiga mos viloyat (masalan, Toshkent shahri) — faqat 4-sinf, ball yig‘ganlar."
+              />
+            </TabsContent>
+            <TabsContent value="g6-vil" className="mt-3 min-w-0">
+              <BoardTableBento
+                rows={middleGradesViloyatRows}
+                currentUserId={student.id}
+                title={`6-sinf — ${student.viloyat} TOP 15`}
+                subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va ball yig‘ganlar, shu hudud bo‘yicha."
               />
             </TabsContent>
           </Tabs>

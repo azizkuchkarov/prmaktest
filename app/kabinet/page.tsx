@@ -3,10 +3,12 @@ import { KabinetDashboard } from "@/components/kabinet/KabinetDashboard";
 import { getCurrentStudent } from "@/lib/student-auth";
 import {
   getStudentRankSummary,
-  getRepublicLeaderboard,
   getViloyatLeaderboard,
+  LEADERBOARD_PRIMARY_REPUBLIC_GRADE,
   getGradeRepublicLeaderboard,
   getGradeViloyatLeaderboard,
+  getMiddleGradesRepublicLeaderboard,
+  getMiddleGradesViloyatLeaderboard,
   getRepublicViloyatTotals,
 } from "@/lib/student-ranking";
 import {
@@ -33,10 +35,11 @@ export default async function KabinetPage() {
 
   const [
     rank,
-    republicRows,
     viloyatRows,
-    gradeRepublicRows,
-    gradeViloyatRows,
+    grade4RepublicRows,
+    middleGradesRepublicRows,
+    grade4ViloyatRows,
+    middleGradesViloyatRows,
     republicViloyatTotals,
     completedAttempts,
     news,
@@ -48,10 +51,11 @@ export default async function KabinetPage() {
     liveStats,
   ] = await Promise.all([
     getStudentRankSummary(student.id, student.viloyat, gradeOk ? student.gradeLevel : null),
-    getRepublicLeaderboard(15),
     getViloyatLeaderboard(student.viloyat, 15),
-    gradeOk ? getGradeRepublicLeaderboard(student.gradeLevel, 15) : Promise.resolve([]),
-    gradeOk ? getGradeViloyatLeaderboard(student.viloyat, student.gradeLevel, 15) : Promise.resolve([]),
+    getGradeRepublicLeaderboard(LEADERBOARD_PRIMARY_REPUBLIC_GRADE, 15),
+    getMiddleGradesRepublicLeaderboard(15),
+    getGradeViloyatLeaderboard(student.viloyat, LEADERBOARD_PRIMARY_REPUBLIC_GRADE, 15),
+    getMiddleGradesViloyatLeaderboard(student.viloyat, 15),
     getRepublicViloyatTotals(),
     prisma.testAttempt.findMany({
       where: { userId: student.id },
@@ -101,10 +105,11 @@ export default async function KabinetPage() {
       displayName={displayName}
       supportConfigured={supportConfigured}
       rank={rank}
-      republicRows={republicRows}
       viloyatRows={viloyatRows}
-      gradeRepublicRows={gradeRepublicRows}
-      gradeViloyatRows={gradeViloyatRows}
+      grade4RepublicRows={grade4RepublicRows}
+      middleGradesRepublicRows={middleGradesRepublicRows}
+      grade4ViloyatRows={grade4ViloyatRows}
+      middleGradesViloyatRows={middleGradesViloyatRows}
       republicViloyatTotals={republicViloyatTotals}
       news={newsForDash}
       tests={tests.map((t) => ({ ...t, completed: completedTestIds.has(t.id) }))}
