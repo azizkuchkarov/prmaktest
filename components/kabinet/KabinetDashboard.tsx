@@ -8,6 +8,7 @@ import type {
 import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
 import type { KabinetBentoNews, KabinetBentoTest } from "@/components/kabinet/KabinetBentoContent";
 import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
+import { KabinetStudyGuideProvider } from "@/components/kabinet/KabinetStudyGuide";
 import { KabinetPremiumShell } from "@/components/kabinet/KabinetPremiumShell";
 
 const KabinetBentoContent = dynamic(
@@ -87,8 +88,6 @@ export function KabinetDashboard({
   readiness,
   liveStats,
 }: Props) {
-  const ctaHref = "/testlar";
-
   const bentoStudent = {
     id: student.id,
     phone: student.phone,
@@ -115,30 +114,26 @@ export function KabinetDashboard({
   }));
 
   return (
-    <KabinetPremiumShell
-      displayName={displayName}
-      viloyat={student.viloyat}
-      ctaHref={ctaHref}
-      ctaLabel="Test haqida"
-      supportConfigured={supportConfigured}
-    >
-      <KabinetBentoContent
-        student={bentoStudent}
-        displayName={displayName}
-        rank={rank}
-        viloyatRows={viloyatRows}
-        grade4RepublicRows={grade4RepublicRows}
-        middleGradesRepublicRows={middleGradesRepublicRows}
-        grade4ViloyatRows={grade4ViloyatRows}
-        middleGradesViloyatRows={middleGradesViloyatRows}
-        republicViloyatTotals={republicViloyatTotals}
-        news={newsSer}
-        tests={testsSer}
-        weekly={weekly}
-        radar={radar}
-        readiness={readiness}
-        liveStats={liveStats}
-      />
-    </KabinetPremiumShell>
+    <KabinetStudyGuideProvider>
+      <KabinetPremiumShell displayName={displayName} viloyat={student.viloyat} supportConfigured={supportConfigured}>
+        <KabinetBentoContent
+          student={bentoStudent}
+          displayName={displayName}
+          rank={rank}
+          viloyatRows={viloyatRows}
+          grade4RepublicRows={grade4RepublicRows}
+          middleGradesRepublicRows={middleGradesRepublicRows}
+          grade4ViloyatRows={grade4ViloyatRows}
+          middleGradesViloyatRows={middleGradesViloyatRows}
+          republicViloyatTotals={republicViloyatTotals}
+          news={newsSer}
+          tests={testsSer}
+          weekly={weekly}
+          radar={radar}
+          readiness={readiness}
+          liveStats={liveStats}
+        />
+      </KabinetPremiumShell>
+    </KabinetStudyGuideProvider>
   );
 }

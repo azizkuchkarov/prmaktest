@@ -45,6 +45,7 @@ import {
   YAxis,
 } from "recharts";
 import { AccordionDetails } from "@/components/test-catalog/AccordionDetails";
+import { useKabinetStudyGuide } from "@/components/kabinet/KabinetStudyGuide";
 import {
   LEADERBOARD_MIDDLE_GRADE_MAX,
   LEADERBOARD_MIDDLE_GRADE_MIN,
@@ -720,6 +721,7 @@ export function KabinetBentoContent({
   readiness,
   liveStats,
 }: Props) {
+  const { openStudyGuide } = useKabinetStudyGuide();
   const chartUid = useId().replace(/:/g, "");
   const chartNarrow = useSyncExternalStore(subscribeMqSm, getMqSmSnapshot, () => true);
   const firstName = displayName.split(" ").filter(Boolean)[0] || "do‘st";
@@ -831,17 +833,18 @@ export function KabinetBentoContent({
               <Badge className="rounded-xl border-0 bg-[#10B981]/15 font-bold text-[#059669]">Rank ball: {rank.totalPoints}</Badge>
             </div>
             {nextTest && nextTest.questionsCount > 0 ? (
-              <Link
-                href={`/testlar/${nextTest.id}`}
-                className="hidden w-full min-[480px]:inline-flex sm:w-auto sm:shrink-0 min-[480px]:max-w-xs lg:inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#2563EB]/20 transition hover:brightness-105 active:brightness-95"
+              <button
+                type="button"
+                onClick={() => openStudyGuide()}
+                className="inline-flex w-full min-h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#2563EB]/20 transition [touch-action:manipulation] hover:brightness-105 active:brightness-95 sm:w-auto sm:max-w-xs"
               >
                 Test haqida
                 <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
+              </button>
             ) : (
               <Link
                 href="/testlar"
-                className="hidden w-full sm:inline-flex sm:w-auto sm:shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 lg:inline-flex"
+                className="inline-flex w-full min-h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-bold text-slate-800 shadow-sm transition [touch-action:manipulation] hover:bg-slate-50 sm:w-auto"
               >
                 Testlar katalogi
                 <ArrowRight className="h-4 w-4" />
@@ -1040,13 +1043,14 @@ export function KabinetBentoContent({
                 </div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-5">
                   {nextTest.questionsCount > 0 ? (
-                    <Link
-                      href={`/testlar/${nextTest.id}`}
-                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-[#1d4ed8] sm:w-auto"
+                    <button
+                      type="button"
+                      onClick={() => openStudyGuide()}
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-sm font-bold text-white shadow-md transition [touch-action:manipulation] hover:bg-[#1d4ed8] sm:w-auto"
                     >
                       Test haqida
                       <ArrowRight className="h-4 w-4" aria-hidden />
-                    </Link>
+                    </button>
                   ) : null}
                 </div>
               </>

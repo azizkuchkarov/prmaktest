@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { logoutStudent } from "@/app/auth/actions";
 import { KabinetSupportModalForm } from "@/components/kabinet/KabinetSupportModalForm";
+import { useKabinetStudyGuide } from "@/components/kabinet/KabinetStudyGuide";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -37,8 +37,6 @@ const nav = [
 type Props = {
   displayName: string;
   viloyat: string;
-  ctaHref: string;
-  ctaLabel: string;
   supportConfigured: boolean;
   children: React.ReactNode;
 };
@@ -104,8 +102,6 @@ function NavLinks({
 export function KabinetPremiumShell({
   displayName,
   viloyat,
-  ctaHref,
-  ctaLabel,
   supportConfigured,
   children,
 }: Props) {
@@ -115,6 +111,8 @@ export function KabinetPremiumShell({
   const [mounted, setMounted] = useState(false);
   /** Start narrow so desktop aside is not mounted until `matchMedia` runs (avoids ghost overlap on mobile). */
   const [isLg, setIsLg] = useState(false);
+
+  const { openStudyGuide } = useKabinetStudyGuide();
 
   useEffect(() => setMounted(true), []);
 
@@ -219,7 +217,10 @@ export function KabinetPremiumShell({
   );
 
   return (
-    <div className="min-h-[100dvh] w-full min-w-0 max-w-full overflow-x-clip bg-gradient-to-b from-slate-100/95 via-[#f4f7fc] to-slate-100 text-slate-900">
+    <div
+      data-kabinet-shell
+      className="min-h-[100dvh] w-full min-w-0 max-w-full overflow-x-clip bg-gradient-to-b from-slate-100/95 via-[#f4f7fc] to-slate-100 text-slate-900"
+    >
       {isLg ? (
         <aside className={asideClass} aria-label="Kabinet navigatsiyasi">
           <div className="border-b border-slate-200/60 bg-gradient-to-br from-white via-slate-50/30 to-blue-50/20 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
@@ -282,12 +283,13 @@ export function KabinetPremiumShell({
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-40 box-border border-t border-white/80 bg-gradient-to-t from-white/95 via-slate-50/90 to-white/80 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] shadow-[0_-12px_40px_-16px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
-          <Link
-            href={ctaHref}
-            className="box-border flex h-14 min-h-[3.5rem] w-full max-w-full min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#4f46e5] to-[#7C3AED] px-4 text-base font-bold leading-tight text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/25 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 active:brightness-95 sm:h-14"
+          <button
+            type="button"
+            onClick={() => openStudyGuide()}
+            className="box-border flex h-14 min-h-[3.5rem] w-full max-w-full min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#4f46e5] to-[#7C3AED] px-4 text-base font-bold leading-tight text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/25 outline-none transition [touch-action:manipulation] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 active:brightness-95 sm:h-14"
           >
-            {ctaLabel}
-          </Link>
+            Test haqida
+          </button>
         </div>
       </div>
       {mounted && supportOpen && supportConfigured

@@ -222,4 +222,16 @@ canvas {
       scroll-margin-top: 1.5rem;
     }
   }
+
+  /**
+   * Kabinet mobil: pastki bar ostida #anchor bo‘lib qolmasin (menyu skrolli).
+   */
+  body:has([data-kabinet-shell]) {
+    scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 1024px) {
+    body:has([data-kabinet-shell]) {
+      scroll-padding-bottom: 0;
+    }
+  }
 }
