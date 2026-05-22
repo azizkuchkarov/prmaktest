@@ -12,7 +12,6 @@ import {
   BookOpen,
   Brain,
   Calculator,
-  Check,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -44,7 +43,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { AccordionDetails } from "@/components/test-catalog/AccordionDetails";
 import { useKabinetStudyGuide } from "@/components/kabinet/KabinetStudyGuide";
 import {
   LEADERBOARD_MIDDLE_GRADE_MAX,
@@ -67,53 +65,21 @@ import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
 import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
 import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
 import {
-  CATALOG_MENU_MAX,
-  CATALOG_PANEL_PREMIUM,
-  CATALOG_SECTION_META,
-  TEST_CATALOG_ORDER,
-  isTestCatalogCategory,
-  normalizeTestCatalogCategory,
-  pickLatestTestsForCatalogMenu,
-} from "@/lib/test-catalog";
+  buildProgramCatalogGroups,
+  pickDefaultOpenProgram,
+  type CatalogTestRowModel,
+} from "@/lib/build-exam-catalog-sections";
+import type { KabinetBentoStudent, KabinetBentoNews, KabinetBentoTest } from "./kabinet-bento-types";
 import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
 import type { TestCatalogCategory } from "@prisma/client";
+import {
+  CATALOG_PANEL_PREMIUM,
+  isTestCatalogCategory,
+  normalizeTestCatalogCategory,
+} from "@/lib/test-catalog";
+import { KabinetProgramsCatalog } from "@/components/kabinet/KabinetProgramsCatalog";
 
-export type KabinetBentoNews = {
-  id: string;
-  title: string;
-  excerpt: string;
-  updatedAt: string;
-  isRead: boolean;
-};
-
-export type KabinetBentoTest = {
-  id: string;
-  title: string;
-  subject: string;
-  description: string;
-  durationMinutes: number;
-  priceSum: number;
-  questionsCount: number;
-  stage: string;
-  updatedAt: string;
-  createdAt: string;
-  completed: boolean;
-  catalogCategory: string;
-};
-
-export type KabinetBentoStudent = {
-  id: string;
-  phone: string;
-  viloyat: string;
-  firstName: string;
-  lastName: string;
-  parentPhone: string;
-  balanceSum: number;
-  gradeLevel: number;
-  /** Telegram bildirishnomalari — `null` bo‘lsa ulanmagan */
-  telegramLinked: boolean;
-  telegramUsername: string | null;
-};
+export type { KabinetBentoNews, KabinetBentoStudent, KabinetBentoTest } from "./kabinet-bento-types";
 
 type Props = {
   student: KabinetBentoStudent;
@@ -598,111 +564,7 @@ function CompactRankingBar({
   );
 }
 
-function KabinetCatalogTestRow({ test: t, category }: { test: KabinetBentoTest; category: TestCatalogCategory }) {
-  const accent = CATALOG_PANEL_PREMIUM[category];
-  const done = t.completed;
-  return (
-    <li
-      className={cn(
-        "group/card relative box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl py-3.5 pl-3 pr-3 transition duration-300 sm:pl-4 sm:pr-4",
-        accent.cardBar,
-        done
-          ? "border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/45 to-teal-50/30 shadow-[0_22px_48px_-26px_rgba(16,185,129,0.45)] ring-1 ring-emerald-300/35"
-          : cn(
-              "border border-slate-200/60 bg-white/95 shadow-sm backdrop-blur-sm",
-              "hover:border-slate-300/90 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.18)]",
-            ),
-      )}
-    >
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full blur-2xl transition-opacity duration-300 group-hover/card:opacity-[0.14]",
-          done ? "bg-emerald-400/25 opacity-[0.12]" : cn("opacity-[0.07]", accent.orb),
-        )}
-      />
-      {done ? (
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
-          aria-hidden
-        />
-      ) : null}
-      <div className="relative z-[1] flex min-w-0 items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3
-              className={cn(
-                "break-words text-[13px] font-semibold leading-snug tracking-tight sm:text-sm",
-                done ? "text-emerald-950" : "text-slate-900",
-              )}
-            >
-              {t.title}
-            </h3>
-            {done ? (
-              <Badge
-                variant="outline"
-                className="h-5 shrink-0 rounded-full border-emerald-300/80 bg-emerald-100/80 px-2 py-0 text-[10px] font-bold uppercase tracking-wide text-emerald-900 shadow-sm"
-              >
-                Yechilgan
-              </Badge>
-            ) : null}
-          </div>
-          {t.subject ? (
-            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.subject}</p>
-          ) : null}
-        </div>
-        {done ? (
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/40 ring-2 ring-white/90"
-            title="Rasmiy topshiruv qilingan"
-          >
-            <Check className="h-5 w-5" aria-hidden strokeWidth={2.75} />
-            <span className="sr-only">Tugallangan</span>
-          </span>
-        ) : null}
-      </div>
-      <div className={cn("relative z-[1] mt-3 flex flex-wrap gap-2", done && "opacity-90")}>
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-medium",
-            done
-              ? "border-emerald-200/60 bg-white/70 text-emerald-900"
-              : "border-slate-200/80 bg-slate-50 text-slate-600",
-          )}
-        >
-          <Clock className={cn("h-3.5 w-3.5", done ? "text-emerald-600" : "text-slate-400")} />
-          {t.durationMinutes} daq
-        </span>
-        <span className={cn("rounded-lg border px-2.5 py-1 text-[11px] font-semibold", accent.chipBorder)}>
-          {t.questionsCount} savol
-        </span>
-        {t.priceSum > 0 ? (
-          <span className="inline-flex items-center gap-0.5 rounded-lg border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
-            <Banknote className="h-3.5 w-3.5" aria-hidden />
-            {formatPriceSum(t.priceSum)}
-          </span>
-        ) : null}
-      </div>
-      <div className="relative z-[1] mt-4 flex flex-col gap-2 border-t border-slate-100/90 pt-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-end">
-        {t.questionsCount > 0 ? (
-          <Link
-            href={`/testlar/${t.id}`}
-            className={cn(
-              "inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[11px] font-semibold shadow-sm transition min-[400px]:w-auto",
-              done
-                ? "border border-emerald-200/90 bg-white/90 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50/80"
-                : "border border-slate-200/90 bg-white text-slate-800 hover:border-blue-200 hover:bg-slate-50 hover:text-blue-800",
-            )}
-          >
-            Test haqida
-            <ArrowRight className="h-3.5 w-3.5 opacity-80" aria-hidden />
-          </Link>
-        ) : (
-          <span className="text-[11px] font-semibold text-slate-400">{"Savollar yo'q"}</span>
-        )}
-      </div>
-    </li>
-  );
-}
+
 
 export function KabinetBentoContent({
   student,
@@ -753,32 +615,29 @@ export function KabinetBentoContent({
     ];
   }, [readiness.pct]);
 
-  const { testsByCategory, catalogTotals } = useMemo(() => {
-    const buckets: Record<string, KabinetBentoTest[]> = {
-      MOCK: [],
-      MATHEMATICS: [],
-      CRITICAL_LOGIC: [],
-      ENGLISH: [],
-    };
-    for (const t of tests) {
-      const c = normalizeTestCatalogCategory(t.catalogCategory);
-      buckets[c].push(t);
-    }
-    const totals: Record<string, number> = {};
-    for (const cat of TEST_CATALOG_ORDER) {
-      const full = buckets[cat] ?? [];
-      totals[cat] = full.length;
-      buckets[cat] = pickLatestTestsForCatalogMenu(full, CATALOG_MENU_MAX);
-    }
-    return { testsByCategory: buckets, catalogTotals: totals };
-  }, [tests]);
+  const programCatalogGroups = useMemo(() => {
+    const rows: CatalogTestRowModel[] = tests.map((t) => ({
+      id: t.id,
+      title: t.title,
+      subject: t.subject || null,
+      description: t.description || null,
+      durationMinutes: t.durationMinutes,
+      priceSum: t.priceSum,
+      createdAt: t.createdAt,
+      _count: { questions: t.questionsCount },
+      catalogCategory: normalizeTestCatalogCategory(t.catalogCategory),
+      examSchoolProgram: t.examSchoolProgram,
+      examTargetCohort: t.examTargetCohort,
+      specializedSixTrack: t.specializedSixTrack,
+      completed: t.completed,
+    }));
+    return buildProgramCatalogGroups(rows, student.gradeLevel);
+  }, [tests, student.gradeLevel]);
 
-  const defaultOpenCatalogCategory = useMemo(() => {
-    for (const c of TEST_CATALOG_ORDER) {
-      if ((catalogTotals[c] ?? 0) > 0) return c;
-    }
-    return TEST_CATALOG_ORDER[0] ?? "MOCK";
-  }, [catalogTotals]);
+  const defaultOpenProgram = useMemo(
+    () => pickDefaultOpenProgram(programCatalogGroups),
+    [programCatalogGroups],
+  );
 
   return (
     <div className="relative box-border mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip py-5 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:space-y-5 sm:px-6 sm:py-7 lg:space-y-6 lg:py-9">
@@ -1375,13 +1234,12 @@ export function KabinetBentoContent({
                       Testlar katalogi
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                      Bo&apos;lim sarlavhasini bosing — ro&apos;yxat ochiladi yoki yopiladi. Sarlavhada shu yo&apos;nalishdagi{" "}
-                      <span className="font-medium text-slate-800">testlar soni</span> ko&apos;rsatiladi.{" "}
-                      To&apos;rt xil yo&apos;nalish — har biri alohida rangda.{" "}
-                      <span className="font-medium text-slate-700">
-                        Har bo&apos;limda testlar yaratilgan vaqt bo&apos;yicha 1–2–3 tartibida (eski yuqorida).
-                      </span>{" "}
-                      <span className="font-medium text-emerald-800">Yechib bo&apos;lgan testlar yashil belgi bilan.</span>
+                      Avval{" "}
+                      <span className="font-semibold text-slate-800">uchta maktab dasturi</span> ostidan tanlang —
+                      ichida fan bo&apos;limlari (Mock, matematika va h.k.) bor. Sinfi 4 uchun faqat{" "}
+                      <span className="font-semibold text-slate-900">4-sinf bloki</span> testlari, 5–9 uchun esa{" "}
+                      <span className="font-semibold text-slate-900">6-sinf bloki</span> chiqadi (Al-Xorazmiy esa faqat 4
+                      blok). <span className="font-semibold text-emerald-900">Yechilganlari yashil belgi bilan.</span>
                     </p>
                   </div>
                 </div>
@@ -1400,84 +1258,7 @@ export function KabinetBentoContent({
                   <p className="text-sm font-medium text-slate-500">{"Hozircha testlar yo'q."}</p>
                 </div>
               ) : (
-                <div className="relative mt-8 grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6">
-                  {TEST_CATALOG_ORDER.map((cat) => {
-                    const meta = CATALOG_SECTION_META[cat];
-                    const accent = CATALOG_PANEL_PREMIUM[cat];
-                    const list = testsByCategory[cat] ?? [];
-                    const total = catalogTotals[cat] ?? 0;
-                    return (
-                      <AccordionDetails
-                        key={cat}
-                        defaultOpen={cat === defaultOpenCatalogCategory}
-                        className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 shadow-sm ring-1 ring-slate-100 transition duration-200 open:shadow-md open:ring-slate-200/80"
-                        summary={(open) => (
-                          <summary
-                            className={cn(
-                              "relative flex cursor-pointer list-none items-start justify-between gap-3 overflow-x-clip border-b border-white/50 px-3 py-4 outline-none transition hover:brightness-[1.02] focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:px-5",
-                              "[&::-webkit-details-marker]:hidden",
-                              accent.header,
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "pointer-events-none absolute -right-8 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full blur-2xl",
-                                accent.orb,
-                              )}
-                            />
-                            <div className="relative min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-[15px] font-bold tracking-tight text-slate-900 sm:text-base">
-                                  {meta.heading}
-                                </h3>
-                                <span className="rounded-full border border-white/60 bg-white/75 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-slate-800 shadow-sm backdrop-blur-sm sm:text-xs">
-                                  {total} ta test
-                                </span>
-                              </div>
-                              <p className="relative mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-slate-600 sm:text-[13px]">
-                                {meta.subtitle}
-                              </p>
-                            </div>
-                            <ChevronDown
-                              className={cn(
-                                "relative mt-0.5 h-5 w-5 shrink-0 text-slate-600 transition-transform duration-200",
-                                open && "rotate-180",
-                              )}
-                              aria-hidden
-                            />
-                          </summary>
-                        )}
-                      >
-                        <div className="relative flex min-w-0 flex-1 flex-col bg-white/60 p-3 sm:p-5">
-                          {list.length === 0 ? (
-                            <p className="flex flex-1 items-center py-6 text-center text-xs font-medium text-slate-400">
-                              Bu bo&apos;limda hozircha test yo&apos;q.
-                            </p>
-                          ) : (
-                            <>
-                              <ul className="min-w-0 space-y-3">
-                                {list.map((t) => (
-                                  <KabinetCatalogTestRow key={t.id} test={t} category={cat} />
-                                ))}
-                              </ul>
-                              {(catalogTotals[cat] ?? 0) > CATALOG_MENU_MAX ? (
-                                <Link
-                                  href="/testlar"
-                                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 py-2.5 text-[11px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-200/80 hover:bg-white hover:text-blue-700"
-                                >
-                                  <span>
-                                    Yana {(catalogTotals[cat] ?? 0) - CATALOG_MENU_MAX} ta — barchasi
-                                  </span>
-                                  <ArrowRight className="h-3.5 w-3.5 opacity-70" />
-                                </Link>
-                              ) : null}
-                            </>
-                          )}
-                        </div>
-                      </AccordionDetails>
-                    );
-                  })}
-                </div>
+                <KabinetProgramsCatalog groups={programCatalogGroups} defaultOpenProgram={defaultOpenProgram} />
               )}
             </div>
           </div>

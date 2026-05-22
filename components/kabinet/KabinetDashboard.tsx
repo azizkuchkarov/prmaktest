@@ -6,8 +6,9 @@ import type {
   WeekProgressPoint,
 } from "@/lib/kabinet-analytics";
 import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
-import type { KabinetBentoNews, KabinetBentoTest } from "@/components/kabinet/KabinetBentoContent";
+import type { KabinetBentoNews, KabinetBentoTest } from "@/components/kabinet/kabinet-bento-types";
 import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
+import type { ExamSchoolProgram, ExamTargetCohort, SpecializedSixTrack } from "@prisma/client";
 import { KabinetStudyGuideProvider } from "@/components/kabinet/KabinetStudyGuide";
 import { KabinetPremiumShell } from "@/components/kabinet/KabinetPremiumShell";
 
@@ -49,6 +50,9 @@ export type KabinetTestItem = {
   createdAt: Date;
   updatedAt: Date;
   completed: boolean;
+  examSchoolProgram: ExamSchoolProgram;
+  examTargetCohort: ExamTargetCohort;
+  specializedSixTrack: SpecializedSixTrack;
 };
 
 type Props = {

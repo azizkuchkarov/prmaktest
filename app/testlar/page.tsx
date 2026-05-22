@@ -2,11 +2,10 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getStudentSessionUserId } from "@/lib/student-auth";
-import { PublicTestCatalogList } from "@/components/test-catalog/PublicTestCatalogList";
-import {
-  TEST_CATALOG_ORDER,
-  normalizeTestCatalogCategory,
-} from "@/lib/test-catalog";
+import { ProgramsTestCatalog } from "@/components/test-catalog/ProgramsTestCatalog";
+import type { CatalogTestRowModel } from "@/lib/build-exam-catalog-sections";
+import { buildProgramCatalogGroups, pickDefaultOpenProgram } from "@/lib/build-exam-catalog-sections";
+import { examTestVisibleForUserGrade } from "@/lib/exam-program";
 
 export const dynamic = "force-dynamic";
 
@@ -25,34 +24,44 @@ export default async function TestsPublicPage() {
     getStudentSessionUserId(),
   ]);
 
+  let gradeLevel: number | null = null;
+  if (userId) {
+    const u = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { gradeLevel: true },
+    });
+    gradeLevel = u?.gradeLevel ?? null;
+  }
+
+  const filtered =
+    gradeLevel === null ? items : items.filter((t) => examTestVisibleForUserGrade(t, gradeLevel));
+
   const completedIds = new Set<string>();
-  if (userId && items.length > 0) {
+  if (userId && filtered.length > 0) {
     const attempts = await prisma.testAttempt.findMany({
-      where: { userId, testId: { in: items.map((t) => t.id) } },
+      where: { userId, testId: { in: filtered.map((t) => t.id) } },
       select: { testId: true },
     });
     for (const a of attempts) completedIds.add(a.testId);
   }
 
-  const buckets: Record<string, typeof items> = {
-    MOCK: [],
-    MATHEMATICS: [],
-    CRITICAL_LOGIC: [],
-    ENGLISH: [],
-  };
-  for (const t of items) {
-    const c = normalizeTestCatalogCategory(t.catalogCategory);
-    buckets[c].push(t);
-  }
+  const rows: CatalogTestRowModel[] = filtered.map((t) => ({
+    id: t.id,
+    title: t.title,
+    subject: t.subject || null,
+    description: t.description || null,
+    durationMinutes: t.durationMinutes,
+    priceSum: t.priceSum,
+    createdAt: t.createdAt,
+    _count: { questions: t._count.questions },
+    catalogCategory: t.catalogCategory,
+    examSchoolProgram: t.examSchoolProgram,
+    examTargetCohort: t.examTargetCohort,
+    specializedSixTrack: t.specializedSixTrack,
+  }));
 
-  for (const c of TEST_CATALOG_ORDER) {
-    (buckets[c] ?? []).sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
-  }
-
-  const defaultOpenCategory =
-    TEST_CATALOG_ORDER.find((c) => (buckets[c]?.length ?? 0) > 0) ?? TEST_CATALOG_ORDER[0];
+  const programGroups = buildProgramCatalogGroups(rows, gradeLevel);
+  const defaultOpenProgram = pickDefaultOpenProgram(programGroups);
 
   return (
     <div className="min-h-[100dvh] w-full min-w-0 overflow-x-clip bg-gradient-to-b from-sky-50/80 via-white to-teal-50/20">
@@ -75,8 +84,17 @@ export default async function TestsPublicPage() {
       <main className="mx-auto w-full min-w-0 max-w-5xl pad-x-page py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:py-14">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Testlar katalogi</h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Nashr etilgan testlar bo&apos;limlarga bo&apos;lingan. Sarlavhani bosing — ochiladi yoki yopiladi; yonida shu
-          bo&apos;limda <strong>nechta test</strong> borligi ko&apos;rsatiladi.
+          Rostdan uchta blok:{" "}
+          <strong className="text-slate-800">Prezident maktablari</strong>,{" "}
+          <strong className="text-slate-800">Ixtisoslashtirilgan maktablar</strong> va{" "}
+          <strong className="text-slate-800">Al-Xorazmiy</strong>.{" "}
+          <strong className="text-slate-800">Prezident</strong> uchun ichida Mock, Matematika, tanqidiy-mantiqiy
+          va ingliz tili boʻlimlari ochiladi;{" "}
+          <strong className="text-slate-800">Ixtisos</strong> va{" "}
+          <strong className="text-slate-800">Al-Xorazmiy</strong> uchun alohida fan bloklari yoʻq — testlar
+          yagona roʻyxatda. Sinfi 4 uchun faqat 4-sinf bloki testlari, 5–9 uchun 6-sinf bloki (Al-Xorazmiyda
+          faqat 4 blok).{" "}
+          {gradeLevel !== null ? `Profilingizda: ${gradeLevel}-sinf.` : "Mehmon sifatida barcha nashrlar chiqadi."}
         </p>
         <p className="mt-2 text-sm text-slate-500">
           Ro&apos;yxatdan o&apos;tgan o&apos;quvchilar testlarni{" "}
@@ -85,23 +103,18 @@ export default async function TestsPublicPage() {
           </Link>{" "}
           orqali ham kuzatadi.
           {userId ? (
-            <>
-              {" "}
-              Siz yechib bo&apos;lgan testlar yashil belgi bilan ko&apos;rsatiladi.
-            </>
+            <> Siz uchun ro&apos;yxat sinf profilingiz asosida filtirlangan.</>
           ) : null}
+          {userId ? <> Yechib bo&apos;lgan testlar yashil belgi bilan.</> : null}
         </p>
-        {items.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-slate-100 bg-white p-8 text-center text-slate-500 shadow-sm">
-            Hozircha nashr etilgan testlar yo&apos;q.
+            Hozircha sizning sinf uchun nashr etilgan testlar yo&apos;q yoki tizimga kirmagansiz.
           </div>
         ) : (
-          <PublicTestCatalogList
-            sections={TEST_CATALOG_ORDER.map((cat) => ({
-              cat,
-              items: buckets[cat] ?? [],
-            }))}
-            defaultOpenCategory={defaultOpenCategory}
+          <ProgramsTestCatalog
+            groups={programGroups}
+            defaultOpenProgram={defaultOpenProgram}
             completedIds={[...completedIds]}
           />
         )}

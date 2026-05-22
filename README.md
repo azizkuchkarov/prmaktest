@@ -19,6 +19,7 @@ Brauzer: [http://localhost:3000](http://localhost:3000)
 | Skript | Vazifasi |
 |--------|----------|
 | `npm run dev` | Rivojlanish serveri |
+| `npm run dev:webpack` | Turbopack keshi buzilganda: dev server webpack bilan |
 | `npm run build` | `prisma generate` + production build |
 | `npm run start` | Production server (`next start`, port `PORT` yoki 3000) |
 | `npm run db:deploy` | `prisma migrate deploy` (production DB) |
@@ -77,6 +78,14 @@ pm2 restart prmaktest-bot
 - **Bosh sahifa** — global sozlamalar `unstable_cache` (tag: `admin-site-settings`, ~120 s). Admin Telegram chat saqlaganda `revalidateTag` bilan kesh yangilanadi.
 - **Telegram fon vazifalari** — Next.js `after()`; Vercel talab qilmaydi.
 - **`next.config.ts`** — `optimizePackageImports`, `removeConsole` (prod), `compress`, xavfsizlik headerlari.
+
+### Turbopack / `.next` xatolari (`ENOENT build-manifest.json`, `.sst` topilmadi)
+
+Bir vaqtning o‘zida ikkita `next dev`, yoki `.next` o‘chirib tashlangan paytda boshqa jarayon kesh yozayotgan bo‘lsa — Turbopack keshini buzadigan.
+
+1. Barcha `next dev` / Cursor terminalidagi dev serverlarini toʻxtating.
+2. Loyiha ildizida `.next` papkasini o‘chirib tashlang (`Remove-Item -Recurse .next` PowerShell da yoki qo‘lda).
+3. Qayta: `npm run dev`. Agar muammo takrorlansa — `npm run dev:webpack` (webpack rejimi sababli sekinroq).
 
 ## Boshqa manbalar
 

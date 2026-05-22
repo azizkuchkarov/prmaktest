@@ -107,6 +107,31 @@ export default async function TestStartPage({ params }: Props) {
       );
     }
 
+    if (prep.code === "grade_gate") {
+      return (
+        <div className="min-h-[100dvh] bg-gradient-to-b from-violet-50/90 to-white px-4 py-12 pt-[max(1rem,env(safe-area-inset-top))]">
+          <div className="mx-auto max-w-lg rounded-2xl border border-violet-200 bg-white p-6 shadow-lg">
+            <h1 className="text-lg font-bold text-slate-900">Sinf mosligi</h1>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">{prep.message}</p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/testlar"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-3 text-sm font-bold text-white shadow-md"
+              >
+                Katalogga qaytish
+              </Link>
+              <Link
+                href={`/testlar/${id}`}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800"
+              >
+                Orqaga
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <p className="text-sm text-slate-700">{prep.message}</p>

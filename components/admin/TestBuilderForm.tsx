@@ -1,15 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { Question, Test, TestCatalogCategory } from "@prisma/client";
+import { useState, useTransition, useEffect } from "react";
+import type {
+  Question,
+  Test,
+  TestCatalogCategory,
+  ExamSchoolProgram,
+  ExamTargetCohort,
+  SpecializedSixTrack,
+} from "@prisma/client";
 import {
   DEFAULT_NEW_QUESTION_ROWS,
   MAX_QUESTIONS,
   type QuestionDraft,
 } from "@/lib/test-builder-rules";
 import { createTestFull, updateTestFull, type TestSavePayload } from "@/app/admin/(dashboard)/testlar/actions";
+import {
+  EXAM_PROGRAM_LABELS,
+  examSchoolProgramLabelShort,
+  examSummaryAdminUz,
+} from "@/lib/exam-program";
 import { normalizeBulkPastedText, parseCompactBulkTest } from "@/lib/bulk-test-parser";
 import { CATALOG_LABEL_ADMIN, TEST_CATALOG_ORDER } from "@/lib/test-catalog";
+import { cn } from "@/lib/utils";
 import { Plus, Trash2, Wand2, FileDown, ImagePlus, Loader2 } from "lucide-react";
 
 type OptionLetter = "A" | "B" | "C" | "D";
@@ -87,6 +100,23 @@ const field =
   "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25";
 const label = "block text-xs font-medium text-slate-600";
 
+function canProceedExamContext(params: {
+  examSchoolProgram: ExamSchoolProgram;
+  examTargetCohort: ExamTargetCohort;
+  specializedSixTrack: SpecializedSixTrack;
+}): boolean {
+  if (
+    params.examSchoolProgram === "SPECIALIZED_SCHOOL" &&
+    params.examTargetCohort === "COHORT_6_CYCLE"
+  ) {
+    return (
+      params.specializedSixTrack === "EXACT_SCIENCES" ||
+      params.specializedSixTrack === "NATURAL_SCIENCES"
+    );
+  }
+  return true;
+}
+
 type Props =
   | { mode: "create"; test?: undefined; questions?: undefined }
   | { mode: "edit"; test: Test; questions: Question[] };
@@ -119,7 +149,36 @@ export function TestBuilderForm(props: Props) {
   const [catalogCategory, setCatalogCategory] = useState<TestCatalogCategory>(
     props.mode === "edit" ? props.test.catalogCategory : "MATHEMATICS",
   );
+  const [examSchoolProgram, setExamSchoolProgram] = useState<ExamSchoolProgram>(
+    props.mode === "edit" ? props.test.examSchoolProgram : "PRESIDENT_SCHOOL",
+  );
+  const [examTargetCohort, setExamTargetCohort] = useState<ExamTargetCohort>(
+    props.mode === "edit" ? props.test.examTargetCohort : "COHORT_4_PREP",
+  );
+  const [specializedSixTrack, setSpecializedSixTrack] = useState<SpecializedSixTrack>(
+    props.mode === "edit" ? props.test.specializedSixTrack : "NONE",
+  );
   const [stage] = useState(props.mode === "edit" ? props.test.stage : "saralash");
+  /** Yangi test: avval maktab / sinf konteksti, keyin boshqa maydonlar */
+  const [programContextConfirmed, setProgramContextConfirmed] = useState(
+    props.mode === "edit",
+  );
+
+  useEffect(() => {
+    if (examSchoolProgram === "AL_XORAZMIY") {
+      setExamTargetCohort("COHORT_4_PREP");
+      setSpecializedSixTrack("NONE");
+    }
+  }, [examSchoolProgram]);
+
+  useEffect(() => {
+    if (examSchoolProgram === "PRESIDENT_SCHOOL") {
+      setSpecializedSixTrack("NONE");
+    }
+    if (examSchoolProgram === "SPECIALIZED_SCHOOL" && examTargetCohort === "COHORT_4_PREP") {
+      setSpecializedSixTrack("NONE");
+    }
+  }, [examSchoolProgram, examTargetCohort]);
   const [err, setErr] = useState<string | null>(null);
   const [bulkText, setBulkText] = useState("");
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
@@ -230,6 +289,10 @@ export function TestBuilderForm(props: Props) {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    if (props.mode === "create" && !programContextConfirmed) {
+      setErr("Avval yangi test turini tanlang va «Davom etish» bosing.");
+      return;
+    }
     const payload: TestSavePayload = {
       title,
       subject,
@@ -237,6 +300,9 @@ export function TestBuilderForm(props: Props) {
       durationMinutes,
       priceSum,
       catalogCategory,
+      examSchoolProgram,
+      examTargetCohort,
+      specializedSixTrack,
       isPublished,
       stage,
       questions: rows.map((r, i) => ({ ...r, order: i + 1 })),
@@ -250,8 +316,142 @@ export function TestBuilderForm(props: Props) {
     });
   }
 
+  const showProgramStep = props.mode === "create" && !programContextConfirmed;
+  const proceedOk = canProceedExamContext({
+    examSchoolProgram,
+    examTargetCohort,
+    specializedSixTrack,
+  });
+
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      {showProgramStep ? (
+        <div className="space-y-6 rounded-2xl border-2 border-violet-200/80 bg-gradient-to-b from-violet-50/90 to-white p-6 shadow-md ring-1 ring-violet-100">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">1-qadam: qaysi testni qoʻyasiz?</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Avval maktab dasturi, sinf bloki va (kerak boʻlsa) ixtisos yoʻnalishini belgilang. Keyingi bosqichda
+              nom, fan, katalog boʻlimi, vaqt hamda savollar ochiladi.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              ["PRESIDENT_SCHOOL", "SPECIALIZED_SCHOOL", "AL_XORAZMIY"] as const satisfies readonly ExamSchoolProgram[]
+            ).map((p) => {
+              const Lab = EXAM_PROGRAM_LABELS[p];
+              const active = examSchoolProgram === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setExamSchoolProgram(p)}
+                  className={cn(
+                    "rounded-xl border-2 px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50",
+                    active
+                      ? "border-violet-600 bg-white shadow-md shadow-violet-500/15 ring-1 ring-violet-200"
+                      : "border-slate-200/90 bg-white/70 hover:border-violet-300/80 hover:bg-white",
+                  )}
+                >
+                  <span className="text-sm font-bold text-slate-900">{Lab.title}</span>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">{Lab.subtitle}</p>
+                  <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700">
+                    {examSchoolProgramLabelShort(p)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 border-t border-violet-200/60 pt-6">
+            <div className="sm:col-span-2">
+              <label className={label}>Maktab dasturi</label>
+              <select
+                className={field}
+                value={examSchoolProgram}
+                onChange={(e) => setExamSchoolProgram(e.target.value as ExamSchoolProgram)}
+                aria-label="Maktab dasturi"
+              >
+                <option value="PRESIDENT_SCHOOL">Prezident maktablari</option>
+                <option value="SPECIALIZED_SCHOOL">Ixtisoslashtirilgan maktablar</option>
+                <option value="AL_XORAZMIY">Al-Xorazmiy maktabi</option>
+              </select>
+            </div>
+            <div>
+              <label className={label}>Sinf bloki</label>
+              <select
+                className={field}
+                value={examTargetCohort}
+                onChange={(e) => setExamTargetCohort(e.target.value as ExamTargetCohort)}
+                disabled={examSchoolProgram === "AL_XORAZMIY"}
+                aria-label="Sinf bloki"
+              >
+                <option value="COHORT_4_PREP">4-sinf bloki · 3–4 sinf uchun</option>
+                <option value="COHORT_6_CYCLE">6-sinf bloki · 5–9 sinf uchun</option>
+              </select>
+            </div>
+            <div>
+              <label className={label}>6-sinf: fan yoʻnalishi (ixtisos maktab)</label>
+              <select
+                className={field}
+                value={specializedSixTrack}
+                onChange={(e) => setSpecializedSixTrack(e.target.value as SpecializedSixTrack)}
+                disabled={
+                  examSchoolProgram !== "SPECIALIZED_SCHOOL" ||
+                  examTargetCohort !== "COHORT_6_CYCLE"
+                }
+                aria-label="Ixtisos maktab yoʻnalishi"
+              >
+                <option value="NONE">— tanlang (6-sinf ixtisos uchun majburiy)</option>
+                <option value="EXACT_SCIENCES">Aniq fanlar</option>
+                <option value="NATURAL_SCIENCES">Tabiiy fanlar</option>
+              </select>
+              {examSchoolProgram === "SPECIALIZED_SCHOOL" && examTargetCohort === "COHORT_6_CYCLE" ? (
+                <p className="mt-1 text-[11px] text-violet-800">
+                  «6-sinf bloki» tanlangan boʻlsa, yoʻnalishni tanlash shart.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              type="button"
+              disabled={!proceedOk}
+              onClick={() => setProgramContextConfirmed(true)}
+              className="inline-flex min-h-11 items-center rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-6 py-3 text-sm font-bold text-white shadow-md shadow-[#2563EB]/25 hover:brightness-105 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Davom etish — batafsil va savollar
+            </button>
+            {!proceedOk ? (
+              <p className="text-xs text-red-700">Ixtisos · 6-sinf bloki uchun Aniq yoki Tabiiy fan tanlang.</p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Tasdiqlangandan keyin test nomi, fan, narxi hamda savol jadvali ochiladi.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {!showProgramStep && props.mode === "create" ? (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-4 py-3 text-sm ring-1 ring-emerald-100">
+          <div>
+            <p className="font-semibold text-emerald-950">Tanlangan test konteksti</p>
+            <p className="mt-1 text-emerald-900/90">{examSummaryAdminUz({ examSchoolProgram, examTargetCohort, specializedSixTrack })}</p>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-50"
+            onClick={() => setProgramContextConfirmed(false)}
+          >
+            Tanlovni oʻzgartirish
+          </button>
+        </div>
+      ) : null}
+
+      {!showProgramStep ? (
+        <>
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -306,9 +506,58 @@ export function TestBuilderForm(props: Props) {
               ))}
             </select>
             <p className="mt-1 text-[11px] text-slate-500">
-              O&apos;quvchi kabinetida tanlangan bo&apos;lim ostida ko&apos;rinadi.
+              O&apos;quvchi kabinetida maktab/ro&apos;yxat ostidagi fan blokida chiqadi — Prezident, Ixtisos
+              hamda Al-Xorazmiy uchun Mock yoki Matematika yoʻnalishlarida test boʻlishi shart emas;
+              istagan boʻlimni tanlaysiz (masalan, Ingliz tili va boshqalar).
             </p>
           </div>
+          {props.mode === "edit" ? (
+            <>
+              <div className="sm:col-span-2">
+                <label className={label}>Maktab dasturi</label>
+                <select
+                  className={field}
+                  value={examSchoolProgram}
+                  onChange={(e) => setExamSchoolProgram(e.target.value as ExamSchoolProgram)}
+                  aria-label="Maktab dasturi"
+                >
+                  <option value="PRESIDENT_SCHOOL">Prezident maktablari</option>
+                  <option value="SPECIALIZED_SCHOOL">Ixtisoslashtirilgan maktablar</option>
+                  <option value="AL_XORAZMIY">Al-Xorazmiy maktabi</option>
+                </select>
+              </div>
+              <div>
+                <label className={label}>Sinf bloki</label>
+                <select
+                  className={field}
+                  value={examTargetCohort}
+                  onChange={(e) => setExamTargetCohort(e.target.value as ExamTargetCohort)}
+                  disabled={examSchoolProgram === "AL_XORAZMIY"}
+                  aria-label="Sinf bloki"
+                >
+                  <option value="COHORT_4_PREP">4-sinf bloki · 3–4 sinf uchun</option>
+                  <option value="COHORT_6_CYCLE">6-sinf bloki · 5–9 sinf uchun</option>
+                </select>
+              </div>
+              <div>
+                <label className={label}>6-sinf: fan yoʻnalishi (ixtisos maktab)</label>
+                <select
+                  className={field}
+                  value={specializedSixTrack}
+                  onChange={(e) => setSpecializedSixTrack(e.target.value as SpecializedSixTrack)}
+                  disabled={
+                    examSchoolProgram !== "SPECIALIZED_SCHOOL" ||
+                    examTargetCohort !== "COHORT_6_CYCLE"
+                  }
+                  aria-label="Ixtisos maktab yo'nalishi"
+                >
+                  <option value="NONE">— tanlanmagan</option>
+                  <option value="EXACT_SCIENCES">Aniq fanlar</option>
+                  <option value="NATURAL_SCIENCES">Tabiiy fanlar</option>
+                </select>
+              </div>
+            </>
+          ) : null}
           <div>
             <label className={label}>Vaqt (daqiqa)</label>
             <input
@@ -371,8 +620,8 @@ export function TestBuilderForm(props: Props) {
           </li>
           <li>Har bir savol uchun tushuntirish (Wordda: Tushuntirish: yoki # bilan)</li>
           <li>
-            <strong>30 ta savol</strong> ni Word dan nusxa olib, quyidagi maydonga joylang; kerak bo&apos;lsa
-            avval <strong>Matnni tozalash (Word)</strong>
+            <strong>{DEFAULT_NEW_QUESTION_ROWS} ta savol</strong> koʻrinish uchun namuna — barcha maktablar
+            uchun toʻliq savollar sonini oʻzingiz aniqlaysiz ({MAX_QUESTIONS} tagacha jadval).
           </li>
           <li>Maksimal {MAX_QUESTIONS} ta savol</li>
         </ul>
@@ -678,8 +927,10 @@ Tushuntirish: …
         disabled={pending}
         className="w-full rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] py-3 text-sm font-bold text-white shadow-md shadow-[#2563EB]/20 hover:brightness-105 disabled:opacity-60 sm:w-auto sm:px-10"
       >
-        {pending ? "Saqlanmoqda…" : props.mode === "create" ? "Testni yaratish" : "O&apos;zgarishlarni saqlash"}
+        {pending ? "Saqlanmoqda…" : props.mode === "create" ? "Testni yaratish" : "O\u2019zgarishlarni saqlash"}
       </button>
+        </>
+      ) : null}
     </form>
   );
 }

@@ -33,6 +33,31 @@ enum TestCatalogCategory {
   ENGLISH
 }
 
+/// Katalog ustki guruh: qaysi maktab dasturi
+enum ExamSchoolProgram {
+  /// Prezident maktablari
+  PRESIDENT_SCHOOL
+  /// Ixtisoslashtirilgan maktablar
+  SPECIALIZED_SCHOOL
+  /// Al-Xorazmiy (faqat 4-sinf bloki testlari)
+  AL_XORAZMIY
+}
+
+/// Qaysi o‘quvchi sinfi bu test uchun mo‘ljallangan
+enum ExamTargetCohort {
+  /// 3–4 sinf — 4→5 o‘tish tayyori
+  COHORT_4_PREP
+  /// 5–9 sinf — 6→7 davri va shu blok testlari
+  COHORT_6_CYCLE
+}
+
+/// Ixtisos maktabda 6-sinf sikli: aniq va tabiiy fanlar yo‘nalishlari
+enum SpecializedSixTrack {
+  NONE
+  EXACT_SCIENCES
+  NATURAL_SCIENCES
+}
+
 model Test {
   id               String         @id @default(cuid())
   title            String
@@ -44,6 +69,12 @@ model Test {
   questionsCount   Int            @default(0)
   /// Kabinet / katalogda qaysi blokda ko'rsatilish
   catalogCategory  TestCatalogCategory @default(MATHEMATICS)
+  /// Ust maktab guruhi — katalogdagi uchta ustun
+  examSchoolProgram  ExamSchoolProgram @default(PRESIDENT_SCHOOL)
+  /// Sinflar uchun band: 3–4 yoki 5–9
+  examTargetCohort   ExamTargetCohort @default(COHORT_4_PREP)
+  /// Faqat SPECIALIZED_SCHOOL + COHORT_6_CYCLE uchun to‘ldiriladi
+  specializedSixTrack SpecializedSixTrack @default(NONE)
   isPublished      Boolean        @default(false)
   /// Masalan: saralash — 1-bosqich
   stage            String         @default("saralash")
@@ -52,6 +83,8 @@ model Test {
   questions        Question[]
   attempts         TestAttempt[]
   progresses       TestProgress[]
+
+  @@index([examSchoolProgram, examTargetCohort])
 }
 
 model Question {

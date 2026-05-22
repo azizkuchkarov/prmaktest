@@ -22,6 +22,7 @@ import { prisma } from "@/lib/prisma";
 import { getAdminSiteSettingsCached, isKabinetSupportReady } from "@/lib/admin-site-settings";
 import { getNewsReadIdSet } from "@/lib/news-read";
 import { getKabinetLiveStatsForDisplay } from "@/lib/kabinet-live-stats";
+import { examTestVisibleForUserGrade } from "@/lib/exam-program";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,9 @@ export default async function KabinetPage() {
         stage: true,
         createdAt: true,
         updatedAt: true,
+        examSchoolProgram: true,
+        examTargetCohort: true,
+        specializedSixTrack: true,
       },
     }),
     getStudentWeeklyProgress(student.id),
@@ -98,6 +102,7 @@ export default async function KabinetPage() {
     news.map((n) => n.id),
   );
   const newsForDash = news.map((n) => ({ ...n, isRead: newsReadIds.has(n.id) }));
+  const testsVisible = tests.filter((t) => examTestVisibleForUserGrade(t, student.gradeLevel));
 
   return (
     <KabinetDashboard
@@ -112,7 +117,7 @@ export default async function KabinetPage() {
       middleGradesViloyatRows={middleGradesViloyatRows}
       republicViloyatTotals={republicViloyatTotals}
       news={newsForDash}
-      tests={tests.map((t) => ({ ...t, completed: completedTestIds.has(t.id) }))}
+      tests={testsVisible.map((t) => ({ ...t, completed: completedTestIds.has(t.id) }))}
       weekly={weekly}
       radar={radar}
       readiness={readiness}

@@ -6,6 +6,12 @@ import { TestChoice, type Prisma, type TestCatalogCategory } from "@prisma/clien
 import { prisma } from "@/lib/prisma";
 import { normalizeTestCatalogCategory } from "@/lib/test-catalog";
 import {
+  normalizeExamSchoolProgram,
+  normalizeExamTargetCohort,
+  normalizeSpecializedSixTrack,
+  validateExamConfig,
+} from "@/lib/exam-program";
+import {
   isQuestionComplete,
   validateTestQuestions,
   type QuestionDraft,
@@ -23,6 +29,9 @@ export type TestSavePayload = {
   priceSum: number;
   /** Kabinetda qaysi katalog blokida */
   catalogCategory: TestCatalogCategory;
+  examSchoolProgram: string;
+  examTargetCohort: string;
+  specializedSixTrack: string;
   isPublished: boolean;
   stage: string;
   questions: QuestionDraft[];
@@ -80,6 +89,11 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
 
   const stage = payload.stage.trim() || "saralash";
   const catalogCategory = normalizeTestCatalogCategory(String(payload.catalogCategory));
+  const examSchoolProgram = normalizeExamSchoolProgram(String(payload.examSchoolProgram));
+  const examTargetCohort = normalizeExamTargetCohort(String(payload.examTargetCohort));
+  const specializedSixTrack = normalizeSpecializedSixTrack(String(payload.specializedSixTrack));
+  const examErr = validateExamConfig(examSchoolProgram, examTargetCohort, specializedSixTrack);
+  if (examErr) return { error: examErr };
 
   const created = await prisma.$transaction(async (tx) => {
     const test = await tx.test.create({
@@ -91,6 +105,9 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
         priceSum,
         questionsCount: rows.length,
         catalogCategory,
+        examSchoolProgram,
+        examTargetCohort,
+        specializedSixTrack,
         isPublished: payload.isPublished,
         stage,
       },
@@ -141,6 +158,11 @@ export async function updateTestFull(
 
   const stage = payload.stage.trim() || "saralash";
   const catalogCategory = normalizeTestCatalogCategory(String(payload.catalogCategory));
+  const examSchoolProgram = normalizeExamSchoolProgram(String(payload.examSchoolProgram));
+  const examTargetCohort = normalizeExamTargetCohort(String(payload.examTargetCohort));
+  const specializedSixTrack = normalizeSpecializedSixTrack(String(payload.specializedSixTrack));
+  const examErr = validateExamConfig(examSchoolProgram, examTargetCohort, specializedSixTrack);
+  if (examErr) return { error: examErr };
 
   const prev = await prisma.test.findUnique({
     where: { id: testId },
@@ -159,6 +181,9 @@ export async function updateTestFull(
         priceSum,
         questionsCount: rows.length,
         catalogCategory,
+        examSchoolProgram,
+        examTargetCohort,
+        specializedSixTrack,
         isPublished: payload.isPublished,
         stage,
       },

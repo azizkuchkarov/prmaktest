@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus, Pencil, Banknote } from "lucide-react";
+import { Plus, Pencil, Banknote, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { deleteTest } from "./actions";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { CATALOG_LABEL_ADMIN } from "@/lib/test-catalog";
+import { examSummaryAdminUz } from "@/lib/exam-program";
 
 export default async function AdminTestsListPage() {
   const items = await prisma.test.findMany({
@@ -31,24 +32,25 @@ export default async function AdminTestsListPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
-        <table className="w-full min-w-[920px] text-left text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-md shadow-slate-200/40">
+        <table className="w-full min-w-[1180px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/90 text-xs font-bold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Nomi</th>
+              <th className="px-4 py-3">Maktab · sinf bloki</th>
               <th className="px-4 py-3">Katalog</th>
               <th className="px-4 py-3">Fan</th>
               <th className="px-4 py-3">Narx</th>
               <th className="px-4 py-3">Vaqt</th>
               <th className="px-4 py-3">Savollar</th>
               <th className="px-4 py-3">Holat</th>
-              <th className="px-4 py-3 text-right">Amallar</th>
+              <th className="min-w-[180px] whitespace-nowrap px-4 py-3 text-right">Amallar</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={9} className="px-4 py-10 text-center text-slate-500">
                   Hozircha test yo&apos;q. Birinchi testni qo&apos;shing.
                 </td>
               </tr>
@@ -59,6 +61,9 @@ export default async function AdminTestsListPage() {
                   className="border-b border-slate-50 transition-colors last:border-0 hover:bg-slate-50/70"
                 >
                   <td className="px-4 py-3 font-medium text-slate-900">{t.title}</td>
+                  <td className="px-4 py-3 text-xs leading-snug text-slate-700">
+                    {examSummaryAdminUz(t)}
+                  </td>
                   <td className="px-4 py-3 text-slate-700">{CATALOG_LABEL_ADMIN[t.catalogCategory]}</td>
                   <td className="px-4 py-3 text-slate-600">{t.subject || "—"}</td>
                   <td className="px-4 py-3">
@@ -84,20 +89,22 @@ export default async function AdminTestsListPage() {
                       {t.isPublished ? "Nashr" : "Qoralama"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="min-w-[180px] whitespace-nowrap px-4 py-3 text-right align-middle">
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2 sm:flex-nowrap">
                       <Link
                         href={`/admin/testlar/${t.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
                       >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Tahrirlash
                       </Link>
-                      <form action={deleteTest.bind(null, t.id)}>
+                      <form action={deleteTest.bind(null, t.id)} className="inline">
                         <button
                           type="submit"
-                          className="rounded-lg border border-red-100 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                          title="Testni o‘chirish"
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-800 shadow-sm hover:bg-red-100"
                         >
+                          <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           O&apos;chirish
                         </button>
                       </form>

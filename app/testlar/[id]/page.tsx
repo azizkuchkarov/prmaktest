@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, FileText, ListChecks, Banknote, Trophy } from "luc
 import { prisma } from "@/lib/prisma";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { getStudentSessionUserId } from "@/lib/student-auth";
+import { examTestVisibleForUserGrade } from "@/lib/exam-program";
 import { ProseLongform } from "@/components/content/ProseLongform";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,15 @@ export default async function TestDetailPage({ params }: Props) {
     getStudentSessionUserId(),
   ]);
   if (!test) notFound();
+
+  let cohortBlocked = false;
+  if (userId) {
+    const u = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { gradeLevel: true },
+    });
+    if (u && !examTestVisibleForUserGrade(test, u.gradeLevel)) cohortBlocked = true;
+  }
 
   const userAttempt =
     userId != null
@@ -189,6 +199,11 @@ export default async function TestDetailPage({ params }: Props) {
               <strong>Qayta yechish</strong> — mashq rejimi: balansdan pul yechilmaydi, rasmiy natija va reyting
               o‘zgarmaydi.
             </p>
+          ) : cohortBlocked ? (
+            <p className="mt-4 rounded-xl bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950 ring-1 ring-amber-200/80">
+              Bu test <strong>sizning sinf blok</strong>i uchun mos emas — katalogni sinf asosida ochganingizda u ko&apos;rinmaydi. Agar profilingizdagisi noto&apos;g&apos;ri bo&apos;lsa,
+              sahifadan sinfni yangilang yoki boshqa testni tanlang.
+            </p>
           ) : test.priceSum > 0 ? (
             <p className="mt-4 rounded-xl bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950 ring-1 ring-amber-200/80">
               «Boshlash»ni bosganingizda test narxi balansdan <strong>bir marta</strong> yechiladi va taymer
@@ -208,6 +223,10 @@ export default async function TestDetailPage({ params }: Props) {
                 >
                   Qayta yechishni boshlash
                 </Link>
+              ) : cohortBlocked ? (
+                <span className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 sm:w-auto sm:py-2.5">
+                  Sinf mos emas
+                </span>
               ) : (
                 <Link
                   href={`/testlar/${id}/boshlash`}

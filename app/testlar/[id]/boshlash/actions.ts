@@ -8,6 +8,7 @@ import { computeRankPoints } from "@/lib/rank-points";
 import { getStudentSessionUserId } from "@/lib/student-auth";
 import { notifyOfficialTestCompletionTelegram } from "@/lib/telegram-broadcast";
 import { formatUzInteger } from "@/lib/format-uzs";
+import { examTestVisibleForUserGrade } from "@/lib/exam-program";
 
 const CHOICES: TestChoice[] = ["A", "B", "C", "D"];
 
@@ -58,7 +59,12 @@ export type PrepareTestSessionResult =
     }
   | {
       ok: false;
-      code: "auth" | "not_found" | "no_questions" | "insufficient";
+      code:
+        | "auth"
+        | "not_found"
+        | "no_questions"
+        | "insufficient"
+        | "grade_gate";
       message: string;
       balanceSum?: number;
       priceSum?: number;
@@ -75,11 +81,40 @@ export async function prepareTestSession(testId: string): Promise<PrepareTestSes
 
   const test = await prisma.test.findFirst({
     where: { id: testId, isPublished: true },
-    select: { id: true, durationMinutes: true, priceSum: true },
+    select: {
+      id: true,
+      durationMinutes: true,
+      priceSum: true,
+      examSchoolProgram: true,
+      examTargetCohort: true,
+      specializedSixTrack: true,
+    },
   });
 
   if (!test) {
     return { ok: false, code: "not_found", message: "Test topilmadi." };
+  }
+
+  const profile = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { gradeLevel: true },
+  });
+  if (!profile) {
+    return { ok: false, code: "not_found", message: "Foydalanuvchi topilmadi." };
+  }
+
+  const examPick = {
+    examSchoolProgram: test.examSchoolProgram,
+    examTargetCohort: test.examTargetCohort,
+    specializedSixTrack: test.specializedSixTrack,
+  };
+  if (!examTestVisibleForUserGrade(examPick, profile.gradeLevel)) {
+    return {
+      ok: false,
+      code: "grade_gate",
+      message:
+        "Bu test sizning sinf uchun mo‘ljallanmagan. Testlar — faqat profilingiz ostidagi sinf blokida ko‘rsatiladi.",
+    };
   }
 
   const qc = await prisma.question.count({ where: { testId: test.id } });
@@ -114,7 +149,7 @@ export async function prepareTestSession(testId: string): Promise<PrepareTestSes
       async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId },
-        select: { balanceSum: true },
+        select: { balanceSum: true, gradeLevel: true },
       });
       if (!user) throw new Error("user");
 

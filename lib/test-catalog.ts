@@ -83,6 +83,14 @@ export const CATALOG_PANEL_PREMIUM: Record<
   },
 };
 
+/** Ixtisos / Al-Xorazmiy: katalog fan bloklari yoʻq — umumiy kartochka chizigʻi */
+export const PROGRAM_FLAT_LIST_CARD_ACCENT = {
+  header: "bg-slate-50/80",
+  orb: "bg-indigo-300/22",
+  chipBorder: "border-indigo-100/90 bg-indigo-50/50 text-slate-700",
+  cardBar: "border-l-[3px] border-l-indigo-500/55",
+} as const satisfies (typeof CATALOG_PANEL_PREMIUM)[TestCatalogCategory];
+
 /** Radar diagramma: har doim shu tartibdagi o‘qlar (kabinet). */
 export const RADAR_AXIS_LABELS: Record<TestCatalogCategory, string> = {
   MOCK: "Mock Test",
