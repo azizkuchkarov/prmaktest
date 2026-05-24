@@ -59,7 +59,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { formatUzInteger } from "@/lib/format-uzs";
+import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
 import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
@@ -1260,6 +1260,11 @@ export function KabinetBentoContent({
                       <p className="mt-0.5 text-xs text-slate-500">
                         {tournamentCohortShortLabel(t.examTargetCohort)} ·{" "}
                         {formatTournamentWindowUz(new Date(t.startsAt), new Date(t.endsAt))}
+                        {t.priceSum > 0 ? (
+                          <> · {formatPriceSum(t.priceSum)}</>
+                        ) : (
+                          <> · Bepul</>
+                        )}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">

@@ -37,6 +37,7 @@ export function TournamentBuilderCreate() {
   const [title, setTitle] = useState("");
   const [cohort, setCohort] = useState<ExamTargetCohort>("COHORT_4_PREP");
   const [durationMinutes, setDurationMinutes] = useState(90);
+  const [priceSum, setPriceSum] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -53,6 +54,7 @@ export function TournamentBuilderCreate() {
       title,
       examTargetCohort: cohort,
       durationMinutes,
+      priceSum,
       startDate,
       startTime,
       endDate,
@@ -75,6 +77,8 @@ export function TournamentBuilderCreate() {
         onCohort={setCohort}
         durationMinutes={durationMinutes}
         onDuration={setDurationMinutes}
+        priceSum={priceSum}
+        onPriceSum={setPriceSum}
         startDate={startDate}
         onStartDate={setStartDate}
         startTime={startTime}
@@ -129,6 +133,7 @@ export function TournamentBuilderEdit({
   const [title, setTitle] = useState(tournament.title);
   const [cohort, setCohort] = useState(tournament.examTargetCohort);
   const [durationMinutes, setDurationMinutes] = useState(test.durationMinutes);
+  const [priceSum, setPriceSum] = useState(test.priceSum);
   const [startDate, setStartDate] = useState(toDateInput(tournament.startsAt));
   const [startTime, setStartTime] = useState(toTimeInput(tournament.startsAt));
   const [endDate, setEndDate] = useState(toDateInput(tournament.endsAt));
@@ -145,6 +150,7 @@ export function TournamentBuilderEdit({
       title,
       examTargetCohort: cohort,
       durationMinutes,
+      priceSum,
       startDate,
       startTime,
       endDate,
@@ -167,6 +173,8 @@ export function TournamentBuilderEdit({
         onCohort={setCohort}
         durationMinutes={durationMinutes}
         onDuration={setDurationMinutes}
+        priceSum={priceSum}
+        onPriceSum={setPriceSum}
         startDate={startDate}
         onStartDate={setStartDate}
         startTime={startTime}
@@ -207,6 +215,8 @@ function TournamentMetaFields({
   onCohort,
   durationMinutes,
   onDuration,
+  priceSum,
+  onPriceSum,
   startDate,
   onStartDate,
   startTime,
@@ -224,6 +234,8 @@ function TournamentMetaFields({
   onCohort: (v: ExamTargetCohort) => void;
   durationMinutes: number;
   onDuration: (v: number) => void;
+  priceSum: number;
+  onPriceSum: (v: number) => void;
   startDate: string;
   onStartDate: (v: string) => void;
   startTime: string;
@@ -263,6 +275,21 @@ function TournamentMetaFields({
           onChange={(e) => onDuration(Number(e.target.value))}
           required
         />
+      </div>
+      <div>
+        <label className={labelClass}>Turnir narxi (so&apos;m)</label>
+        <input
+          className={fieldClass}
+          type="number"
+          min={0}
+          step={1}
+          value={Number.isFinite(priceSum) ? priceSum : 0}
+          onChange={(e) => onPriceSum(Math.max(0, Math.round(Number(e.target.value))))}
+          placeholder="0 = bepul"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Qatnashish boshlanganda o&apos;quvchi balansidan yechiladi. 0 — bepul turnir.
+        </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

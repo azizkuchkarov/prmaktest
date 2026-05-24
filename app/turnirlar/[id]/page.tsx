@@ -12,6 +12,7 @@ import {
   tournamentCohortShortLabel,
 } from "@/lib/tournament";
 import { cohortLabelUz } from "@/lib/exam-program";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function TournamentDetailPage({ params }: Props) {
           durationMinutes: true,
           questionsCount: true,
           subject: true,
+          priceSum: true,
         },
       },
       _count: { select: { attempts: true } },
@@ -118,6 +120,12 @@ export default async function TournamentDetailPage({ params }: Props) {
               {tournament.test.questionsCount} savol · {tournament.test.durationMinutes} daqiqa
               {tournament.test.subject ? ` · ${tournament.test.subject}` : ""}
             </p>
+            <p className="mt-2 text-sm font-semibold text-slate-800">
+              Narxi:{" "}
+              {tournament.test.priceSum > 0
+                ? formatPriceSum(tournament.test.priceSum)
+                : "Bepul"}
+            </p>
           </div>
 
           {done && attempt ? (
@@ -132,12 +140,20 @@ export default async function TournamentDetailPage({ params }: Props) {
 
           <div className="mt-6 flex flex-col gap-2">
             {canJoin ? (
-              <Link
-                href={`/turnirlar/${id}/boshlash`}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
-              >
-                Turnirda qatnashish
-              </Link>
+              <>
+                {tournament.test.priceSum > 0 ? (
+                  <p className="rounded-xl bg-amber-50 px-3 py-2 text-center text-xs text-amber-950">
+                    Qatnashish boshlanganda balansingizdan{" "}
+                    <strong>{formatPriceSum(tournament.test.priceSum)}</strong> yechiladi.
+                  </p>
+                ) : null}
+                <Link
+                  href={`/turnirlar/${id}/boshlash`}
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:brightness-105"
+                >
+                  Turnirda qatnashish
+                </Link>
+              </>
             ) : phase === "upcoming" ? (
               <p className="rounded-xl bg-sky-50 px-3 py-2 text-center text-sm text-sky-900">
                 Turnir hali boshlanmagan. Belgilangan vaqtda qayting.

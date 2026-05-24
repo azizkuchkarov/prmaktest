@@ -6,6 +6,7 @@ import { getCurrentStudent } from "@/lib/student-auth";
 import { isStudentProfileComplete, PROFILE_SETUP_PATH } from "@/lib/student-profile";
 import { prepareTournamentSession } from "./actions";
 import { formatTournamentWindowUz } from "@/lib/tournament";
+import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,46 @@ export default async function TournamentStartPage({ params }: Props) {
   if (!prep.ok) {
     if (prep.code === "auth") redirect("/auth/kirish");
 
+    if (prep.code === "insufficient") {
+      return (
+        <div className="min-h-[100dvh] bg-gradient-to-b from-amber-50/90 to-white px-4 py-12 pt-[max(1rem,env(safe-area-inset-top))]">
+          <div className="mx-auto max-w-lg rounded-2xl border border-amber-200 bg-white p-6 shadow-lg">
+            <h1 className="text-lg font-bold text-slate-900">Balans yetarli emas</h1>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              Turnir narxi:{" "}
+              <strong>
+                {prep.priceSum != null && prep.priceSum > 0
+                  ? formatPriceSum(prep.priceSum)
+                  : "bepul"}
+              </strong>
+              . Sizning balansingiz:{" "}
+              <strong>
+                {prep.balanceSum != null ? `${formatUzInteger(prep.balanceSum)} so'm` : "—"}
+              </strong>
+              .
+            </p>
+            <p className="mt-3 text-xs text-slate-500">
+              Kabinetda «Balans to‘ldirish (CLICK)» bo‘limidan hisobingizni to‘ldirishingiz mumkin.
+            </p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/kabinet"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-4 py-3 text-sm font-bold text-white shadow-md"
+              >
+                Kabinetga qaytish
+              </Link>
+              <Link
+                href={`/turnirlar/${id}`}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800"
+              >
+                Turnir sahifasi
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-[100dvh] bg-gradient-to-b from-amber-50/90 to-white px-4 py-12 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="mx-auto max-w-lg rounded-2xl border border-amber-200 bg-white p-6 shadow-lg">
@@ -94,6 +135,8 @@ export default async function TournamentStartPage({ params }: Props) {
       testId={prep.testId}
       title={prep.title}
       durationMinutes={prep.durationMinutes}
+      balanceSum={prep.balanceSum}
+      priceSum={prep.priceSum}
       questions={tournament.test.questions}
       initialSession={prep.initialSession}
     />

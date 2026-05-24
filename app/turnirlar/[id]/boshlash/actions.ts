@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { computeRankPoints } from "@/lib/rank-points";
 import { getStudentSessionUserId } from "@/lib/student-auth";
 import { getTournamentPhase, tournamentVisibleForUserGrade } from "@/lib/tournament";
+import { formatUzInteger } from "@/lib/format-uzs";
 import type { SubmitTestResult, WrongDetail } from "@/app/testlar/[id]/boshlash/actions";
 
 const CHOICES: TestChoice[] = ["A", "B", "C", "D"];
@@ -18,6 +19,8 @@ export type PrepareTournamentSessionResult =
       testId: string;
       title: string;
       durationMinutes: number;
+      balanceSum: number;
+      priceSum: number;
       initialSession: {
         endsAtMs: number;
         currentStep: number;
@@ -33,8 +36,11 @@ export type PrepareTournamentSessionResult =
         | "grade_gate"
         | "not_live"
         | "already_done"
-        | "window_closed";
+        | "window_closed"
+        | "insufficient";
       message: string;
+      balanceSum?: number;
+      priceSum?: number;
     };
 
 export async function prepareTournamentSession(
@@ -53,6 +59,7 @@ export async function prepareTournamentSession(
           id: true,
           title: true,
           durationMinutes: true,
+          priceSum: true,
           questions: { select: { id: true } },
         },
       },
@@ -114,43 +121,83 @@ export async function prepareTournamentSession(
   const sessionEndsAt = new Date(Math.min(testEndsAt, maxEndsAt));
 
   const qc = tournament.test.questions.length;
+  const listPrice = Math.max(0, tournament.test.priceSum);
 
   try {
-    const existing = await prisma.tournamentProgress.findUnique({
-      where: { userId_tournamentId: { userId, tournamentId } },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { balanceSum: true },
+      });
+      if (!user) throw new Error("user");
 
-    if (existing) {
-      if (existing.endsAt > now) {
-        let answers: Record<string, string> = {};
-        try {
-          answers = JSON.parse(existing.answersJson || "{}") as Record<string, string>;
-        } catch {
-          answers = {};
+      const bal = Number(user.balanceSum ?? 0);
+
+      const existing = await tx.tournamentProgress.findUnique({
+        where: { userId_tournamentId: { userId, tournamentId } },
+      });
+
+      if (existing) {
+        if (existing.endsAt > now) {
+          let answers: Record<string, string> = {};
+          try {
+            answers = JSON.parse(existing.answersJson || "{}") as Record<string, string>;
+          } catch {
+            answers = {};
+          }
+          return {
+            balanceSum: bal,
+            priceSum: listPrice,
+            initialSession: {
+              endsAtMs: existing.endsAt.getTime(),
+              currentStep: Math.max(0, Math.min(existing.currentStep, qc - 1)),
+              answers,
+            },
+          };
         }
-        return {
-          ok: true,
-          testId: tournament.test.id,
-          title: tournament.title,
-          durationMinutes: tournament.test.durationMinutes,
-          initialSession: {
-            endsAtMs: existing.endsAt.getTime(),
-            currentStep: Math.max(0, Math.min(existing.currentStep, qc - 1)),
-            answers,
-          },
-        };
+        await tx.tournamentProgress.delete({ where: { id: existing.id } });
       }
-      await prisma.tournamentProgress.delete({ where: { id: existing.id } });
-    }
 
-    await prisma.tournamentProgress.create({
-      data: {
-        userId,
-        tournamentId,
-        answersJson: "{}",
-        currentStep: 0,
-        endsAt: sessionEndsAt,
-      },
+      const price = listPrice;
+      if (price > 0 && bal < price) {
+        throw Object.assign(new Error("insufficient"), {
+          balanceSum: bal,
+          priceSum: price,
+        });
+      }
+
+      if (price > 0) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { balanceSum: { decrement: price } },
+        });
+      }
+
+      await tx.tournamentProgress.create({
+        data: {
+          userId,
+          tournamentId,
+          answersJson: "{}",
+          currentStep: 0,
+          endsAt: sessionEndsAt,
+          chargedSum: price,
+        },
+      });
+
+      const updated = await tx.user.findUnique({
+        where: { id: userId },
+        select: { balanceSum: true },
+      });
+
+      return {
+        balanceSum: updated?.balanceSum ?? bal - price,
+        priceSum: listPrice,
+        initialSession: {
+          endsAtMs: sessionEndsAt.getTime(),
+          currentStep: 0,
+          answers: {} as Record<string, string>,
+        },
+      };
     });
 
     return {
@@ -158,13 +205,22 @@ export async function prepareTournamentSession(
       testId: tournament.test.id,
       title: tournament.title,
       durationMinutes: tournament.test.durationMinutes,
-      initialSession: {
-        endsAtMs: sessionEndsAt.getTime(),
-        currentStep: 0,
-        answers: {},
-      },
+      ...result,
     };
-  } catch (e) {
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "balanceSum" in e && "priceSum" in e) {
+      const b = e as { balanceSum: number; priceSum: number };
+      return {
+        ok: false,
+        code: "insufficient",
+        message: `Balans yetarli emas. Kerak: ${formatUzInteger(b.priceSum)} so'm.`,
+        balanceSum: b.balanceSum,
+        priceSum: b.priceSum,
+      };
+    }
+    if (e instanceof Error && e.message === "user") {
+      return { ok: false, code: "not_found", message: "Foydalanuvchi topilmadi." };
+    }
     console.error("[prepareTournamentSession]", e);
     return { ok: false, code: "not_found", message: "Sessiya yaratilmadi." };
   }

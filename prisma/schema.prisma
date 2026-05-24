@@ -120,6 +120,8 @@ model TournamentProgress {
   answersJson  String     @default("{}")
   currentStep  Int        @default(0)
   endsAt       DateTime
+  /// Turnir boshlanganda balansdan yechilgan summa (so'm)
+  chargedSum   Int        @default(0)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

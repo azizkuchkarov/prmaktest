@@ -8,11 +8,15 @@ import {
   formatTournamentWindowUz,
   tournamentCohortShortLabel,
 } from "@/lib/tournament";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export default async function AdminTournamentsPage() {
   const items = await prisma.tournament.findMany({
     orderBy: { startsAt: "desc" },
-    include: { test: { select: { title: true, questionsCount: true, durationMinutes: true } }, _count: { select: { attempts: true } } },
+    include: {
+      test: { select: { title: true, questionsCount: true, durationMinutes: true, priceSum: true } },
+      _count: { select: { attempts: true } },
+    },
   });
   const now = new Date();
 
@@ -49,6 +53,7 @@ export default async function AdminTournamentsPage() {
               <th className="px-4 py-3">Turnir</th>
               <th className="px-4 py-3">Blok</th>
               <th className="px-4 py-3">Vaqt</th>
+              <th className="px-4 py-3">Narx</th>
               <th className="px-4 py-3">Holat</th>
               <th className="px-4 py-3">Qatnashuvchilar</th>
               <th className="px-4 py-3 text-right">Amallar</th>
@@ -57,7 +62,7 @@ export default async function AdminTournamentsPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                   Hozircha turnir yo&apos;q.
                 </td>
               </tr>
@@ -80,6 +85,9 @@ export default async function AdminTournamentsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">
                       {formatTournamentWindowUz(t.startsAt, t.endsAt)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {t.test.priceSum > 0 ? formatPriceSum(t.test.priceSum) : "Bepul"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">

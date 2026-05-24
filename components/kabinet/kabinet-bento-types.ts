@@ -36,6 +36,7 @@ export type KabinetBentoTournament = {
   startsAt: string;
   endsAt: string;
   examTargetCohort: ExamTargetCohort;
+  priceSum: number;
   participated: boolean;
   phase: "upcoming" | "live" | "ended";
 };

@@ -12,6 +12,7 @@ import {
   tournamentCohortShortLabel,
 } from "@/lib/tournament";
 import { cohortLabelUz } from "@/lib/exam-program";
+import { formatPriceSum } from "@/lib/format-uzs";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,9 @@ export default async function TurnirlarPage() {
     where: { isPublished: true },
     orderBy: { startsAt: "desc" },
     include: {
-      test: { select: { title: true, durationMinutes: true, questionsCount: true } },
+      test: {
+        select: { title: true, durationMinutes: true, questionsCount: true, priceSum: true },
+      },
       attempts: {
         where: { userId: student.id },
         select: { id: true, score: true, total: true, rankPoints: true },
@@ -101,6 +104,11 @@ export default async function TurnirlarPage() {
                       </p>
                       <p className="mt-1 text-xs text-slate-600">
                         {formatTournamentWindowUz(t.startsAt, t.endsAt)}
+                        {t.test.priceSum > 0 ? (
+                          <> · {formatPriceSum(t.test.priceSum)}</>
+                        ) : (
+                          <> · Bepul</>
+                        )}
                       </p>
                       {done && attempt ? (
                         <p className="mt-2 text-sm font-semibold text-emerald-700">

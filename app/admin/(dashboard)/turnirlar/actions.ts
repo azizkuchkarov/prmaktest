@@ -15,6 +15,7 @@ export type TournamentSavePayload = {
   title: string;
   examTargetCohort: ExamTargetCohort;
   durationMinutes: number;
+  priceSum: number;
   startDate: string;
   startTime: string;
   endDate: string;
@@ -29,7 +30,17 @@ function parsePayload(payload: TournamentSavePayload) {
   const startsAt = parseLocalDateTime(payload.startDate, payload.startTime);
   const endsAt = parseLocalDateTime(payload.endDate, payload.endTime);
   const dm = Math.round(Number(payload.durationMinutes));
-  return { title, cohortRaw, startsAt, endsAt, dm, published: payload.isPublished, questions: payload.questions };
+  const priceSum = Math.round(Number(payload.priceSum));
+  return {
+    title,
+    cohortRaw,
+    startsAt,
+    endsAt,
+    dm,
+    priceSum,
+    published: payload.isPublished,
+    questions: payload.questions,
+  };
 }
 
 async function validatePayload(
@@ -38,16 +49,25 @@ async function validatePayload(
   startsAt: Date | null,
   endsAt: Date | null,
   dm: number,
+  priceSum: number,
   questions: QuestionDraft[],
 ): Promise<
   | { error: string }
-  | { examTargetCohort: ExamTargetCohort; startsAt: Date; endsAt: Date; durationMinutes: number; questionRows: ReturnType<typeof buildQuestionRows> }
+  | {
+      examTargetCohort: ExamTargetCohort;
+      startsAt: Date;
+      endsAt: Date;
+      durationMinutes: number;
+      priceSum: number;
+      questionRows: ReturnType<typeof buildQuestionRows>;
+    }
 > {
   if (!title) return { error: "Turnir nomi majburiy." };
   if (!isExamTargetCohort(cohortRaw)) return { error: "Sinf bloki tanlanishi kerak." };
   if (!startsAt || !endsAt) return { error: "Boshlanish va tugash vaqti to‘g‘ri kiriting." };
   if (endsAt <= startsAt) return { error: "Tugash vaqti boshlanishdan keyin bo‘lishi kerak." };
   if (!Number.isFinite(dm) || dm < 1) return { error: "Test vaqti (daqiqa) noto‘g‘ri." };
+  if (!Number.isFinite(priceSum) || priceSum < 0) return { error: "Turnir narxi (so'm) noto'g'ri." };
 
   const qErr = validateTestQuestions(questions);
   if (qErr) return { error: qErr };
@@ -59,7 +79,14 @@ async function validatePayload(
     return { error: "To‘g‘ri javob (A–D) noto‘g‘ri." };
   }
 
-  return { examTargetCohort: cohortRaw, startsAt, endsAt, durationMinutes: dm, questionRows };
+  return {
+    examTargetCohort: cohortRaw,
+    startsAt,
+    endsAt,
+    durationMinutes: dm,
+    priceSum,
+    questionRows,
+  };
 }
 
 function revalidateTournamentPaths(id?: string) {
@@ -74,8 +101,9 @@ function revalidateTournamentPaths(id?: string) {
 }
 
 export async function createTournamentWithTest(payload: TournamentSavePayload): Promise<ActionState> {
-  const { title, cohortRaw, startsAt, endsAt, dm, published, questions } = parsePayload(payload);
-  const validated = await validatePayload(title, cohortRaw, startsAt, endsAt, dm, questions);
+  const { title, cohortRaw, startsAt, endsAt, dm, priceSum, published, questions } =
+    parsePayload(payload);
+  const validated = await validatePayload(title, cohortRaw, startsAt, endsAt, dm, priceSum, questions);
   if ("error" in validated) return { error: validated.error };
 
   await prisma.$transaction(async (tx) => {
@@ -85,7 +113,7 @@ export async function createTournamentWithTest(payload: TournamentSavePayload): 
         subject: "Turnir",
         description: "Faqat turnir uchun — katalogda ko‘rinmaydi.",
         durationMinutes: validated.durationMinutes,
-        priceSum: 0,
+        priceSum: validated.priceSum,
         questionsCount: validated.questionRows.length,
         catalogCategory: "MOCK",
         examSchoolProgram: "PRESIDENT_SCHOOL",
@@ -119,8 +147,9 @@ export async function updateTournamentWithTest(
   id: string,
   payload: TournamentSavePayload,
 ): Promise<ActionState> {
-  const { title, cohortRaw, startsAt, endsAt, dm, published, questions } = parsePayload(payload);
-  const validated = await validatePayload(title, cohortRaw, startsAt, endsAt, dm, questions);
+  const { title, cohortRaw, startsAt, endsAt, dm, priceSum, published, questions } =
+    parsePayload(payload);
+  const validated = await validatePayload(title, cohortRaw, startsAt, endsAt, dm, priceSum, questions);
   if ("error" in validated) return { error: validated.error };
 
   const existing = await prisma.tournament.findUnique({
@@ -138,6 +167,7 @@ export async function updateTournamentWithTest(
       data: {
         title: `[Turnir] ${title}`,
         durationMinutes: validated.durationMinutes,
+        priceSum: validated.priceSum,
         questionsCount: validated.questionRows.length,
         examTargetCohort: validated.examTargetCohort,
       },

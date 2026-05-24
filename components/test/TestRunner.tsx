@@ -60,6 +60,8 @@ type Props = {
   resultSecondaryLabel?: string;
   sessionBadge?: string;
   resultBadge?: string;
+  /** Balans qatoridagi narx matni (masalan «turnir narxi») */
+  priceLabel?: string;
 };
 
 function formatMmSs(totalSeconds: number) {
@@ -86,6 +88,7 @@ function TestRunner({
   resultSecondaryLabel,
   sessionBadge,
   resultBadge,
+  priceLabel = "test narxi",
 }: Props) {
   const saveProgressFn = saveProgressProp ?? saveTestProgress;
   const submitAttemptFn = submitAttemptProp ?? submitTestAttempt;
@@ -625,7 +628,7 @@ function TestRunner({
               Balans: {formatPriceSum(balanceSum) || "0 so'm"}
               {priceSum > 0 ? (
                 <span className="font-normal text-slate-500">
-                  {isRetake ? " · qayta yechish bepul" : ` · test narxi ${formatPriceSum(priceSum)}`}
+                  {isRetake ? " · qayta yechish bepul" : ` · ${priceLabel} ${formatPriceSum(priceSum)}`}
                 </span>
               ) : null}
             </span>

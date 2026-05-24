@@ -108,6 +108,7 @@ export default async function KabinetPage() {
         startsAt: true,
         endsAt: true,
         examTargetCohort: true,
+        test: { select: { priceSum: true } },
         attempts: {
           where: { userId: student.id },
           select: { id: true },
@@ -133,6 +134,7 @@ export default async function KabinetPage() {
       startsAt: t.startsAt.toISOString(),
       endsAt: t.endsAt.toISOString(),
       examTargetCohort: t.examTargetCohort,
+      priceSum: t.test.priceSum,
       participated: t.attempts.length > 0,
       phase: getTournamentPhase(t.startsAt, t.endsAt, now),
     }));

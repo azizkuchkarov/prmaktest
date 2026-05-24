@@ -13,6 +13,8 @@ export type TournamentRunnerGateProps = {
   testId: string;
   title: string;
   durationMinutes: number;
+  balanceSum: number;
+  priceSum: number;
   questions: RunnerQuestion[];
   initialSession: TestRunnerInitialSession;
 };
@@ -22,6 +24,8 @@ export function TournamentRunnerGate({
   testId,
   title,
   durationMinutes,
+  balanceSum,
+  priceSum,
   questions,
   initialSession,
 }: TournamentRunnerGateProps) {
@@ -43,14 +47,15 @@ export function TournamentRunnerGate({
       title={title}
       durationMinutes={durationMinutes}
       questions={questions}
-      balanceSum={0}
-      priceSum={0}
+      balanceSum={balanceSum}
+      priceSum={priceSum}
       isRetake={false}
       initialSession={initialSession}
       saveProgress={saveProgress}
       submitAttempt={submitAttempt}
       sessionBadge="Turnir"
       resultBadge="Turnir natijasi"
+      priceLabel="turnir narxi"
       resultPrimaryHref={`/turnirlar/${tournamentId}/reyting`}
       resultPrimaryLabel="Turnir reytingi"
       resultSecondaryHref="/kabinet"
