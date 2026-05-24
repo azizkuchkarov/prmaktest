@@ -12,6 +12,7 @@ import {
   Shield,
   Users,
   Wallet,
+  Trophy,
 } from "lucide-react";
 import { adminLogout } from "@/app/admin/login/actions";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const links = [
   { href: "/admin/tolovlar", label: "To'lovlar", icon: Wallet },
   { href: "/admin/yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "/admin/testlar", label: "Testlar", icon: FileText },
+  { href: "/admin/turnirlar", label: "Turnirlar", icon: Trophy },
   { href: "/admin/sozlamalar", label: "Kabinet yordam", icon: Headphones },
 ] as const;
 

@@ -6,7 +6,7 @@ import type {
   WeekProgressPoint,
 } from "@/lib/kabinet-analytics";
 import type { LeaderboardRow, StudentRankSummary, ViloyatTotalRow } from "@/lib/student-ranking";
-import type { KabinetBentoNews, KabinetBentoTest } from "@/components/kabinet/kabinet-bento-types";
+import type { KabinetBentoNews, KabinetBentoTest, KabinetBentoTournament } from "@/components/kabinet/kabinet-bento-types";
 import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
 import type { ExamSchoolProgram, ExamTargetCohort, SpecializedSixTrack } from "@prisma/client";
 import { KabinetStudyGuideProvider } from "@/components/kabinet/KabinetStudyGuide";
@@ -72,6 +72,7 @@ type Props = {
   radar: RadarSubjectPoint[];
   readiness: ReadinessStats;
   liveStats: KabinetLiveStatsPayload;
+  tournaments: KabinetBentoTournament[];
 };
 
 export function KabinetDashboard({
@@ -91,6 +92,7 @@ export function KabinetDashboard({
   radar,
   readiness,
   liveStats,
+  tournaments,
 }: Props) {
   const bentoStudent = {
     id: student.id,
@@ -136,6 +138,7 @@ export function KabinetDashboard({
           radar={radar}
           readiness={readiness}
           liveStats={liveStats}
+          tournaments={tournaments}
         />
       </KabinetPremiumShell>
     </KabinetStudyGuideProvider>

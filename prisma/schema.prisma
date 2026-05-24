@@ -76,6 +76,8 @@ model Test {
   /// Faqat SPECIALIZED_SCHOOL + COHORT_6_CYCLE uchun to‘ldiriladi
   specializedSixTrack SpecializedSixTrack @default(NONE)
   isPublished      Boolean        @default(false)
+  /// Faqat turnir uchun — katalogda ko‘rinmaydi
+  isTournamentOnly Boolean        @default(false)
   /// Masalan: saralash — 1-bosqich
   stage            String         @default("saralash")
   createdAt        DateTime       @default(now())
@@ -83,8 +85,65 @@ model Test {
   questions        Question[]
   attempts         TestAttempt[]
   progresses       TestProgress[]
+  tournaments      Tournament[]
 
   @@index([examSchoolProgram, examTargetCohort])
+}
+
+/// Admin belgilagan vaqt oralig‘ida o‘tkaziladigan turnir (4-sinf yoki 6-sinf bloki uchun alohida)
+model Tournament {
+  id               String           @id @default(cuid())
+  title            String
+  /// Qaysi sinf bloki: 4-sinf (3–4) yoki 6-sinf (5–9)
+  examTargetCohort ExamTargetCohort
+  testId           String
+  test             Test             @relation(fields: [testId], references: [id], onDelete: Restrict)
+  startsAt         DateTime
+  endsAt           DateTime
+  isPublished      Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  attempts         TournamentAttempt[]
+  progresses       TournamentProgress[]
+
+  @@index([examTargetCohort, startsAt])
+  @@index([testId])
+}
+
+/// Turnir davomida yechilayotgan sessiya
+model TournamentProgress {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answersJson  String     @default("{}")
+  currentStep  Int        @default(0)
+  endsAt       DateTime
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, tournamentId])
+  @@index([userId])
+  @@index([tournamentId])
+}
+
+/// Turnir natijasi — alohida reyting jadvali (har o‘quvchi turnirda bir marta)
+model TournamentAttempt {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score        Int
+  total        Int
+  secondsUsed  Int?
+  rankPoints   Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, tournamentId])
+  @@index([tournamentId, rankPoints])
+  @@index([userId])
 }
 
 model Question {
@@ -139,6 +198,8 @@ model User {
   updatedAt           DateTime       @updatedAt
   testAttempts        TestAttempt[]
   testProgresses      TestProgress[]
+  tournamentAttempts  TournamentAttempt[]
+  tournamentProgresses TournamentProgress[]
   balanceDeposits     BalanceDeposit[]
   /// Balans (so'm). Click orqali to'ldiriladi.
   balanceSum          Int            @default(0)

@@ -114,7 +114,7 @@ export async function getStudentReadiness(userId: string): Promise<ReadinessStat
       select: { testId: true, score: true, total: true },
     }),
     prisma.test.count({
-      where: { isPublished: true, questions: { some: {} } },
+      where: { isPublished: true, isTournamentOnly: false, questions: { some: {} } },
     }),
   ]);
 

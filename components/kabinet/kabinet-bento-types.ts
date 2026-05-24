@@ -30,6 +30,16 @@ export type KabinetBentoTest = {
   specializedSixTrack: SpecializedSixTrack;
 };
 
+export type KabinetBentoTournament = {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  examTargetCohort: ExamTargetCohort;
+  participated: boolean;
+  phase: "upcoming" | "live" | "ended";
+};
+
 export type KabinetBentoStudent = {
   id: string;
   phone: string;

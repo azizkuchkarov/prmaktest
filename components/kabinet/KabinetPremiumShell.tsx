@@ -28,6 +28,7 @@ const nav = [
   { href: "#tayyorgarlik", label: "Tayyorgarlik", icon: Target },
   { href: "#diagrammalar", label: "Diagrammalar", icon: BarChart3 },
   { href: "#testlar", label: "Katalog", icon: BookOpen },
+  { href: "#turnirlar", label: "Turnirlar", icon: Trophy },
   { href: "#liderlar", label: "Liderlar", icon: Award },
   { href: "#roadmap", label: "Roadmap", icon: GitBranch },
   { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },

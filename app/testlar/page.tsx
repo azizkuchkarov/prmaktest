@@ -17,7 +17,7 @@ export const metadata = {
 export default async function TestsPublicPage() {
   const [items, userId] = await Promise.all([
     prisma.test.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, isTournamentOnly: false },
       orderBy: { updatedAt: "desc" },
       include: { _count: { select: { questions: true } } },
     }),

@@ -8,6 +8,7 @@ import { examSummaryAdminUz } from "@/lib/exam-program";
 
 export default async function AdminTestsListPage() {
   const items = await prisma.test.findMany({
+    where: { isTournamentOnly: false },
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { questions: true } } },
   });

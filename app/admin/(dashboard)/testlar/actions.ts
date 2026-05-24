@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { TestChoice, type Prisma, type TestCatalogCategory } from "@prisma/client";
+import { buildQuestionRows } from "@/lib/test-question-rows";
+import type { TestCatalogCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeTestCatalogCategory } from "@/lib/test-catalog";
 import {
@@ -12,7 +13,6 @@ import {
   validateExamConfig,
 } from "@/lib/exam-program";
 import {
-  isQuestionComplete,
   validateTestQuestions,
   type QuestionDraft,
 } from "@/lib/test-builder-rules";
@@ -37,36 +37,6 @@ export type TestSavePayload = {
   questions: QuestionDraft[];
 };
 
-function toChoice(v: string): TestChoice | null {
-  if (v === "A" || v === "B" || v === "C" || v === "D") return v as TestChoice;
-  return null;
-}
-
-type QuestionRowInsert = Omit<Prisma.QuestionCreateManyInput, "testId">;
-
-function buildQuestionRows(payload: TestSavePayload): QuestionRowInsert[] {
-  const complete = payload.questions.filter(isQuestionComplete);
-  return complete.map((q, idx) => {
-    const c = toChoice(q.correctAnswer);
-    if (!c) throw new Error("invalid_choice");
-    return {
-      order: idx + 1,
-      text: q.text.trim(),
-      imageUrl: q.imageUrl?.trim() ? q.imageUrl.trim() : null,
-      optionA: q.optionA.trim(),
-      optionB: q.optionB.trim(),
-      optionC: q.optionC.trim(),
-      optionD: q.optionD.trim(),
-      optionAImageUrl: q.optionAImageUrl?.trim() ? q.optionAImageUrl.trim() : null,
-      optionBImageUrl: q.optionBImageUrl?.trim() ? q.optionBImageUrl.trim() : null,
-      optionCImageUrl: q.optionCImageUrl?.trim() ? q.optionCImageUrl.trim() : null,
-      optionDImageUrl: q.optionDImageUrl?.trim() ? q.optionDImageUrl.trim() : null,
-      correctAnswer: c,
-      solution: q.solution.trim(),
-    };
-  });
-}
-
 export async function createTestFull(payload: TestSavePayload): Promise<TestActionState> {
   const title = payload.title.trim();
   if (!title) return { error: "Test nomi majburiy." };
@@ -80,9 +50,9 @@ export async function createTestFull(payload: TestSavePayload): Promise<TestActi
   const err = validateTestQuestions(payload.questions);
   if (err) return { error: err };
 
-  let rows: QuestionRowInsert[];
+  let rows;
   try {
-    rows = buildQuestionRows(payload);
+    rows = buildQuestionRows(payload.questions);
   } catch {
     return { error: "To'g'ri javob (A–D) noto'g'ri." };
   }
@@ -149,9 +119,9 @@ export async function updateTestFull(
   const err = validateTestQuestions(payload.questions);
   if (err) return { error: err };
 
-  let rows: QuestionRowInsert[];
+  let rows;
   try {
-    rows = buildQuestionRows(payload);
+    rows = buildQuestionRows(payload.questions);
   } catch {
     return { error: "To'g'ri javob (A–D) noto'g'ri." };
   }

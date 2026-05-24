@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Award,
   BookOpen,
   GitBranch,
   LayoutDashboard,
@@ -25,6 +26,7 @@ const nav = [
   { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "#roadmap", label: "Roadmap", icon: GitBranch },
   { href: "#reyting", label: "Reyting", icon: Trophy },
+  { href: "#turnirlar", label: "Turnirlar", icon: Award },
   { href: "#testlar", label: "Katalog", icon: BookOpen },
   { href: "#profil", label: "Profil", icon: User },
 ] as const;

@@ -59,7 +59,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
+import { formatUzInteger } from "@/lib/format-uzs";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
 import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
@@ -69,7 +69,7 @@ import {
   pickDefaultOpenProgram,
   type CatalogTestRowModel,
 } from "@/lib/build-exam-catalog-sections";
-import type { KabinetBentoStudent, KabinetBentoNews, KabinetBentoTest } from "./kabinet-bento-types";
+import type { KabinetBentoStudent, KabinetBentoNews, KabinetBentoTest, KabinetBentoTournament } from "./kabinet-bento-types";
 import type { KabinetLiveStatsPayload } from "@/lib/kabinet-live-stats.types";
 import type { TestCatalogCategory } from "@prisma/client";
 import {
@@ -78,6 +78,11 @@ import {
   normalizeTestCatalogCategory,
 } from "@/lib/test-catalog";
 import { KabinetProgramsCatalog } from "@/components/kabinet/KabinetProgramsCatalog";
+import {
+  formatTournamentWindowUz,
+  tournamentCohortShortLabel,
+  tournamentPhaseLabelUz,
+} from "@/lib/tournament";
 
 export type { KabinetBentoNews, KabinetBentoStudent, KabinetBentoTest } from "./kabinet-bento-types";
 
@@ -97,6 +102,7 @@ type Props = {
   radar: RadarSubjectPoint[];
   readiness: ReadinessStats;
   liveStats: KabinetLiveStatsPayload;
+  tournaments: KabinetBentoTournament[];
 };
 
 const cardShell =
@@ -582,6 +588,7 @@ export function KabinetBentoContent({
   radar,
   readiness,
   liveStats,
+  tournaments,
 }: Props) {
   const { openStudyGuide } = useKabinetStudyGuide();
   const chartUid = useId().replace(/:/g, "");
@@ -1211,6 +1218,76 @@ export function KabinetBentoContent({
           </div>
         </motion.section>
 
+        <motion.section
+          {...fadeUp}
+          id="turnirlar"
+          className={cn("scroll-mt-kabinet-sticky p-6 lg:col-span-12", cardShell)}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+                <Trophy className="h-6 w-6" aria-hidden />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Turnirlar</h2>
+                <p className="mt-1 max-w-xl text-sm text-slate-600">
+                  Admin belgilagan vaqtda qatnashing. Natijalar umumiy reytingdan{" "}
+                  <strong className="text-slate-800">alohida</strong> e&apos;lon qilinadi.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/turnirlar"
+              className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100"
+            >
+              Barcha turnirlar
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+
+          {tournaments.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">Sizning sinf blokingiz uchun hozircha turnir yo&apos;q.</p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {tournaments.slice(0, 4).map((t) => (
+                <li key={t.id}>
+                  <Link
+                    href={`/turnirlar/${t.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3 transition hover:border-amber-200 hover:bg-amber-50/50"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">{t.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {tournamentCohortShortLabel(t.examTargetCohort)} ·{" "}
+                        {formatTournamentWindowUz(new Date(t.startsAt), new Date(t.endsAt))}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span
+                        className={
+                          t.phase === "live"
+                            ? "rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800"
+                            : t.phase === "upcoming"
+                              ? "rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-800"
+                              : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600"
+                        }
+                      >
+                        {tournamentPhaseLabelUz(t.phase)}
+                      </span>
+                      {t.participated ? (
+                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800">
+                          Qatnashdingiz
+                        </span>
+                      ) : t.phase === "live" ? (
+                        <span className="text-xs font-bold text-amber-700">Qatnashish →</span>
+                      ) : null}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </motion.section>
         <motion.section
           {...fadeUp}
           id="testlar"

@@ -23,6 +23,10 @@ import { getAdminSiteSettingsCached, isKabinetSupportReady } from "@/lib/admin-s
 import { getNewsReadIdSet } from "@/lib/news-read";
 import { getKabinetLiveStatsForDisplay } from "@/lib/kabinet-live-stats";
 import { examTestVisibleForUserGrade } from "@/lib/exam-program";
+import {
+  getTournamentPhase,
+  tournamentVisibleForUserGrade,
+} from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +54,7 @@ export default async function KabinetPage() {
     readiness,
     siteSettings,
     liveStats,
+    tournamentsRaw,
   ] = await Promise.all([
     getStudentRankSummary(student.id, student.viloyat, gradeOk ? student.gradeLevel : null),
     getViloyatLeaderboard(student.viloyat, 15),
@@ -69,7 +74,7 @@ export default async function KabinetPage() {
       select: { id: true, title: true, excerpt: true, updatedAt: true },
     }),
     prisma.test.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, isTournamentOnly: false },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -93,6 +98,22 @@ export default async function KabinetPage() {
     getStudentReadiness(student.id),
     getAdminSiteSettingsCached(),
     getKabinetLiveStatsForDisplay(),
+    prisma.tournament.findMany({
+      where: { isPublished: true },
+      orderBy: { startsAt: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        examTargetCohort: true,
+        attempts: {
+          where: { userId: student.id },
+          select: { id: true },
+        },
+      },
+    }),
   ]);
 
   const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
@@ -103,6 +124,18 @@ export default async function KabinetPage() {
   );
   const newsForDash = news.map((n) => ({ ...n, isRead: newsReadIds.has(n.id) }));
   const testsVisible = tests.filter((t) => examTestVisibleForUserGrade(t, student.gradeLevel));
+  const now = new Date();
+  const tournaments = tournamentsRaw
+    .filter((t) => tournamentVisibleForUserGrade(t.examTargetCohort, student.gradeLevel))
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      startsAt: t.startsAt.toISOString(),
+      endsAt: t.endsAt.toISOString(),
+      examTargetCohort: t.examTargetCohort,
+      participated: t.attempts.length > 0,
+      phase: getTournamentPhase(t.startsAt, t.endsAt, now),
+    }));
 
   return (
     <KabinetDashboard
@@ -122,6 +155,7 @@ export default async function KabinetPage() {
       radar={radar}
       readiness={readiness}
       liveStats={liveStats}
+      tournaments={tournaments}
     />
   );
 }

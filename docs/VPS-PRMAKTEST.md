@@ -141,3 +141,33 @@ pm2 logs prmaktest-bot --err
 ```
 
 PostgreSQL: ulanish va migratsiya xatolarini `npx prisma migrate deploy` chiqishi bilan ko‘rasiz.
+
+---
+
+## 9. Savol rasmlari (uploads)
+
+Admin test/turnir savollariga rasm yuklaganda fayllar `public/uploads/questions/` ga yoziladi. Repoda `.gitkeep` bor; VPS da yozish huquqi kerak:
+
+```bash
+mkdir -p /var/www/prmaktest/public/uploads/questions
+chown -R www-data:www-data /var/www/prmaktest/public/uploads   # Nginx/PM2 user ga moslashtiring
+chmod -R u+rwX /var/www/prmaktest/public/uploads
+```
+
+Agar rasm yuklashda **500** chiqsa — `pm2 logs prmaktest --err` va disk/huquqni tekshiring.
+
+---
+
+## 10. Production `.env` tekshiruv ro‘yxati
+
+| O‘zgaruvchi | Talab |
+|-------------|--------|
+| `DATABASE_URL` | PostgreSQL, `?connection_limit=5` kichik VPS uchun tavsiya |
+| `NEXT_PUBLIC_APP_URL` | **https://** domen, oxirida `/` yo‘q |
+| `ADMIN_SECRET` | Kamida 32 belgi |
+| `STUDENT_SESSION_SECRET` | Kamida 16 belgi |
+| `TELEGRAM_BOT_API_SECRET` | Kamida 16 belgi, bot bilan bir xil |
+| `TELEGRAM_BOT_TOKEN` | Bot ishlayotgan bo‘lsa |
+| `CLICK_*` | To‘lov bo‘lsa |
+
+Migratsiyalar (turnir jadvallari ham shu yerda): `npx prisma migrate deploy` — 27 ta migratsiya bo‘lishi kerak.

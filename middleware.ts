@@ -71,9 +71,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/turnirlar")) {
+    const block = await studentAuthResponse(request);
+    if (block) return block;
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/kabinet/:path*", "/testlar/:testId/boshlash"],
+  matcher: ["/admin/:path*", "/kabinet/:path*", "/testlar/:testId/boshlash", "/turnirlar/:path*"],
 };
