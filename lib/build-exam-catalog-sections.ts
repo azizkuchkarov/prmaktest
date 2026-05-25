@@ -54,6 +54,10 @@ function countProgramBlock(block: ProgramCatalogBlock): number {
 }
 
 export function pickDefaultOpenProgram(groups: ProgramCatalogGroup[]): ExamSchoolProgram {
+  /** Kabinet: Prezident maktabi odatda yopiq; birinchi testlari bor boshqa dastur ochiladi */
+  for (const g of groups) {
+    if (g.program !== "PRESIDENT_SCHOOL" && countProgramBlock(g.block) > 0) return g.program;
+  }
   for (const g of groups) {
     if (countProgramBlock(g.block) > 0) return g.program;
   }

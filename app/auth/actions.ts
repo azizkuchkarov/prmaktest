@@ -16,10 +16,25 @@ import {
   PROFILE_SETUP_PATH,
 } from "@/lib/student-profile";
 import { parseStudentGradeFromForm } from "@/lib/student-grade";
+import { notifyAdminTeacherRegistrationPending } from "@/lib/telegram-broadcast";
+import {
+  TEACHER_LOGIN_HOME,
+  TEACHER_PENDING_PATH,
+} from "@/lib/user-app-role";
 
 export type AuthFormState = { error?: string } | undefined;
 
 const PASSWORD_MIN = 8;
+
+const PERSON_NAME_MIN = 2;
+const PERSON_NAME_MAX = 80;
+
+function normalizeTeacherName(raw: unknown): string {
+  return String(raw ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, PERSON_NAME_MAX);
+}
 
 export async function registerStudent(
   _prev: AuthFormState,
@@ -29,6 +44,7 @@ export async function registerStudent(
   const password = String(formData.get("password") ?? "");
   const password2 = String(formData.get("password2") ?? "");
   const viloyat = String(formData.get("viloyat") ?? "");
+  const asTeacher = formData.get("asTeacher") === "on";
   const grade = parseStudentGradeFromForm(formData.get("gradeLevel"));
 
   const phone = normalizeUzbekPhone(phoneRaw);
@@ -38,20 +54,55 @@ export async function registerStudent(
   }
   if (password !== password2) return { error: "Parollar mos kelmayapti." };
   if (!isViloyat(viloyat)) return { error: "Viloyatni ro'yxatdan tanlang." };
-  if (grade == null) return { error: "Sinfni tanlang (3–9)." };
+  if (!asTeacher && grade == null) return { error: "Sinfni tanlang (3–9)." };
+
+  let teacherFirstName = "";
+  let teacherLastName = "";
+  if (asTeacher) {
+    teacherFirstName = normalizeTeacherName(formData.get("teacherFirstName"));
+    teacherLastName = normalizeTeacherName(formData.get("teacherLastName"));
+    if (teacherFirstName.length < PERSON_NAME_MIN) {
+      return { error: `Ism kamida ${PERSON_NAME_MIN} belgi bo'lishi kerak.` };
+    }
+    if (teacherLastName.length < PERSON_NAME_MIN) {
+      return { error: `Familiya kamida ${PERSON_NAME_MIN} belgi bo'lishi kerak.` };
+    }
+  }
 
   const passwordHash = await bcrypt.hash(password, 12);
 
   let user: { id: string };
   try {
     user = await prisma.user.create({
-      data: { phone, passwordHash, viloyat, gradeLevel: grade },
+      data: {
+        phone,
+        passwordHash,
+        viloyat,
+        gradeLevel: asTeacher ? 0 : (grade as number),
+        appUserRole: asTeacher ? "TEACHER_PENDING" : "STUDENT",
+        ...(asTeacher
+          ? {
+              firstName: teacherFirstName,
+              lastName: teacherLastName,
+            }
+          : {}),
+      },
       select: { id: true },
     });
   } catch (e: unknown) {
     const code = typeof e === "object" && e && "code" in e ? String((e as { code: string }).code) : "";
     if (code === "P2002") return { error: "Bu raqam bilan allaqachon ro'yxatdan o'tilgan." };
     return { error: "Ro'yxatdan o'tishda xatolik. Keyinroq urinib ko'ring." };
+  }
+
+  if (asTeacher) {
+    notifyAdminTeacherRegistrationPending({
+      userId: user.id,
+      phone,
+      viloyat,
+      firstName: teacherFirstName,
+      lastName: teacherLastName,
+    });
   }
 
   let token: string;
@@ -72,6 +123,7 @@ export async function registerStudent(
   });
 
   revalidatePath("/");
+  if (asTeacher) redirect(TEACHER_PENDING_PATH);
   redirect(PROFILE_SETUP_PATH);
 }
 
@@ -111,8 +163,20 @@ export async function loginStudent(
 
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { firstName: true, lastName: true, parentPhone: true, gradeLevel: true },
+    select: {
+      appUserRole: true,
+      firstName: true,
+      lastName: true,
+      parentPhone: true,
+      gradeLevel: true,
+    },
   });
+  if (profile?.appUserRole === "TEACHER_PENDING") {
+    redirect(TEACHER_PENDING_PATH);
+  }
+  if (profile?.appUserRole === "TEACHER") {
+    redirect(safeTeacherRedirect(formData.get("from")));
+  }
   if (profile && !isStudentProfileComplete(profile)) {
     redirect(PROFILE_SETUP_PATH);
   }
@@ -129,6 +193,13 @@ function safeStudentRedirect(from: unknown): string {
   return "/kabinet";
 }
 
+function safeTeacherRedirect(from: unknown): string {
+  if (typeof from !== "string" || !from.startsWith("/")) return TEACHER_LOGIN_HOME;
+  if (from.startsWith("//") || from.includes("..")) return TEACHER_LOGIN_HOME;
+  if (from.startsWith("/oqituvchi")) return from;
+  return TEACHER_LOGIN_HOME;
+}
+
 export type ProfileFormState = { error?: string } | undefined;
 
 const NAME_MIN = 2;
@@ -143,9 +214,18 @@ export async function completeStudentProfile(
 
   const me = await prisma.user.findUnique({
     where: { id: userId },
-    select: { phone: true, firstName: true, lastName: true, parentPhone: true, gradeLevel: true },
+    select: {
+      phone: true,
+      appUserRole: true,
+      firstName: true,
+      lastName: true,
+      parentPhone: true,
+      gradeLevel: true,
+    },
   });
   if (!me) redirect("/auth/kirish");
+  if (me.appUserRole === "TEACHER_PENDING") redirect(TEACHER_PENDING_PATH);
+  if (me.appUserRole === "TEACHER") redirect(TEACHER_LOGIN_HOME);
   if (isStudentProfileComplete(me)) redirect("/kabinet");
 
   const firstName = String(formData.get("firstName") ?? "").trim().slice(0, NAME_MAX);

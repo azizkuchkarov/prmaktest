@@ -1,27 +1,50 @@
 import Link from "next/link";
-import { ArrowRight, FileText, Headphones, Newspaper, Sparkles, Users, Wallet } from "lucide-react";
+import { ArrowRight, BookUser, FileText, Headphones, Newspaper, Sparkles, Users, Wallet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminHomePage() {
-  const [newsCount, testCount, publishedNews, publishedTests, userCount, usersNoTelegram, depositCompletedCount] =
-    await Promise.all([
-      prisma.news.count(),
-      prisma.test.count(),
-      prisma.news.count({ where: { published: true } }),
-      prisma.test.count({ where: { isPublished: true } }),
-      prisma.user.count(),
-      prisma.user.count({ where: { telegramId: null } }),
-      prisma.balanceDeposit.count({ where: { status: "COMPLETED" } }),
-    ]);
+  const [
+    newsCount,
+    testCount,
+    publishedNews,
+    publishedTests,
+    studentCount,
+    studentsNoTelegram,
+    teacherApprovedCount,
+    teacherPendingCount,
+    depositCompletedCount,
+  ] = await Promise.all([
+    prisma.news.count(),
+    prisma.test.count(),
+    prisma.news.count({ where: { published: true } }),
+    prisma.test.count({ where: { isPublished: true } }),
+    prisma.user.count({ where: { appUserRole: "STUDENT" } }),
+    prisma.user.count({ where: { appUserRole: "STUDENT", telegramId: null } }),
+    prisma.user.count({ where: { appUserRole: "TEACHER" } }),
+    prisma.user.count({ where: { appUserRole: "TEACHER_PENDING" } }),
+    prisma.balanceDeposit.count({ where: { status: "COMPLETED" } }),
+  ]);
+
+  const teacherRosterTotal = teacherApprovedCount + teacherPendingCount;
 
   const cards = [
     {
       href: "/admin/userlar",
       label: "Userlar",
-      value: userCount,
-      hint: `Telegram yo'q: ${usersNoTelegram}`,
+      sublabel: "Faqat o'quvchilar",
+      value: studentCount,
+      hint: `Telegram yo'q: ${studentsNoTelegram}`,
       icon: Users,
       accent: "from-sky-500 to-blue-600",
+    },
+    {
+      href: "/admin/oqituvchilar",
+      label: "O'qituvchilar",
+      sublabel: "Profillar",
+      value: teacherRosterTotal,
+      hint: `Tasdiqlangan ${teacherApprovedCount} · kutilyapti ${teacherPendingCount}`,
+      icon: BookUser,
+      accent: "from-indigo-500 to-violet-600",
     },
     {
       href: "/admin/tolovlar",
@@ -55,7 +78,7 @@ export default async function AdminHomePage() {
       icon: Headphones,
       accent: "from-amber-500 to-orange-600",
     },
-  ] as const;
+  ];
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
@@ -78,7 +101,7 @@ export default async function AdminHomePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map(({ href, label, value, hint, icon: Icon, accent }) => (
+        {cards.map(({ href, label, sublabel, value, hint, icon: Icon, accent }) => (
           <Link
             key={href}
             href={href}
@@ -90,6 +113,9 @@ export default async function AdminHomePage() {
               <Icon className="h-5 w-5" aria-hidden />
             </div>
             <p className="text-sm font-semibold text-slate-500">{label}</p>
+            {sublabel ? (
+              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-violet-600/90">{sublabel}</p>
+            ) : null}
             <p className="mt-2 text-3xl font-bold tabular-nums text-slate-900">{value}</p>
             <p className="mt-2 text-xs text-slate-500">{hint}</p>
             <span className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-[#2563EB] transition group-hover:gap-2">

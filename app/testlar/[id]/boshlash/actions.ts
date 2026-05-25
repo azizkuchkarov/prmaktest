@@ -9,6 +9,7 @@ import { getStudentSessionUserId } from "@/lib/student-auth";
 import { notifyOfficialTestCompletionTelegram } from "@/lib/telegram-broadcast";
 import { formatUzInteger } from "@/lib/format-uzs";
 import { examTestVisibleForUserGrade } from "@/lib/exam-program";
+import { studentHasVirtualClassAssignmentToTest } from "@/lib/virtual-class-test-access";
 
 const CHOICES: TestChoice[] = ["A", "B", "C", "D"];
 
@@ -108,13 +109,17 @@ export async function prepareTestSession(testId: string): Promise<PrepareTestSes
     examTargetCohort: test.examTargetCohort,
     specializedSixTrack: test.specializedSixTrack,
   };
-  if (!examTestVisibleForUserGrade(examPick, profile.gradeLevel)) {
-    return {
-      ok: false,
-      code: "grade_gate",
-      message:
-        "Bu test sizning sinf uchun mo‘ljallanmagan. Testlar — faqat profilingiz ostidagi sinf blokida ko‘rsatiladi.",
-    };
+  const gradeOk = examTestVisibleForUserGrade(examPick, profile.gradeLevel);
+  if (!gradeOk) {
+    const viaClass = await studentHasVirtualClassAssignmentToTest(userId, test.id);
+    if (!viaClass) {
+      return {
+        ok: false,
+        code: "grade_gate",
+        message:
+          "Bu test sizning sinf uchun mo‘ljallanmagan. Virtual sinfda biriktirilgan bo‘lsa, «Kabinet › Virtual sinflar»dan oching.",
+      };
+    }
   }
 
   const qc = await prisma.question.count({ where: { testId: test.id } });

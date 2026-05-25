@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { AppUserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { STUDENT_SESSION_COOKIE, verifyStudentToken } from "@/lib/student-session";
 
@@ -12,6 +13,7 @@ export async function getStudentSessionUserId(): Promise<string | null> {
 export type CurrentStudent = {
   id: string;
   phone: string;
+  appUserRole: AppUserRole;
   viloyat: string;
   firstName: string;
   lastName: string;
@@ -32,6 +34,7 @@ export async function getCurrentStudent(): Promise<CurrentStudent | null> {
     select: {
       id: true,
       phone: true,
+      appUserRole: true,
       viloyat: true,
       firstName: true,
       lastName: true,

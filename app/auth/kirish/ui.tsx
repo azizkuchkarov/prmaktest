@@ -7,6 +7,15 @@ type Props = { redirectFrom?: string };
 
 const PHONE_PREFIX = "+998 ";
 
+function allowSafeReturn(from: string): boolean {
+  if (!from.startsWith("/") || from.startsWith("//") || from.includes("..")) return false;
+  if (from.startsWith("/kabinet")) return true;
+  if (from.startsWith("/oqituvchi")) return true;
+  if (/^\/testlar\/[^/]+\/boshlash$/.test(from)) return true;
+  if (from.startsWith("/turnirlar")) return true;
+  return false;
+}
+
 function buildPhoneDisplay(raw: string): string {
   let d = raw.replace(/\D/g, "");
   if (d.startsWith("998")) d = d.slice(3);
@@ -20,7 +29,7 @@ export function LoginForm({ redirectFrom }: Props) {
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
-      {redirectFrom && redirectFrom.startsWith("/kabinet") ? (
+      {redirectFrom && allowSafeReturn(redirectFrom) ? (
         <input type="hidden" name="from" value={redirectFrom} />
       ) : null}
       <div>

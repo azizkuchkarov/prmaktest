@@ -62,6 +62,7 @@ import { cn } from "@/lib/utils";
 import { formatPriceSum, formatUzInteger } from "@/lib/format-uzs";
 import { isValidStudentGrade } from "@/lib/student-grade";
 import { KabinetRoadmap } from "@/components/kabinet/KabinetRoadmap";
+import { KabinetCollapsibleSection } from "@/components/kabinet/KabinetCollapsibleSection";
 import { TelegramDeepLink } from "@/components/auth/TelegramDeepLink";
 import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
 import {
@@ -77,6 +78,7 @@ import {
   isTestCatalogCategory,
   normalizeTestCatalogCategory,
 } from "@/lib/test-catalog";
+import { LeaderboardBoardTable } from "@/components/kabinet/LeaderboardBoardTable";
 import { KabinetProgramsCatalog } from "@/components/kabinet/KabinetProgramsCatalog";
 import {
   formatTournamentWindowUz,
@@ -355,77 +357,6 @@ function ReadinessRing({ pct }: { pct: number }) {
         <p className="text-3xl font-bold tabular-nums text-slate-900">{clamped}%</p>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">tayyorlik</p>
       </div>
-    </div>
-  );
-}
-
-function BoardTableBento({
-  rows,
-  currentUserId,
-  title,
-  subtitle,
-}: {
-  rows: LeaderboardRow[];
-  currentUserId: string;
-  title: string;
-  subtitle: string;
-}) {
-  const medal = (r: number) => {
-    if (r === 1) return "🥇";
-    if (r === 2) return "🥈";
-    if (r === 3) return "🥉";
-    return null;
-  };
-
-  const rankBadgeClass = (rank: number) => {
-    if (rank === 1) {
-      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/90 text-[1.7rem] leading-none shadow-sm ring-1 ring-amber-200/90 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
-    }
-    if (rank === 2) {
-      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/90 text-[1.7rem] leading-none shadow-sm ring-1 ring-slate-200/90 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
-    }
-    if (rank === 3) {
-      return "h-12 min-w-[3rem] rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50/80 text-[1.7rem] leading-none shadow-sm ring-1 ring-orange-200/80 sm:h-[3.75rem] sm:min-w-[3.75rem] sm:text-[2.125rem] sm:rounded-[1.15rem]";
-    }
-    return "h-10 w-10 rounded-xl bg-slate-50 text-xs font-black tabular-nums sm:h-11 sm:w-11 sm:text-sm";
-  };
-
-  return (
-    <div className={cn("flex min-h-0 flex-col overflow-hidden", cardShell)}>
-      <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-3">
-        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-        <p className="mt-0.5 text-[11px] text-slate-600">{subtitle}</p>
-      </div>
-      <ul className="max-h-[min(50vh,22rem)] flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain">
-        {rows.length === 0 ? (
-          <li className="px-4 py-10 text-center text-xs text-slate-500">{"Hozircha ma'lumot yo‘q."}</li>
-        ) : (
-          rows.map((r) => (
-            <li
-              key={`${r.userId}-${r.rank}`}
-              className={cn(
-                "flex items-center gap-3 px-3 py-3 text-sm sm:gap-3 sm:py-3",
-                r.userId === currentUserId ? "bg-[#2563EB]/[0.06] ring-1 ring-inset ring-[#2563EB]/15" : "bg-white"
-              )}
-            >
-              <span
-                className={cn(
-                  "flex shrink-0 items-center justify-center tabular-nums text-slate-700",
-                  rankBadgeClass(r.rank),
-                )}
-                aria-label={`${r.rank}-o‘rin`}
-              >
-                <span className="select-none">{medal(r.rank) ?? r.rank}</span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-slate-900">{r.name}</p>
-                <p className="truncate text-[10px] text-slate-500 sm:text-xs">{r.viloyat}</p>
-              </div>
-              <span className="shrink-0 font-mono text-sm font-bold text-[#2563EB] sm:text-base">{r.points}</span>
-            </li>
-          ))
-        )}
-      </ul>
     </div>
   );
 }
@@ -717,9 +648,6 @@ export function KabinetBentoContent({
               </Link>
             )}
           </CardContent>
-          <div className="relative z-10 border-t border-slate-100/90 px-6 pb-6 pt-4 sm:px-8">
-            <KabinetBalanceClick />
-          </div>
         </Card>
       </motion.section>
 
@@ -786,14 +714,216 @@ export function KabinetBentoContent({
         ) : null}
       </motion.section>
 
-      <div className="relative grid auto-rows-min gap-4 min-w-0 lg:grid-cols-12 lg:gap-5">
-        <motion.section {...fadeUp} id="reyting" className="scroll-mt-kabinet-sticky lg:col-span-4">
-          <div className={cn("p-5", cardShell)}>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Trophy className="h-5 w-5 text-[#F59E0B]" aria-hidden />
-              <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Reyting</span>
+      <motion.section {...fadeUp} id="balans" className="scroll-mt-kabinet-sticky">
+        <KabinetBalanceClick />
+      </motion.section>
+
+      <motion.section
+        {...fadeUp}
+        id="testlar"
+        className="min-w-0 scroll-mt-kabinet-sticky"
+      >
+        <div className="relative min-w-0 overflow-hidden rounded-[1.75rem] border border-white/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/40 p-px shadow-[0_28px_90px_-32px_rgba(15,23,42,0.35)] ring-1 ring-slate-200/25">
+          <div className="relative min-w-0 overflow-x-clip overflow-y-visible rounded-[1.7rem] bg-gradient-to-b from-white/95 to-slate-50/40 px-3 py-5 backdrop-blur-xl sm:px-7 sm:py-8">
+            <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-gradient-to-br from-blue-500/[0.12] via-violet-500/[0.08] to-transparent blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-gradient-to-tr from-cyan-400/[0.1] to-transparent blur-3xl" />
+
+            <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-5">
+              <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-xl shadow-blue-500/30 ring-4 ring-white/80 sm:h-14 sm:w-14">
+                  <BookOpen className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2} aria-hidden />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-blue-600">
+                    Premium katalog
+                  </p>
+                  <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    Testlar katalogi
+                  </h2>
+                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                    Avval{" "}
+                    <span className="font-semibold text-slate-800">uchta maktab dasturi</span> ostidan tanlang —
+                    ichida fan bo&apos;limlari (Mock, matematika va h.k.) bor. Sinfi 4 uchun faqat{" "}
+                    <span className="font-semibold text-slate-900">4-sinf bloki</span> testlari, 5–9 uchun esa{" "}
+                    <span className="font-semibold text-slate-900">6-sinf bloki</span> chiqadi (Al-Xorazmiy esa faqat 4
+                    blok). <span className="font-semibold text-emerald-900">Yechilganlari yashil belgi bilan.</span>
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/testlar"
+                className="group relative inline-flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/90 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-md shadow-slate-900/5 backdrop-blur-sm transition hover:border-blue-200/90 hover:text-blue-700 hover:shadow-lg hover:shadow-blue-500/10 sm:w-auto sm:justify-start"
+              >
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue-500/10 to-transparent transition duration-500 group-hover:translate-x-full" />
+                <span className="relative">Barcha testlar</span>
+                <ChevronRight className="relative h-4 w-4 opacity-60 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+              </Link>
             </div>
-            <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
+
+            {tests.length === 0 ? (
+              <div className="relative mt-8 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/40 py-16 text-center shadow-inner">
+                <p className="text-sm font-medium text-slate-500">{"Hozircha testlar yo'q."}</p>
+              </div>
+            ) : (
+              <KabinetProgramsCatalog groups={programCatalogGroups} defaultOpenProgram={defaultOpenProgram} />
+            )}
+          </div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        {...fadeUp}
+        id="turnirlar"
+        className={cn("scroll-mt-kabinet-sticky p-6", cardShell)}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+              <Trophy className="h-6 w-6" aria-hidden />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Turnirlar</h2>
+              <p className="mt-1 max-w-xl text-sm text-slate-600">
+                Admin belgilagan vaqtda qatnashing. Natijalar umumiy reytingdan{" "}
+                <strong className="text-slate-800">alohida</strong> e&apos;lon qilinadi.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/turnirlar"
+            className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100"
+          >
+            Barcha turnirlar
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+
+        {tournaments.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-500">Sizning sinf blokingiz uchun hozircha turnir yo&apos;q.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {tournaments.slice(0, 4).map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/turnirlar/${t.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3 transition hover:border-amber-200 hover:bg-amber-50/50"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{t.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {tournamentCohortShortLabel(t.examTargetCohort)} ·{" "}
+                      {formatTournamentWindowUz(new Date(t.startsAt), new Date(t.endsAt))}
+                      {t.priceSum > 0 ? (
+                        <> · {formatPriceSum(t.priceSum)}</>
+                      ) : (
+                        <> · Bepul</>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={
+                        t.phase === "live"
+                          ? "rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800"
+                          : t.phase === "upcoming"
+                            ? "rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-800"
+                            : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600"
+                      }
+                    >
+                      {tournamentPhaseLabelUz(t.phase)}
+                    </span>
+                    {t.participated ? (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800">
+                        Qatnashdingiz
+                      </span>
+                    ) : t.phase === "live" ? (
+                      <span className="text-xs font-bold text-amber-700">Qatnashish →</span>
+                    ) : null}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </motion.section>
+
+      <motion.section {...fadeUp} id="liderlar" className="scroll-mt-kabinet-sticky">
+        <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">Leaderboard</h2>
+        <Tabs defaultValue={leaderboardDefaultTab} className="w-full min-w-0 gap-3">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-slate-100/90 p-1">
+            <TabsTrigger
+              value="g4-rep"
+              className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+            >
+              4-sinf · Respublika
+            </TabsTrigger>
+            <TabsTrigger
+              value="g6-rep"
+              className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+            >
+              6-sinf · Respublika
+            </TabsTrigger>
+            <TabsTrigger
+              value="g4-vil"
+              className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+            >
+              4-sinf · {shortViloyatLabel(student.viloyat)}
+            </TabsTrigger>
+            <TabsTrigger
+              value="g6-vil"
+              className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
+            >
+              6-sinf · {shortViloyatLabel(student.viloyat)}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="g4-rep" className="mt-3 min-w-0">
+            <LeaderboardBoardTable
+              rows={grade4RepublicRows}
+              currentUserId={student.id}
+              title="4-sinf — Respublika TOP 15"
+              subtitle="Faqat 4-sinf, ball yig‘gan o‘quvchilar (qoidalar o‘zgarmagan)."
+            />
+          </TabsContent>
+          <TabsContent value="g6-rep" className="mt-3 min-w-0">
+            <LeaderboardBoardTable
+              rows={middleGradesRepublicRows}
+              currentUserId={student.id}
+              title="6-sinf — Respublika TOP 15"
+              subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va rank balli yig‘gan o‘quvchilar."
+            />
+          </TabsContent>
+          <TabsContent value="g4-vil" className="mt-3 min-w-0">
+            <LeaderboardBoardTable
+              rows={grade4ViloyatRows}
+              currentUserId={student.id}
+              title={`4-sinf — ${student.viloyat} TOP 15`}
+              subtitle="Profilingizdagiga mos viloyat (masalan, Toshkent shahri) — faqat 4-sinf, ball yig‘ganlar."
+            />
+          </TabsContent>
+          <TabsContent value="g6-vil" className="mt-3 min-w-0">
+            <LeaderboardBoardTable
+              rows={middleGradesViloyatRows}
+              currentUserId={student.id}
+              title={`6-sinf — ${student.viloyat} TOP 15`}
+              subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va ball yig‘ganlar, shu hudud bo‘yicha."
+            />
+          </TabsContent>
+        </Tabs>
+      </motion.section>
+
+      <motion.div {...fadeUp}>
+        <KabinetCollapsibleSection
+          id="analitika"
+          title="Reyting, tayyorgarlik va diagrammalar"
+          subtitle="Reyting · tayyorgarlik · diagrammalar · roadmap — bitta bosishda ochiladi"
+          icon={BarChart3}
+          defaultOpen={false}
+          contentClassName="space-y-6 sm:space-y-8"
+        >
+          <div id="reyting" className="scroll-mt-kabinet-sticky">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Reyting</p>
+            <div className="mt-3 p-1">
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
               {gradeOk && rank.gradeRepublicRank != null ? (
                 <>
                   {rank.gradeRepublicRank}
@@ -871,25 +1001,24 @@ export function KabinetBentoContent({
                 </p>
               ) : null}
             </div>
+            </div>
           </div>
-        </motion.section>
 
-        <motion.section {...fadeUp} id="tayyorgarlik" className="scroll-mt-kabinet-sticky lg:col-span-4">
-          <div className={cn("flex flex-col items-center p-5 text-center", cardShell)}>
+          <div id="tayyorgarlik" className="scroll-mt-kabinet-sticky">
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tayyorgarlik</p>
-            <p className="mx-auto mt-2 max-w-[16rem] text-sm font-semibold leading-snug text-slate-800">
-              Sen {readiness.pct}% tayyorsan
-            </p>
-            <ReadinessRing pct={readiness.pct} />
-            <p className="mt-2 text-xs text-slate-500">
-              O‘rtacha natija ~{readiness.avgScorePct}% · {readiness.testsAttempted}/{readiness.testsPublished} test
-            </p>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeUp} id="keyingi-test" className="scroll-mt-kabinet-sticky lg:col-span-4">
-          <div className={cn("flex h-full flex-col p-5", cardShell)}>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Keyingi test</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div className={cn("flex flex-col items-center p-5 text-center", cardShell)}>
+              <p className="mx-auto max-w-[16rem] text-sm font-semibold leading-snug text-slate-800">
+                Sen {readiness.pct}% tayyorsan
+              </p>
+              <ReadinessRing pct={readiness.pct} />
+              <p className="mt-2 text-xs text-slate-500">
+                O‘rtacha natija ~{readiness.avgScorePct}% · {readiness.testsAttempted}/{readiness.testsPublished}{" "}
+                test
+              </p>
+            </div>
+            <div className={cn("flex h-full flex-col p-5", cardShell)}>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Keyingi test</p>
             {nextTest ? (
               <>
                 <h3 className="mt-2 text-lg font-bold leading-snug text-slate-900">{nextTest.title}</h3>
@@ -923,34 +1052,13 @@ export function KabinetBentoContent({
             ) : (
               <p className="mt-4 text-sm text-slate-500">{"Hozircha testlar yo‘q."}</p>
             )}
-          </div>
-        </motion.section>
-
-        <motion.section
-          {...fadeUp}
-          id="diagrammalar"
-          className="scroll-mt-kabinet-sticky space-y-5 sm:space-y-6 lg:col-span-12"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB]/15 to-violet-500/15 text-[#2563EB] shadow-inner ring-1 ring-slate-200/50">
-                  <BarChart3 className="h-4 w-4" aria-hidden />
-                </span>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-blue-600">
-                  Analitika
-                </p>
-              </div>
-              <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-[1.65rem]">
-                Diagrammalar
-              </h2>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">
-                Fanlar bo‘yicha profil, tayyorgarlik ulushi va haftalik dinamika — barchasi mobil uchun moslashtirilgan.
-              </p>
+            </div>
             </div>
           </div>
 
-          <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 lg:gap-6">
+          <div id="diagrammalar" className="scroll-mt-kabinet-sticky space-y-4 sm:space-y-5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Diagrammalar</p>
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 lg:gap-6">
             {/* Radar */}
             <div className={cn("p-0 lg:col-span-7", premiumChartCard)}>
               <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-blue-500/[0.09] blur-3xl" />
@@ -1216,205 +1324,16 @@ export function KabinetBentoContent({
               </div>
             </div>
           </div>
-        </motion.section>
-
-        <motion.section
-          {...fadeUp}
-          id="turnirlar"
-          className={cn("scroll-mt-kabinet-sticky p-6 lg:col-span-12", cardShell)}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
-                <Trophy className="h-6 w-6" aria-hidden />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Turnirlar</h2>
-                <p className="mt-1 max-w-xl text-sm text-slate-600">
-                  Admin belgilagan vaqtda qatnashing. Natijalar umumiy reytingdan{" "}
-                  <strong className="text-slate-800">alohida</strong> e&apos;lon qilinadi.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/turnirlar"
-              className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100"
-            >
-              Barcha turnirlar
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
           </div>
 
-          {tournaments.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">Sizning sinf blokingiz uchun hozircha turnir yo&apos;q.</p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {tournaments.slice(0, 4).map((t) => (
-                <li key={t.id}>
-                  <Link
-                    href={`/turnirlar/${t.id}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3 transition hover:border-amber-200 hover:bg-amber-50/50"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">{t.title}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {tournamentCohortShortLabel(t.examTargetCohort)} ·{" "}
-                        {formatTournamentWindowUz(new Date(t.startsAt), new Date(t.endsAt))}
-                        {t.priceSum > 0 ? (
-                          <> · {formatPriceSum(t.priceSum)}</>
-                        ) : (
-                          <> · Bepul</>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span
-                        className={
-                          t.phase === "live"
-                            ? "rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800"
-                            : t.phase === "upcoming"
-                              ? "rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-800"
-                              : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600"
-                        }
-                      >
-                        {tournamentPhaseLabelUz(t.phase)}
-                      </span>
-                      {t.participated ? (
-                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800">
-                          Qatnashdingiz
-                        </span>
-                      ) : t.phase === "live" ? (
-                        <span className="text-xs font-bold text-amber-700">Qatnashish →</span>
-                      ) : null}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </motion.section>
-        <motion.section
-          {...fadeUp}
-          id="testlar"
-          className="min-w-0 scroll-mt-kabinet-sticky lg:col-span-12"
-        >
-          <div className="relative min-w-0 overflow-hidden rounded-[1.75rem] border border-white/90 bg-gradient-to-br from-white via-slate-50/50 to-blue-50/40 p-px shadow-[0_28px_90px_-32px_rgba(15,23,42,0.35)] ring-1 ring-slate-200/25">
-            <div className="relative min-w-0 overflow-x-clip overflow-y-visible rounded-[1.7rem] bg-gradient-to-b from-white/95 to-slate-50/40 px-3 py-5 backdrop-blur-xl sm:px-7 sm:py-8">
-              <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-gradient-to-br from-blue-500/[0.12] via-violet-500/[0.08] to-transparent blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-32 -left-20 h-64 w-64 rounded-full bg-gradient-to-tr from-cyan-400/[0.1] to-transparent blur-3xl" />
-
-              <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-5">
-                <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-xl shadow-blue-500/30 ring-4 ring-white/80 sm:h-14 sm:w-14">
-                    <BookOpen className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2} aria-hidden />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-blue-600">
-                      Premium katalog
-                    </p>
-                    <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                      Testlar katalogi
-                    </h2>
-                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                      Avval{" "}
-                      <span className="font-semibold text-slate-800">uchta maktab dasturi</span> ostidan tanlang —
-                      ichida fan bo&apos;limlari (Mock, matematika va h.k.) bor. Sinfi 4 uchun faqat{" "}
-                      <span className="font-semibold text-slate-900">4-sinf bloki</span> testlari, 5–9 uchun esa{" "}
-                      <span className="font-semibold text-slate-900">6-sinf bloki</span> chiqadi (Al-Xorazmiy esa faqat 4
-                      blok). <span className="font-semibold text-emerald-900">Yechilganlari yashil belgi bilan.</span>
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href="/testlar"
-                  className="group relative inline-flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/90 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-md shadow-slate-900/5 backdrop-blur-sm transition hover:border-blue-200/90 hover:text-blue-700 hover:shadow-lg hover:shadow-blue-500/10 sm:w-auto sm:justify-start"
-                >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-blue-500/10 to-transparent transition duration-500 group-hover:translate-x-full" />
-                  <span className="relative">Barcha testlar</span>
-                  <ChevronRight className="relative h-4 w-4 opacity-60 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
-                </Link>
-              </div>
-
-              {tests.length === 0 ? (
-                <div className="relative mt-8 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/40 py-16 text-center shadow-inner">
-                  <p className="text-sm font-medium text-slate-500">{"Hozircha testlar yo'q."}</p>
-                </div>
-              ) : (
-                <KabinetProgramsCatalog groups={programCatalogGroups} defaultOpenProgram={defaultOpenProgram} />
-              )}
-            </div>
+          <div id="roadmap" className="scroll-mt-kabinet-sticky">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">Roadmap</p>
+            <KabinetRoadmap />
           </div>
-        </motion.section>
+        </KabinetCollapsibleSection>
+      </motion.div>
 
-        <motion.section {...fadeUp} id="liderlar" className="scroll-mt-kabinet-sticky lg:col-span-12">
-          <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">Leaderboard</h2>
-          <Tabs defaultValue={leaderboardDefaultTab} className="w-full min-w-0 gap-3">
-            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-slate-100/90 p-1">
-              <TabsTrigger
-                value="g4-rep"
-                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-              >
-                4-sinf · Respublika
-              </TabsTrigger>
-              <TabsTrigger
-                value="g6-rep"
-                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-              >
-                6-sinf · Respublika
-              </TabsTrigger>
-              <TabsTrigger
-                value="g4-vil"
-                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-              >
-                4-sinf · {shortViloyatLabel(student.viloyat)}
-              </TabsTrigger>
-              <TabsTrigger
-                value="g6-vil"
-                className="rounded-xl px-3 py-2 text-xs font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm sm:px-4 sm:text-sm"
-              >
-                6-sinf · {shortViloyatLabel(student.viloyat)}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="g4-rep" className="mt-3 min-w-0">
-              <BoardTableBento
-                rows={grade4RepublicRows}
-                currentUserId={student.id}
-                title="4-sinf — Respublika TOP 15"
-                subtitle="Faqat 4-sinf, ball yig‘gan o‘quvchilar (qoidalar o‘zgarmagan)."
-              />
-            </TabsContent>
-            <TabsContent value="g6-rep" className="mt-3 min-w-0">
-              <BoardTableBento
-                rows={middleGradesRepublicRows}
-                currentUserId={student.id}
-                title="6-sinf — Respublika TOP 15"
-                subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va rank balli yig‘gan o‘quvchilar."
-              />
-            </TabsContent>
-            <TabsContent value="g4-vil" className="mt-3 min-w-0">
-              <BoardTableBento
-                rows={grade4ViloyatRows}
-                currentUserId={student.id}
-                title={`4-sinf — ${student.viloyat} TOP 15`}
-                subtitle="Profilingizdagiga mos viloyat (masalan, Toshkent shahri) — faqat 4-sinf, ball yig‘ganlar."
-              />
-            </TabsContent>
-            <TabsContent value="g6-vil" className="mt-3 min-w-0">
-              <BoardTableBento
-                rows={middleGradesViloyatRows}
-                currentUserId={student.id}
-                title={`6-sinf — ${student.viloyat} TOP 15`}
-                subtitle="Faqat 5–9-sinf — ro‘yxatdan o‘tgan va ball yig‘ganlar, shu hudud bo‘yicha."
-              />
-            </TabsContent>
-          </Tabs>
-        </motion.section>
-
-        <motion.div {...fadeUp} className="min-w-0 lg:col-span-12">
-          <KabinetRoadmap />
-        </motion.div>
-
-        <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-kabinet-sticky p-6 lg:col-span-12", cardShell)}>
+      <motion.section {...fadeUp} id="profil" className={cn("scroll-mt-kabinet-sticky p-6", cardShell)}>
           <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Profil</h2>
           <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
             <div>
@@ -1462,7 +1381,6 @@ export function KabinetBentoContent({
             </div>
           </dl>
         </motion.section>
-      </div>
     </div>
   );
 }

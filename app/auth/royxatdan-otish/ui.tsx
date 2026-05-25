@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { registerStudent, type AuthFormState } from "../actions";
 import { VILOYATLAR } from "@/lib/viloyats";
 import { STUDENT_GRADES } from "@/lib/student-grade";
 
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerStudent, undefined as AuthFormState);
+  const [asTeacher, setAsTeacher] = useState(false);
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
@@ -45,27 +46,82 @@ export function RegisterForm() {
           ))}
         </select>
       </div>
-      <div>
-        <label htmlFor="gradeLevel" className="block text-sm font-medium text-slate-700">
-          Sinf
+      <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            name="asTeacher"
+            checked={asTeacher}
+            onChange={(e) => setAsTeacher(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span>
+            <span className="font-medium">Men o‘qituvchiman</span>
+            <span className="mt-1 block text-slate-600">
+              Ro‘yxatdan keyin admin tasdig‘ini kutasiz. Virtual sinf va testlar shu bo‘limda ochiladi.
+            </span>
+          </span>
         </label>
-        <select
-          id="gradeLevel"
-          name="gradeLevel"
-          required
-          defaultValue=""
-          className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
-        >
-          <option value="" disabled>
-            3–9-sinfni tanlang…
-          </option>
-          {STUDENT_GRADES.map((g) => (
-            <option key={g} value={g}>
-              {g}-sinf
-            </option>
-          ))}
-        </select>
       </div>
+      {asTeacher ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="teacherFirstName" className="block text-sm font-medium text-slate-700">
+              Ism
+            </label>
+            <input
+              id="teacherFirstName"
+              name="teacherFirstName"
+              type="text"
+              required
+              autoComplete="given-name"
+              minLength={2}
+              maxLength={80}
+              placeholder="Masalan: Ali"
+              className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+            />
+          </div>
+          <div>
+            <label htmlFor="teacherLastName" className="block text-sm font-medium text-slate-700">
+              Familiya
+            </label>
+            <input
+              id="teacherLastName"
+              name="teacherLastName"
+              type="text"
+              required
+              autoComplete="family-name"
+              minLength={2}
+              maxLength={80}
+              placeholder="Masalan: Karimov"
+              className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+            />
+          </div>
+        </div>
+      ) : null}
+      {!asTeacher ? (
+        <div>
+          <label htmlFor="gradeLevel" className="block text-sm font-medium text-slate-700">
+            Sinf
+          </label>
+          <select
+            id="gradeLevel"
+            name="gradeLevel"
+            required
+            defaultValue=""
+            className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
+          >
+            <option value="" disabled>
+              3–9-sinfni tanlang…
+            </option>
+            {STUDENT_GRADES.map((g) => (
+              <option key={g} value={g}>
+                {g}-sinf
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-slate-700">
           Parol (kamida 8 belgi)

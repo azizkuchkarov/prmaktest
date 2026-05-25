@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Banknote, Check, Clock } from "lucide-react";
 import type { TestCatalogCategory } from "@prisma/client";
@@ -7,17 +8,19 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatPriceSum } from "@/lib/format-uzs";
 import { cohortLabelUz, trackLabelUz } from "@/lib/exam-program";
-import { CATALOG_PANEL_PREMIUM, PROGRAM_FLAT_LIST_CARD_ACCENT } from "@/lib/test-catalog";
+import { CATALOG_LABEL_ADMIN, CATALOG_PANEL_PREMIUM, PROGRAM_FLAT_LIST_CARD_ACCENT } from "@/lib/test-catalog";
 import type { KabinetBentoTest } from "@/components/kabinet/kabinet-bento-types";
 
 export function KabinetCatalogTestRow({
   test: t,
   category,
   useFlatAccent = false,
+  secondaryAction,
 }: {
   test: KabinetBentoTest;
   category: TestCatalogCategory;
   useFlatAccent?: boolean;
+  secondaryAction?: ReactNode;
 }) {
   const accent = useFlatAccent
     ? PROGRAM_FLAT_LIST_CARD_ACCENT
@@ -77,6 +80,9 @@ export function KabinetCatalogTestRow({
               </Badge>
             ) : null}
           </div>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-violet-700/90">
+            {CATALOG_LABEL_ADMIN[category]}
+          </p>
           {t.subject ? (
             <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">{t.subject}</p>
           ) : null}
@@ -114,22 +120,29 @@ export function KabinetCatalogTestRow({
         ) : null}
       </div>
       <div className="relative z-[1] mt-4 flex flex-col gap-2 border-t border-slate-100/90 pt-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-end">
-        {t.questionsCount > 0 ? (
-          <Link
-            href={`/testlar/${t.id}`}
-            className={cn(
-              "inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[11px] font-semibold shadow-sm transition min-[400px]:w-auto",
-              done
-                ? "border border-emerald-200/90 bg-white/90 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50/80"
-                : "border border-slate-200/90 bg-white text-slate-800 hover:border-blue-200 hover:bg-slate-50 hover:text-blue-800",
-            )}
-          >
-            Test haqida
-            <ArrowRight className="h-3.5 w-3.5 opacity-80" aria-hidden />
-          </Link>
-        ) : (
-          <span className="text-[11px] font-semibold text-slate-400">{"Savollar yo'q"}</span>
-        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:justify-end">
+          {t.questionsCount > 0 ? (
+            <Link
+              href={`/testlar/${t.id}`}
+              className={cn(
+                "inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-[11px] font-semibold shadow-sm transition min-[400px]:w-auto",
+                done
+                  ? "border border-emerald-200/90 bg-white/90 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50/80"
+                  : "border border-slate-200/90 bg-white text-slate-800 hover:border-blue-200 hover:bg-slate-50 hover:text-blue-800",
+              )}
+            >
+              Test haqida
+              <ArrowRight className="h-3.5 w-3.5 opacity-80" aria-hidden />
+            </Link>
+          ) : (
+            <span className="text-[11px] font-semibold text-slate-400">{"Savollar yo'q"}</span>
+          )}
+          {secondaryAction ? (
+            <div className="flex w-full min-w-0 justify-stretch min-[400px]:w-auto min-[400px]:justify-end">
+              {secondaryAction}
+            </div>
+          ) : null}
+        </div>
       </div>
     </li>
   );

@@ -27,12 +27,25 @@ import {
   getTournamentPhase,
   tournamentVisibleForUserGrade,
 } from "@/lib/tournament";
+import { getStudentVirtualSinflarNewCount } from "@/lib/virtual-class-new";
+import {
+  TEACHER_LOGIN_HOME,
+  TEACHER_PENDING_PATH,
+  isApprovedTeacherRole,
+  isStudentRole,
+  isTeacherPendingRole,
+} from "@/lib/user-app-role";
 
 export const dynamic = "force-dynamic";
 
 export default async function KabinetPage() {
   const student = await getCurrentStudent();
   if (!student) redirect("/auth/kirish");
+  if (!isStudentRole(student.appUserRole)) {
+    if (isTeacherPendingRole(student.appUserRole)) redirect(TEACHER_PENDING_PATH);
+    if (isApprovedTeacherRole(student.appUserRole)) redirect(TEACHER_LOGIN_HOME);
+    redirect("/auth/kirish");
+  }
   if (!isStudentProfileComplete(student)) redirect(PROFILE_SETUP_PATH);
 
   const displayName = studentDisplayName(student);
@@ -118,6 +131,7 @@ export default async function KabinetPage() {
   ]);
 
   const supportConfigured = isKabinetSupportReady(siteSettings.supportTelegramChatId);
+  const virtualSinflarNewCount = await getStudentVirtualSinflarNewCount(student.id);
   const completedTestIds = new Set(completedAttempts.map((a) => a.testId));
   const newsReadIds = await getNewsReadIdSet(
     student.id,
@@ -158,6 +172,7 @@ export default async function KabinetPage() {
       readiness={readiness}
       liveStats={liveStats}
       tournaments={tournaments}
+      virtualSinflarNewCount={virtualSinflarNewCount}
     />
   );
 }

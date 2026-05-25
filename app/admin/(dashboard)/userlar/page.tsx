@@ -1,15 +1,18 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { BarChart3, ChevronDown, MessageSquare, Users } from "lucide-react";
+import { BarChart3, ChevronDown, MessageSquare, Trash2, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { normalizeUzbekPhone, formatPhoneDisplay } from "@/lib/phone";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { VILOYATLAR, isViloyat } from "@/lib/viloyats";
+import { buildStudentUsersWhere } from "@/lib/admin-user-geo-tel-where";
 import {
+  deleteAdminUser,
   sendAdminUserParentTelegram,
   updateParentTelegram,
   updateUserPassword,
   updateUserTelegram,
 } from "./actions";
+import { AdminListContextFields } from "@/components/admin/AdminListContextFields";
 import { AdminUserFilters } from "@/components/admin/AdminUserFilters";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,8 @@ type Search = {
   tgOk?: string;
   tgFail?: string;
   pwdErr?: string;
+  delErr?: string;
+  deleted?: string;
 };
 
 type Props = { searchParams: Promise<Search> };
@@ -161,41 +166,6 @@ function buildNationwideViloyatStats(
   return { rows, sumTotal, sumNoTg, hasExtraViloyats: extras.length > 0 };
 }
 
-function buildUsersWhere(
-  validViloyat: string | undefined,
-  telSearchRaw: string | undefined,
-): Prisma.UserWhereInput | undefined {
-  const parts: Prisma.UserWhereInput[] = [];
-  if (validViloyat) parts.push({ viloyat: validViloyat });
-
-  const raw = telSearchRaw?.trim();
-  if (raw) {
-    const normalized = normalizeUzbekPhone(raw);
-    if (normalized) {
-      parts.push({ phone: normalized });
-    } else {
-      const digits = raw.replace(/\D/g, "");
-      if (digits.length >= 4) {
-        const prefix =
-          digits.startsWith("998") ? digits : digits.length === 9 && /^9\d{8}$/.test(digits) ? `998${digits}` : digits;
-        parts.push({ phone: { startsWith: prefix } });
-      }
-    }
-  }
-
-  if (parts.length === 0) return undefined;
-  return parts.length === 1 ? parts[0]! : { AND: parts };
-}
-
-function RedirectFields({ vil, tel }: { vil?: string; tel?: string }) {
-  return (
-    <>
-      {vil ? <input type="hidden" name="redirectViloyat" value={vil} /> : null}
-      {tel ? <input type="hidden" name="redirectTel" value={tel} /> : null}
-    </>
-  );
-}
-
 const userListSelect = {
   id: true,
   phone: true,
@@ -290,7 +260,7 @@ function UserCard({
 
       <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2 sm:grid-cols-2">
         <form action={updateUserTelegram.bind(null, u.id)} className="flex min-w-0 items-center gap-1.5">
-          <RedirectFields vil={validViloyat} tel={telFilter} />
+          <AdminListContextFields vil={validViloyat} tel={telFilter} context="userlar" />
           <span className="w-[4.5rem] shrink-0 text-[10px] font-medium text-slate-500">TG o&apos;quvchi</span>
           <input
             name="telegramId"
@@ -310,7 +280,7 @@ function UserCard({
           </button>
         </form>
         <form action={updateParentTelegram.bind(null, u.id)} className="flex min-w-0 items-center gap-1.5">
-          <RedirectFields vil={validViloyat} tel={telFilter} />
+          <AdminListContextFields vil={validViloyat} tel={telFilter} context="userlar" />
           <span className="w-[4.5rem] shrink-0 text-[10px] font-medium text-slate-500">TG ota</span>
           <input
             name="parentTelegramId"
@@ -339,7 +309,7 @@ function UserCard({
           </span>
         </summary>
         <form action={updateUserPassword.bind(null, u.id)} className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <RedirectFields vil={validViloyat} tel={telFilter} />
+          <AdminListContextFields vil={validViloyat} tel={telFilter} context="userlar" />
           <input
             name="password"
             type="password"
@@ -364,6 +334,50 @@ function UserCard({
           </button>
         </form>
       </details>
+      <details className="group/del mt-2 border-t border-red-100 pt-1.5">
+        <summary className="cursor-pointer list-none text-[10px] font-semibold text-red-700 hover:text-red-800 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-1">
+            <Trash2 className="h-3 w-3 shrink-0" aria-hidden />
+            O&apos;quvchini o&apos;chirish
+          </span>
+        </summary>
+        <form
+          action={deleteAdminUser}
+          className="mt-2 space-y-2 rounded-md border border-red-100 bg-red-50/50 p-2"
+        >
+          <AdminListContextFields vil={validViloyat} tel={telFilter} context="userlar" />
+          <input type="hidden" name="deleteUserId" value={u.id} />
+          <p className="text-[10px] leading-relaxed text-red-950/95">
+            Butunlay o&apos;chiriladi: test urinishlari, virtual sinfda aʼzolik va boshqa bog&apos;langan yozuvlar
+            (ketma-ket bazadan).
+          </p>
+          <div>
+            <label htmlFor={`del-phone-${u.id}`} className="block text-[10px] font-medium text-slate-600">
+              Tasdiqlash: akkaunt telefonini yozing (<span className="font-mono">{formatPhoneDisplay(u.phone)}</span>)
+            </label>
+            <input
+              id={`del-phone-${u.id}`}
+              name="deletePhoneConfirm"
+              type="text"
+              inputMode="tel"
+              autoComplete="off"
+              required
+              placeholder="998 XX XXX XX XX"
+              className="mt-1 h-8 w-full max-w-[16rem] rounded-md border border-red-200 bg-white px-2 text-[11px] text-slate-900 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/25"
+            />
+          </div>
+          <label className="flex items-start gap-2 text-[10px] text-red-950">
+            <input type="checkbox" name="ackDelete" required className="mt-0.5" />
+            <span>Tushundim — bu aksiyani qaytarib bo&apos;lmaydi.</span>
+          </label>
+          <button
+            type="submit"
+            className="h-8 rounded-md bg-red-600 px-3 text-[11px] font-bold text-white hover:bg-red-700"
+          >
+            O&apos;chirish
+          </button>
+        </form>
+      </details>
     </li>
   );
 }
@@ -377,7 +391,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const noTgPage = parsePage(q.noTgPage);
   const tgPage = parsePage(q.tgPage);
 
-  const usersWhere = buildUsersWhere(validViloyat, telFilter);
+  const usersWhere = buildStudentUsersWhere(validViloyat, telFilter);
 
   const [users, viloyatTotal, viloyatNoTg, nationwideTotals, nationwideNoTg] = await Promise.all([
     usersWhere
@@ -387,17 +401,22 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           orderBy: { createdAt: "desc" },
         })
       : Promise.resolve([] as UserRow[]),
-    validViloyat ? prisma.user.count({ where: { viloyat: validViloyat } }) : Promise.resolve(0),
     validViloyat
-      ? prisma.user.count({ where: { viloyat: validViloyat, telegramId: null } })
+      ? prisma.user.count({ where: { viloyat: validViloyat, appUserRole: "STUDENT" } })
+      : Promise.resolve(0),
+    validViloyat
+      ? prisma.user.count({
+          where: { viloyat: validViloyat, telegramId: null, appUserRole: "STUDENT" },
+        })
       : Promise.resolve(0),
     prisma.user.groupBy({
       by: ["viloyat"],
+      where: { appUserRole: "STUDENT" },
       _count: { _all: true },
     }),
     prisma.user.groupBy({
       by: ["viloyat"],
-      where: { telegramId: null },
+      where: { telegramId: null, appUserRole: "STUDENT" },
       _count: { _all: true },
     }),
   ]);
@@ -452,6 +471,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const tgFailRaw = typeof q.tgFail === "string" ? Number.parseInt(q.tgFail, 10) : NaN;
   const notifyOk = Number.isFinite(tgOkRaw) ? tgOkRaw : undefined;
   const notifyFail = Number.isFinite(tgFailRaw) ? tgFailRaw : undefined;
+  const deleted = q.deleted === "1";
+  const delErr = typeof q.delErr === "string" ? q.delErr : undefined;
 
   const hasActiveFilter = Boolean(validViloyat || telFilter);
   const filterClearHref = "/admin/userlar";
@@ -460,6 +481,13 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
       <div className="rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:px-6">
         <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Userlar</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Faqat <strong className="text-slate-800">o&apos;quvchi</strong> akkauntlari ({`STUDENT`}). O&apos;qituvchilar:{" "}
+          <Link href="/admin/oqituvchilar" className="font-semibold text-[#2563EB] underline hover:text-violet-700">
+            O&apos;qituvchilar
+          </Link>{" "}
+          bo&apos;limi.
+        </p>
       </div>
 
       <details className="group/stats rounded-2xl border border-slate-200/90 bg-white shadow-md open:shadow-lg">
@@ -484,7 +512,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
               <thead>
                 <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <th className="py-2.5 pl-0 pr-2">Viloyat</th>
-                  <th className="px-2 py-2.5 text-right tabular-nums">Jami userlar</th>
+                  <th className="px-2 py-2.5 text-right tabular-nums">Jami o&apos;quvchilar</th>
                   <th className="px-2 py-2.5 text-right tabular-nums text-amber-700">TG ID yo&apos;q</th>
                   <th className="py-2.5 pl-2 pr-0 text-right tabular-nums text-emerald-700">TG bor</th>
                 </tr>
@@ -537,9 +565,40 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           O&apos;zgarishlar saqlandi.
         </p>
       ) : null}
+      {deleted ? (
+        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 ring-1 ring-emerald-200">
+          Foydalanuvchi bazadan o&apos;chirildi.
+        </p>
+      ) : null}
       {pwdErr === "short" ? (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
           Parol kamida 8 belgi bo&apos;lishi kerak.
+        </p>
+      ) : null}
+      {delErr === "phone" ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          O&apos;chirish uchun kiritilgan telefon kartochkadagi o&apos;quvchi raqami bilan mos kelmaydi.
+        </p>
+      ) : null}
+      {delErr === "noack" ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          O&apos;chirish uchun &quot;Tushundim&quot; belgisini qo&apos;ying.
+        </p>
+      ) : null}
+      {delErr === "teacher_ack" ? (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200">
+          O&apos;qituvchi akkauntini o&apos;chirish uchun ikkinchi belgini ham qo&apos;ying (
+          <strong>virtual sinflar</strong> ketma-ket bazadan yoʻqiladi).
+        </p>
+      ) : null}
+      {delErr === "notfound" || delErr === "noid" ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          Bunday user topilmadi yoki yozuv aniqlanmadi.
+        </p>
+      ) : null}
+      {delErr === "save" ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
+          Foydalanuvchini o&apos;chirib bo&apos;lmadi. Qayta urinib ko&apos;ring.
         </p>
       ) : null}
       {pwdErr === "mismatch" ? (
@@ -670,7 +729,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             action={sendAdminUserParentTelegram}
             className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
           >
-            <RedirectFields vil={validViloyat} tel={telFilter} />
+            <AdminListContextFields vil={validViloyat} tel={telFilter} context="userlar" />
             <div className="min-w-0 w-full sm:w-56">
               <label htmlFor="notifyUserId" className="block text-xs font-medium text-slate-500">
                 User ID

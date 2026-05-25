@@ -8,6 +8,8 @@ type Props = {
   viloyatOptions: readonly string[];
   hasActiveFilter: boolean;
   filterClearHref: string;
+  /** Telefon maydon izohi (masalan userlar/O'qituvchilar) */
+  telFieldLabel?: string;
 };
 
 /**
@@ -19,6 +21,7 @@ export function AdminUserFilters({
   viloyatOptions,
   hasActiveFilter,
   filterClearHref,
+  telFieldLabel = "O'quvchi telefoni",
 }: Props) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-md shadow-slate-200/40 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-end">
@@ -46,7 +49,7 @@ export function AdminUserFilters({
         </div>
         <div>
           <label htmlFor="tel" className="block text-xs font-medium text-slate-500">
-            O&apos;quvchi telefoni
+            {telFieldLabel}
           </label>
           <input
             id="tel"

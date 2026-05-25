@@ -58,6 +58,30 @@ enum SpecializedSixTrack {
   NATURAL_SCIENCES
 }
 
+/// Platforma akkaunt turi — barcha mavjud yozuvlar odatda STUDENT
+enum AppUserRole {
+  STUDENT
+  TEACHER_PENDING
+  TEACHER
+}
+
+/// Virtual sinfda aʼzolik holati va ikki tomonlama tasdiq
+enum VirtualMembershipStatus {
+  /// O‘qituvchi raqam kiritdi, oʻz tasdiqlarini kutmoqda
+  TEACHER_INVITE_DRAFT
+  /// O‘quvchini qabul qilish kutilmoqda
+  AWAITING_STUDENT
+  /// O‘qituvchini tasdiqlash kutilmoqda (o‘quvchi so‘raganda)
+  AWAITING_TEACHER
+  ACTIVE
+  DECLINED
+}
+
+enum VirtualMembershipInitiator {
+  TEACHER
+  STUDENT
+}
+
 model Test {
   id               String         @id @default(cuid())
   title            String
@@ -86,6 +110,7 @@ model Test {
   attempts         TestAttempt[]
   progresses       TestProgress[]
   tournaments      Tournament[]
+  virtualClassAssignments VirtualClassAssignedTest[]
 
   @@index([examSchoolProgram, examTargetCohort])
 }
@@ -205,10 +230,15 @@ model User {
   balanceDeposits     BalanceDeposit[]
   /// Balans (so'm). Click orqali to'ldiriladi.
   balanceSum          Int            @default(0)
+  /// O‘quchi / tasdiqlanishi kutilayotgan yoki tasdiqlangan o‘qituvchi
+  appUserRole         AppUserRole    @default(STUDENT)
   supportHelpRequests SupportHelpRequest[]
   newsReads           NewsRead[]
+  taughtVirtualClasses    VirtualClass[]      @relation("TeacherVirtualClasses")
+  virtualClassMemberships VirtualClassMember[]
 
   @@index([gradeLevel])
+  @@index([appUserRole])
 }
 
 /// O‘quvchi yangilikni ochganida — ro‘yxatlarda New / O‘qilgan
@@ -309,5 +339,59 @@ model TestAttempt {
 
   @@unique([userId, testId])
   @@index([userId])
+  @@index([testId])
+}
+
+/// O‘qituvchi ochgan virtual sinf (tuman + tayyorlov kursi nomi)
+model VirtualClass {
+  id            String                     @id @default(cuid())
+  teacherUserId String
+  teacher       User                       @relation("TeacherVirtualClasses", fields: [teacherUserId], references: [id], onDelete: Cascade)
+  /// Markaz nomi (UI: markaz; maydon nomi tarixiy: tuman)
+  tuman         String
+  /// Tayyorlov kursi / sinf nomi
+  courseName    String
+  /// Katalog filtri: 4 → 4-sinf testlari; 6 → 5–9-sinf (6-sinf sikli testlari)
+  prepGradeLevel Int                       @default(4)
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  /// O‘qituvchi oxirgi marta sinf a‘zolari (yangi so‘rovlar) bilan tanishgan vaqt
+  teacherActivitySeenAt  DateTime?
+  members                VirtualClassMember[]
+  assignedTests          VirtualClassAssignedTest[]
+
+  @@index([teacherUserId])
+}
+
+/// Virtual sinfda o‘quvchi va ikki tomondagi tasdiq holati
+model VirtualClassMember {
+  id             String                       @id @default(cuid())
+  virtualClassId String
+  virtualClass   VirtualClass                 @relation(fields: [virtualClassId], references: [id], onDelete: Cascade)
+  studentUserId  String
+  student        User                         @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+  status         VirtualMembershipStatus
+  initiatedBy            VirtualMembershipInitiator
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  /// O‘quvchi oxirgi marta shu sinfdagi yangiliklar (testlar, taklif) bilan tanishgan vaqt
+  studentActivitySeenAt  DateTime?
+
+  @@unique([virtualClassId, studentUserId])
+  @@index([studentUserId, status])
+  @@index([virtualClassId])
+}
+
+/// Virtual sinfga biriktirilgan testlar (katalogdan)
+model VirtualClassAssignedTest {
+  id             String       @id @default(cuid())
+  virtualClassId String
+  virtualClass   VirtualClass @relation(fields: [virtualClassId], references: [id], onDelete: Cascade)
+  testId         String
+  test           Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([virtualClassId, testId])
+  @@index([virtualClassId])
   @@index([testId])
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import type { ExamSchoolProgram, TestCatalogCategory } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -13,34 +14,9 @@ import {
   normalizeTestCatalogCategory,
 } from "@/lib/test-catalog";
 import { KabinetCatalogTestRow } from "@/components/kabinet/KabinetCatalogTestRow";
-import type { KabinetBentoTest } from "@/components/kabinet/kabinet-bento-types";
-import type {
-  CatalogTestRowModel,
-  ProgramCatalogBlock,
-  ProgramCatalogGroup,
-} from "@/lib/build-exam-catalog-sections";
+import type { CatalogTestRowModel, ProgramCatalogBlock, ProgramCatalogGroup } from "@/lib/build-exam-catalog-sections";
+import { catalogModelToKabinetRow } from "@/lib/catalog-model-to-kabinet-row";
 import { AccordionDetails } from "@/components/test-catalog/AccordionDetails";
-
-function catalogModelToKabinetRow(t: CatalogTestRowModel): KabinetBentoTest {
-  const createdIso = typeof t.createdAt === "string" ? t.createdAt : t.createdAt.toISOString();
-  return {
-    id: t.id,
-    title: t.title,
-    subject: t.subject ?? "",
-    description: t.description ?? "",
-    durationMinutes: t.durationMinutes,
-    priceSum: t.priceSum,
-    questionsCount: t._count.questions,
-    stage: "saralash",
-    updatedAt: createdIso,
-    createdAt: createdIso,
-    completed: !!t.completed,
-    catalogCategory: String(t.catalogCategory ?? "MATHEMATICS"),
-    examSchoolProgram: t.examSchoolProgram,
-    examTargetCohort: t.examTargetCohort,
-    specializedSixTrack: t.specializedSixTrack,
-  };
-}
 
 function countInBlock(block: ProgramCatalogBlock): number {
   if (block.kind === "categories") {
@@ -55,9 +31,12 @@ function countInBlock(block: ProgramCatalogBlock): number {
 export function KabinetProgramsCatalog({
   groups,
   defaultOpenProgram,
+  /** Server Componentdan: har test uchun tayyor JSX (funksiya emas — RSC seriyalashadi) */
+  secondaryActionByTestId,
 }: {
   groups: ProgramCatalogGroup[];
   defaultOpenProgram: ExamSchoolProgram;
+  secondaryActionByTestId?: Record<string, ReactNode>;
 }) {
   function flatInner(rows: CatalogTestRowModel[]) {
     if (rows.length === 0) {
@@ -71,6 +50,7 @@ export function KabinetProgramsCatalog({
             test={catalogModelToKabinetRow(row)}
             category={normalizeTestCatalogCategory(String(row.catalogCategory))}
             useFlatAccent
+            secondaryAction={secondaryActionByTestId?.[row.id]}
           />
         ))}
       </ul>
@@ -101,7 +81,7 @@ export function KabinetProgramsCatalog({
           return (
             <AccordionDetails
               key={`${outerKey}-${cat}`}
-              defaultOpen
+              defaultOpen={false}
               className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 shadow-sm ring-1 ring-slate-100 transition duration-200 open:shadow-md open:ring-slate-200/80"
               summary={(open) => (
                 <summary
@@ -146,7 +126,12 @@ export function KabinetProgramsCatalog({
                     const kt = catalogModelToKabinetRow(row);
                     const nc = normalizeTestCatalogCategory(String(row.catalogCategory));
                     return (
-                      <KabinetCatalogTestRow key={row.id} test={kt} category={nc} />
+                      <KabinetCatalogTestRow
+                        key={row.id}
+                        test={kt}
+                        category={nc}
+                        secondaryAction={secondaryActionByTestId?.[row.id]}
+                      />
                     );
                   })}
                 </ul>

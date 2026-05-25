@@ -73,6 +73,7 @@ type Props = {
   readiness: ReadinessStats;
   liveStats: KabinetLiveStatsPayload;
   tournaments: KabinetBentoTournament[];
+  virtualSinflarNewCount?: number;
 };
 
 export function KabinetDashboard({
@@ -93,6 +94,7 @@ export function KabinetDashboard({
   readiness,
   liveStats,
   tournaments,
+  virtualSinflarNewCount = 0,
 }: Props) {
   const bentoStudent = {
     id: student.id,
@@ -121,7 +123,12 @@ export function KabinetDashboard({
 
   return (
     <KabinetStudyGuideProvider>
-      <KabinetPremiumShell displayName={displayName} viloyat={student.viloyat} supportConfigured={supportConfigured}>
+      <KabinetPremiumShell
+        displayName={displayName}
+        viloyat={student.viloyat}
+        supportConfigured={supportConfigured}
+        virtualSinflarNewCount={virtualSinflarNewCount}
+      >
         <KabinetBentoContent
           student={bentoStudent}
           displayName={displayName}

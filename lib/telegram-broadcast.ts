@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { getAdminSiteSettingsRow, normalizeSupportTelegramChatId } from "@/lib/admin-site-settings";
 import { prisma } from "@/lib/prisma";
 import { sitePublicLabel, sitePublicOrigin } from "@/lib/site-public";
 import { isValidStudentGrade } from "@/lib/student-grade";
@@ -347,4 +348,31 @@ export async function notifyOfficialTestCompletionTelegram(payload: OfficialTest
   })();
 
   attachBackgroundWork(followUp);
+}
+
+/** Oʻqituvchi roʻyxatidan keyin admin Telegram ga (support chat) yozish. */
+export function notifyAdminTeacherRegistrationPending(opts: {
+  userId: string;
+  phone: string;
+  viloyat: string;
+  firstName: string;
+  lastName: string;
+}): void {
+  attachBackgroundWork(
+    (async () => {
+      const row = await getAdminSiteSettingsRow();
+      const chatId = normalizeSupportTelegramChatId(row.supportTelegramChatId);
+      if (!chatId) return;
+      const origin = sitePublicOrigin();
+      const text = [
+        "Yangi o‘qituvchi ro‘yxatdan o‘tdi — admin tasdig‘i kutilmoqda.",
+        `Ism familiya: ${opts.firstName} ${opts.lastName}`,
+        `User ID: ${opts.userId}`,
+        `Tel: ${opts.phone}`,
+        `Viloyat: ${opts.viloyat}`,
+        `Admin panel: ${origin}/admin/oqituvchi-tasdiq`,
+      ].join("\n");
+      await sendTelegramPlainToChat(chatId, text);
+    })(),
+  );
 }

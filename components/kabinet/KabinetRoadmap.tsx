@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  BookOpenCheck,
-  CalendarDays,
-  ChevronDown,
-  GitBranch,
-  GraduationCap,
-  MapPin,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
+import { BookOpenCheck, CalendarDays, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -52,93 +43,24 @@ const STEPS = [
 
 export function KabinetRoadmap() {
   return (
-    <section id="roadmap" className="relative scroll-mt-kabinet-sticky">
-      <details
-        className={cn(
-          "group relative overflow-hidden rounded-[1.75rem]",
-          "border border-white/70 bg-white/85 shadow-[0_22px_60px_-18px_rgba(37,99,235,0.18),0_12px_32px_-12px_rgba(15,23,42,0.14)]",
-          "ring-1 ring-slate-200/60 backdrop-blur-xl",
-          "transition-[box-shadow] duration-300 open:shadow-[0_28px_70px_-16px_rgba(124,58,237,0.16),0_16px_40px_-14px_rgba(15,23,42,0.12)]",
-        )}
-      >
-        {/* fon */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.65]"
-          aria-hidden
-        >
-          <div className="absolute -left-1/4 -top-24 h-72 w-[140%] bg-[radial-gradient(ellipse_at_30%_0%,rgba(37,99,235,0.14),transparent_55%)]" />
-          <div className="absolute -right-1/4 top-1/3 h-64 w-[120%] bg-[radial-gradient(ellipse_at_70%_50%,rgba(124,58,237,0.12),transparent_50%)]" />
-          <div className="absolute bottom-0 left-1/2 h-48 w-full max-w-2xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_50%_100%,rgba(245,158,11,0.08),transparent_60%)]" />
-        </div>
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.5)_0%,transparent_42%,rgba(255,255,255,0.15)_100%)]"
-          aria-hidden
-        />
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[1.75rem]",
+        "border border-white/70 bg-white/85 shadow-[0_22px_60px_-18px_rgba(37,99,235,0.18),0_12px_32px_-12px_rgba(15,23,42,0.14)]",
+        "ring-1 ring-slate-200/60 backdrop-blur-xl",
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.65]" aria-hidden>
+        <div className="absolute -left-1/4 -top-24 h-72 w-[140%] bg-[radial-gradient(ellipse_at_30%_0%,rgba(37,99,235,0.14),transparent_55%)]" />
+        <div className="absolute -right-1/4 top-1/3 h-64 w-[120%] bg-[radial-gradient(ellipse_at_70%_50%,rgba(124,58,237,0.12),transparent_50%)]" />
+        <div className="absolute bottom-0 left-1/2 h-48 w-full max-w-2xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_50%_100%,rgba(245,158,11,0.08),transparent_60%)]" />
+      </div>
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.5)_0%,transparent_42%,rgba(255,255,255,0.15)_100%)]"
+        aria-hidden
+      />
 
-        <summary
-          className={cn(
-            "relative flex cursor-pointer list-none items-stretch gap-4 p-5 outline-none",
-            "transition-colors duration-200 hover:bg-white/40 sm:gap-5 sm:p-6",
-            "[&::-webkit-details-marker]:hidden",
-            "focus-visible:ring-2 focus-visible:ring-[#2563EB]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white/0",
-          )}
-        >
-          <div
-            className={cn(
-              "relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl sm:h-[4.25rem] sm:w-[4.25rem]",
-              "bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-lg shadow-blue-600/25",
-              "ring-2 ring-white/60",
-            )}
-          >
-            <GitBranch className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2} aria-hidden />
-            <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-[10px] font-black text-amber-950 shadow-md ring-2 ring-white">
-              <Sparkles className="h-3 w-3" aria-hidden />
-            </span>
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Roadmap</h2>
-                <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 ring-1 ring-slate-200/80">
-                  3 bosqich
-                </span>
-              </div>
-              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
-                Mock testlar → haftalik real testlar →{" "}
-                <span className="font-semibold text-slate-800">1-bosqich (24-iyun)</span>. Bosqichma-bosqich
-                reyting va tayyorgarlik.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-900 ring-1 ring-emerald-200/70">
-                  <Trophy className="h-3.5 w-3.5" aria-hidden />
-                  Respublika · viloyat
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50/90 px-2.5 py-1 text-[11px] font-semibold text-sky-900 ring-1 ring-sky-200/70">
-                  <MapPin className="h-3.5 w-3.5" aria-hidden />
-                  Mahalliy jadval
-                </span>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto sm:flex-col sm:items-end">
-              <span className="hidden text-[11px] font-semibold uppercase tracking-wide text-slate-400 group-open:text-[#2563EB] sm:block">
-                Batafsil
-              </span>
-              <div
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100/90 text-slate-600",
-                  "ring-1 ring-slate-200/90 transition-all duration-300",
-                  "group-open:bg-[#2563EB]/10 group-open:text-[#2563EB] group-open:ring-[#2563EB]/20",
-                )}
-              >
-                <ChevronDown className="h-5 w-5 transition-transform duration-300 group-open:rotate-180" aria-hidden />
-              </div>
-            </div>
-          </div>
-        </summary>
-
-        <div className="relative border-t border-slate-200/70 bg-gradient-to-b from-white/40 to-white/10 px-5 pb-7 pt-6 sm:px-7">
+      <div className="relative px-5 pb-7 pt-6 sm:px-7">
           <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
             Platformada qatnashish <strong className="font-semibold text-slate-800">ketma-ket bosqichlar</strong>{" "}
             bo‘lib o‘tadi. Har bir bosqichda kabinetidagi{" "}
@@ -231,8 +153,7 @@ export function KabinetRoadmap() {
               })}
             </ul>
           </div>
-        </div>
-      </details>
-    </section>
+      </div>
+    </div>
   );
 }

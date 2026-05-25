@@ -6,17 +6,18 @@ import {
   Award,
   BarChart3,
   BookOpen,
-  GitBranch,
   Headphones,
   LayoutDashboard,
   LogOut,
   Newspaper,
   PanelLeft,
-  Target,
+  School,
   Trophy,
   User,
+  Wallet,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { logoutStudent } from "@/app/auth/actions";
 import { KabinetSupportModalForm } from "@/components/kabinet/KabinetSupportModalForm";
 import { useKabinetStudyGuide } from "@/components/kabinet/KabinetStudyGuide";
@@ -24,14 +25,12 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "#bosh", label: "Boshqaruv", icon: LayoutDashboard },
-  { href: "#reyting", label: "Reyting", icon: Trophy },
-  { href: "#tayyorgarlik", label: "Tayyorgarlik", icon: Target },
-  { href: "#diagrammalar", label: "Diagrammalar", icon: BarChart3 },
+  { href: "#balans", label: "Balans", icon: Wallet },
+  { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
   { href: "#testlar", label: "Katalog", icon: BookOpen },
   { href: "#turnirlar", label: "Turnirlar", icon: Trophy },
   { href: "#liderlar", label: "Liderlar", icon: Award },
-  { href: "#roadmap", label: "Roadmap", icon: GitBranch },
-  { href: "#yangiliklar", label: "Yangiliklar", icon: Newspaper },
+  { href: "#analitika", label: "Reyting va statistika", icon: BarChart3 },
   { href: "#profil", label: "Profil", icon: User },
 ] as const;
 
@@ -39,6 +38,8 @@ type Props = {
   displayName: string;
   viloyat: string;
   supportConfigured: boolean;
+  /** Virtual sinflarda ko‘rilmagan yangiliklar soni */
+  virtualSinflarNewCount?: number;
   children: React.ReactNode;
 };
 
@@ -46,10 +47,12 @@ function NavLinks({
   onNavigate,
   supportConfigured,
   onOpenSupport,
+  virtualSinflarNewCount = 0,
 }: {
   onNavigate?: () => void;
   supportConfigured?: boolean;
   onOpenSupport?: () => void;
+  virtualSinflarNewCount?: number;
 }) {
   const linkClass = cn(
     "flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700",
@@ -68,6 +71,21 @@ function NavLinks({
           <span className="min-w-0 break-words">{label}</span>
         </a>
       ))}
+      <Link
+        href="/kabinet/virtual-sinflar"
+        onClick={() => onNavigate?.()}
+        className={linkClass}
+      >
+        <span className={iconWrapClass}>
+          <School className="h-[18px] w-[18px]" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1 break-words">Virtual sinflar</span>
+        {virtualSinflarNewCount > 0 ? (
+          <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900 ring-1 ring-amber-200/80">
+            {virtualSinflarNewCount > 9 ? "9+" : virtualSinflarNewCount} New
+          </span>
+        ) : null}
+      </Link>
       {supportConfigured && onOpenSupport ? (
         <button
           type="button"
@@ -104,6 +122,7 @@ export function KabinetPremiumShell({
   displayName,
   viloyat,
   supportConfigured,
+  virtualSinflarNewCount = 0,
   children,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -193,6 +212,7 @@ export function KabinetPremiumShell({
                   onNavigate={() => setSheetOpen(false)}
                   supportConfigured={supportConfigured}
                   onOpenSupport={openSupportModal}
+                  virtualSinflarNewCount={virtualSinflarNewCount}
                 />
                 <div className="px-3 pt-4">
                   <form action={logoutStudent} autoComplete="off" suppressHydrationWarning>
@@ -235,7 +255,11 @@ export function KabinetPremiumShell({
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain py-2">
-            <NavLinks supportConfigured={supportConfigured} onOpenSupport={openSupportModal} />
+            <NavLinks
+              supportConfigured={supportConfigured}
+              onOpenSupport={openSupportModal}
+              virtualSinflarNewCount={virtualSinflarNewCount}
+            />
           </div>
           <div className="shrink-0 border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <form action={logoutStudent} autoComplete="off" suppressHydrationWarning>

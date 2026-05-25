@@ -11,6 +11,28 @@ export function formatUzInteger(n: number): string {
   return neg ? `-${grouped}` : grouped;
 }
 
+/** Sana-vaqt — SSR va brauzerda bir xil (locale `toLocaleString` hydration xatosini oldini oladi) */
+export function formatUzDateTime(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const months = [
+    "yan",
+    "fev",
+    "mar",
+    "apr",
+    "may",
+    "iyn",
+    "iyl",
+    "avg",
+    "sen",
+    "okt",
+    "noy",
+    "dek",
+  ] as const;
+  return `${pad(d.getDate())}-${months[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** So'm ko'rinishida (UI), 0 bo'lsa bo'sh / bepul */
 export function formatPriceSum(priceSum: number): string {
   const n = Math.round(Number(priceSum));
