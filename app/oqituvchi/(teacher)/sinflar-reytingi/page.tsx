@@ -1,29 +1,17 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, Trophy } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getStudentSessionUserId } from "@/lib/student-auth";
+import { requireTeacherSessionId } from "@/lib/teacher-auth";
 import { computeVirtualClassesRanking } from "@/lib/virtual-class-leaderboard";
 import { TeacherClassesRankingSection } from "@/components/teacher/TeacherClassesRankingSection";
 
 export const dynamic = "force-dynamic";
 
-async function teacherIdStrict(): Promise<string> {
-  const id = await getStudentSessionUserId();
-  if (!id) redirect("/auth/kirish");
-  const row = await prisma.user.findUnique({
-    where: { id },
-    select: { appUserRole: true },
-  });
-  if (row?.appUserRole !== "TEACHER") redirect("/auth/kirish");
-  return id;
-}
-
 const pane =
   "rounded-[1.5rem] border border-white/80 bg-white/80 p-6 shadow-xl shadow-indigo-950/[0.04] backdrop-blur-sm ring-1 ring-slate-200/55 sm:p-7";
 
 export default async function TeacherClassesRankingPage() {
-  const teacherId = await teacherIdStrict();
+  const teacherId = await requireTeacherSessionId();
 
   const rows = await prisma.virtualClass.findMany({
     where: { teacherUserId: teacherId },

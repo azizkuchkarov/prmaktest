@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentStudent } from "@/lib/student-auth";
 import { isStudentProfileComplete } from "@/lib/student-profile";
-import { TEACHER_LOGIN_HOME, TEACHER_PENDING_PATH } from "@/lib/user-app-role";
+import { TEACHER_LOGIN_HOME, isTeacherRole } from "@/lib/user-app-role";
 import { ProfileSetupForm } from "./ui";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ProfileSetupPage() {
   const student = await getCurrentStudent();
   if (!student) redirect("/auth/kirish");
-  if (student.appUserRole === "TEACHER_PENDING") redirect(TEACHER_PENDING_PATH);
-  if (student.appUserRole === "TEACHER") redirect(TEACHER_LOGIN_HOME);
+  if (isTeacherRole(student.appUserRole)) redirect(TEACHER_LOGIN_HOME);
   if (isStudentProfileComplete(student)) redirect("/kabinet");
 
   return (

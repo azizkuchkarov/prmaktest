@@ -15,3 +15,8 @@ export function isTeacherPendingRole(r: AppUserRole): boolean {
 export function isApprovedTeacherRole(r: AppUserRole): boolean {
   return r === "TEACHER";
 }
+
+/** O‘qituvchi kabinetiga kirish (tasdiqlangan yoki eski TEACHER_PENDING yozuvlar). */
+export function isTeacherRole(r: AppUserRole): boolean {
+  return r === "TEACHER" || r === "TEACHER_PENDING";
+}

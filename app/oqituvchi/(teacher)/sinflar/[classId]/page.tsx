@@ -24,7 +24,7 @@ import {
 import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
 import { countTeacherClassPendingNews, isVirtualActivityNew } from "@/lib/virtual-class-new";
 import { prisma } from "@/lib/prisma";
-import { getStudentSessionUserId } from "@/lib/student-auth";
+import { requireTeacherSessionId } from "@/lib/teacher-auth";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getVirtualClassLeaderboard } from "@/lib/virtual-class-leaderboard";
 import {
@@ -128,14 +128,7 @@ export default async function VirtualClassTeacherPage(props: Props) {
   const { classId } = await props.params;
   const q = await props.searchParams;
 
-  const sessionId = await getStudentSessionUserId();
-  if (!sessionId) redirect("/auth/kirish");
-
-  const me = await prisma.user.findUnique({
-    where: { id: sessionId },
-    select: { appUserRole: true },
-  });
-  if (me?.appUserRole !== "TEACHER") redirect("/auth/kirish");
+  const sessionId = await requireTeacherSessionId();
 
   const cls = await prisma.virtualClass.findFirst({
     where: { id: classId, teacherUserId: sessionId },

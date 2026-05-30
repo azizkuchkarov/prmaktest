@@ -1,30 +1,18 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpen, School } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getStudentSessionUserId } from "@/lib/student-auth";
+import { requireTeacherSessionId } from "@/lib/teacher-auth";
 import { virtualClassPrepGradeLabel } from "@/lib/virtual-class-prep-grade";
 import { countTeacherClassPendingNews } from "@/lib/virtual-class-new";
 import { NewsStatusBadge } from "@/components/news/NewsStatusBadge";
 
 export const dynamic = "force-dynamic";
 
-async function teacherIdStrict(): Promise<string> {
-  const id = await getStudentSessionUserId();
-  if (!id) redirect("/auth/kirish");
-  const row = await prisma.user.findUnique({
-    where: { id },
-    select: { appUserRole: true },
-  });
-  if (row?.appUserRole !== "TEACHER") redirect("/auth/kirish");
-  return id;
-}
-
 const cardCls =
   "rounded-3xl border border-white/70 bg-white/75 p-6 shadow-xl shadow-indigo-950/[0.05] backdrop-blur-sm ring-1 ring-slate-200/55";
 
 export default async function TeacherSinfxonalarPage() {
-  const teacherId = await teacherIdStrict();
+  const teacherId = await requireTeacherSessionId();
 
   const rows = await prisma.virtualClass.findMany({
     where: { teacherUserId: teacherId },

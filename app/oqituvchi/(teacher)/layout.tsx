@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentStudent } from "@/lib/student-auth";
-import { TEACHER_PENDING_PATH } from "@/lib/user-app-role";
+import { isTeacherRole } from "@/lib/user-app-role";
 
 export const dynamic = "force-dynamic";
 
-/** Faqat tasdiqlangan o‘qituvchi: `/oqituvchi` asosiy sahifa. */
+/** O‘qituvchi asosiy paneli — STUDENT va boshqa rollar yo‘naltiriladi. */
 export default async function OqituvchiTeacherDashboardLayout({
   children,
 }: {
@@ -13,8 +13,7 @@ export default async function OqituvchiTeacherDashboardLayout({
   const u = await getCurrentStudent();
   if (!u) redirect("/auth/kirish");
   if (u.appUserRole === "STUDENT") redirect("/kabinet");
-  if (u.appUserRole === "TEACHER_PENDING") redirect(TEACHER_PENDING_PATH);
-  if (u.appUserRole !== "TEACHER") redirect("/auth/kirish");
+  if (!isTeacherRole(u.appUserRole)) redirect("/auth/kirish");
 
   return children;
 }

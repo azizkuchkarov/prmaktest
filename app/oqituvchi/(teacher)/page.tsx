@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowRight, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getStudentSessionUserId } from "@/lib/student-auth";
 import { getTeacherDashboardPayload } from "@/lib/teacher-dashboard";
+import { requireTeacherSessionId } from "@/lib/teacher-auth";
 import { VIRTUAL_CLASS_PREP_BLOCKS } from "@/lib/virtual-class-prep-grade";
 import { TeacherDashboardPanel } from "@/components/teacher/TeacherDashboardPanel";
 import { createVirtualClassForm } from "./actions";
@@ -12,20 +11,9 @@ export const dynamic = "force-dynamic";
 
 type Search = Promise<{ clsErr?: string; hint?: string }>;
 
-async function teacherIdStrict(): Promise<string> {
-  const id = await getStudentSessionUserId();
-  if (!id) redirect("/auth/kirish");
-  const row = await prisma.user.findUnique({
-    where: { id },
-    select: { appUserRole: true },
-  });
-  if (row?.appUserRole !== "TEACHER") redirect("/auth/kirish");
-  return id;
-}
-
 export default async function TeacherHomePage(props: { searchParams: Search }) {
   const q = await props.searchParams;
-  const teacherId = await teacherIdStrict();
+  const teacherId = await requireTeacherSessionId();
   const dashboard = await getTeacherDashboardPayload(teacherId);
 
   let clsErrBanner: string | null = null;

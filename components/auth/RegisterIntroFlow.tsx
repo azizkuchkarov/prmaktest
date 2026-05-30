@@ -25,6 +25,7 @@ export function RegisterIntroFlow({
 }: Props) {
   const [phase, setPhase] = useState<"intro" | "register">("intro");
   const [agreed, setAgreed] = useState(false);
+  const needsAgreement = variant === "teacher";
 
   const accent =
     variant === "student"
@@ -120,31 +121,32 @@ export function RegisterIntroFlow({
         })}
       </ul>
 
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-800">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className={cn("mt-0.5 size-4 shrink-0 rounded border-slate-300", accent.agree)}
-          />
-          <span>
-            <span className="font-semibold">Men roziman</span>
-            <span className="mt-1 block text-slate-600">
-              Platforma qoidalariga roziman va{" "}
-              {variant === "student" ? "o‘quvchi" : "o‘qituvchi"} sifatida ro‘yxatdan o‘tishni
-              xohlayman.
+      {needsAgreement ? (
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-800">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className={cn("mt-0.5 size-4 shrink-0 rounded border-slate-300", accent.agree)}
+            />
+            <span>
+              <span className="font-semibold">Men roziman</span>
+              <span className="mt-1 block text-slate-600">
+                Platforma qoidalariga roziman va o‘qituvchi sifatida ro‘yxatdan o‘tishni xohlayman.
+              </span>
             </span>
-          </span>
-        </label>
-      </div>
+          </label>
+        </div>
+      ) : null}
 
       <button
         type="button"
-        disabled={!agreed}
+        disabled={needsAgreement && !agreed}
         onClick={() => setPhase("register")}
         className={cn(
-          "mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r py-3 text-base font-semibold text-white shadow-md hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50",
+          needsAgreement ? "mt-4" : "mt-8",
           accent.btn,
         )}
       >

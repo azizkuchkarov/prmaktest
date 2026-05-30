@@ -139,8 +139,8 @@ export function RegisterForm({ variant }: Props) {
       </div>
       {asTeacher ? (
         <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3 py-2 text-xs leading-relaxed text-violet-950">
-          Ro&apos;yxatdan keyin admin tasdig&apos;ini kutasiz. Tasdiqlangach virtual sinflar va
-          boshqaruv paneli ochiladi.
+          Ro&apos;yxatdan keyin darhol virtual sinflar va boshqaruv panelidan foydalanishingiz
+          mumkin.
         </p>
       ) : null}
       {state?.error ? (

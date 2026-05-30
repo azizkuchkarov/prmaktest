@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { normalizeUzbekPhone } from "@/lib/phone";
-import { getStudentSessionUserId } from "@/lib/student-auth";
+import { requireTeacherSessionId } from "@/lib/teacher-auth";
 import {
   parseVirtualClassPrepBlock,
   prepGradeLevelFromBlock,
@@ -12,14 +12,7 @@ import {
 } from "@/lib/virtual-class-prep-grade";
 
 async function requireApprovedTeacher(): Promise<string> {
-  const id = await getStudentSessionUserId();
-  if (!id) redirect("/auth/kirish");
-  const u = await prisma.user.findUnique({
-    where: { id },
-    select: { appUserRole: true },
-  });
-  if (u?.appUserRole !== "TEACHER") redirect("/auth/kirish");
-  return id;
+  return requireTeacherSessionId();
 }
 
 async function getOwnedClassOrRedirect(teacherId: string, classId: string) {

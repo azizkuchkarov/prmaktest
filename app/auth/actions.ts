@@ -19,7 +19,6 @@ import { parseStudentGradeFromForm } from "@/lib/student-grade";
 import { notifyAdminTeacherRegistrationPending } from "@/lib/telegram-broadcast";
 import {
   TEACHER_LOGIN_HOME,
-  TEACHER_PENDING_PATH,
 } from "@/lib/user-app-role";
 
 export type AuthFormState = { error?: string } | undefined;
@@ -79,7 +78,7 @@ export async function registerStudent(
         passwordHash,
         viloyat,
         gradeLevel: asTeacher ? 0 : (grade as number),
-        appUserRole: asTeacher ? "TEACHER_PENDING" : "STUDENT",
+        appUserRole: asTeacher ? "TEACHER" : "STUDENT",
         ...(asTeacher
           ? {
               firstName: teacherFirstName,
@@ -123,7 +122,7 @@ export async function registerStudent(
   });
 
   revalidatePath("/");
-  if (asTeacher) redirect(TEACHER_PENDING_PATH);
+  if (asTeacher) redirect(TEACHER_LOGIN_HOME);
   redirect(PROFILE_SETUP_PATH);
 }
 
@@ -172,7 +171,11 @@ export async function loginStudent(
     },
   });
   if (profile?.appUserRole === "TEACHER_PENDING") {
-    redirect(TEACHER_PENDING_PATH);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { appUserRole: "TEACHER" },
+    });
+    redirect(safeTeacherRedirect(formData.get("from")));
   }
   if (profile?.appUserRole === "TEACHER") {
     redirect(safeTeacherRedirect(formData.get("from")));
@@ -224,8 +227,9 @@ export async function completeStudentProfile(
     },
   });
   if (!me) redirect("/auth/kirish");
-  if (me.appUserRole === "TEACHER_PENDING") redirect(TEACHER_PENDING_PATH);
-  if (me.appUserRole === "TEACHER") redirect(TEACHER_LOGIN_HOME);
+  if (me.appUserRole === "TEACHER_PENDING" || me.appUserRole === "TEACHER") {
+    redirect(TEACHER_LOGIN_HOME);
+  }
   if (isStudentProfileComplete(me)) redirect("/kabinet");
 
   const firstName = String(formData.get("firstName") ?? "").trim().slice(0, NAME_MAX);

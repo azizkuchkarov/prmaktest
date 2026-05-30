@@ -30,10 +30,8 @@ import {
 import { getStudentVirtualSinflarNewCount } from "@/lib/virtual-class-new";
 import {
   TEACHER_LOGIN_HOME,
-  TEACHER_PENDING_PATH,
-  isApprovedTeacherRole,
   isStudentRole,
-  isTeacherPendingRole,
+  isTeacherRole,
 } from "@/lib/user-app-role";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +40,7 @@ export default async function KabinetPage() {
   const student = await getCurrentStudent();
   if (!student) redirect("/auth/kirish");
   if (!isStudentRole(student.appUserRole)) {
-    if (isTeacherPendingRole(student.appUserRole)) redirect(TEACHER_PENDING_PATH);
-    if (isApprovedTeacherRole(student.appUserRole)) redirect(TEACHER_LOGIN_HOME);
+    if (isTeacherRole(student.appUserRole)) redirect(TEACHER_LOGIN_HOME);
     redirect("/auth/kirish");
   }
   if (!isStudentProfileComplete(student)) redirect(PROFILE_SETUP_PATH);
