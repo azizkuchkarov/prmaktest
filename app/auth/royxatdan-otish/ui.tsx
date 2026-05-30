@@ -1,16 +1,21 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { registerStudent, type AuthFormState } from "../actions";
 import { VILOYATLAR } from "@/lib/viloyats";
 import { STUDENT_GRADES } from "@/lib/student-grade";
 
-export function RegisterForm() {
+type Props = {
+  variant: "student" | "teacher";
+};
+
+export function RegisterForm({ variant }: Props) {
   const [state, formAction, pending] = useActionState(registerStudent, undefined as AuthFormState);
-  const [asTeacher, setAsTeacher] = useState(false);
+  const asTeacher = variant === "teacher";
 
   return (
     <form action={formAction} className="mt-8 space-y-4">
+      {asTeacher ? <input type="hidden" name="asTeacher" value="on" /> : null}
       <div>
         <label htmlFor="phone" className="block text-sm font-medium text-slate-700">
           Mobil raqam
@@ -45,23 +50,6 @@ export function RegisterForm() {
             </option>
           ))}
         </select>
-      </div>
-      <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-800">
-          <input
-            type="checkbox"
-            name="asTeacher"
-            checked={asTeacher}
-            onChange={(e) => setAsTeacher(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-          <span>
-            <span className="font-medium">Men o‘qituvchiman</span>
-            <span className="mt-1 block text-slate-600">
-              Ro‘yxatdan keyin admin tasdig‘ini kutasiz. Virtual sinf va testlar shu bo‘limda ochiladi.
-            </span>
-          </span>
-        </label>
       </div>
       {asTeacher ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -98,8 +86,7 @@ export function RegisterForm() {
             />
           </div>
         </div>
-      ) : null}
-      {!asTeacher ? (
+      ) : (
         <div>
           <label htmlFor="gradeLevel" className="block text-sm font-medium text-slate-700">
             Sinf
@@ -121,7 +108,7 @@ export function RegisterForm() {
             ))}
           </select>
         </div>
-      ) : null}
+      )}
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-slate-700">
           Parol (kamida 8 belgi)
@@ -150,6 +137,12 @@ export function RegisterForm() {
           className="mt-1 min-h-12 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-500/30 focus:border-blue-500 focus:ring-4"
         />
       </div>
+      {asTeacher ? (
+        <p className="rounded-xl border border-violet-100 bg-violet-50/80 px-3 py-2 text-xs leading-relaxed text-violet-950">
+          Ro&apos;yxatdan keyin admin tasdig&apos;ini kutasiz. Tasdiqlangach virtual sinflar va
+          boshqaruv paneli ochiladi.
+        </p>
+      ) : null}
       {state?.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
           {state.error}
